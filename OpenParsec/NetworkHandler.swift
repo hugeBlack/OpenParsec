@@ -47,6 +47,6 @@ struct HostInfo:Decodable
 
 struct HostInfoList:Decodable
 {
-	var data:Array<HostInfo>
+	var data:Array<HostInfo>?
 	var has_more:Bool
 }

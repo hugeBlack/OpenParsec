@@ -248,9 +248,12 @@ struct MainView:View
 					{
 						let info:HostInfoList =  try! decoder.decode(HostInfoList.self, from:data)
 						hosts.removeAll()
-						info.data.forEach
-						{ h in
-							hosts.append(IdentifiableHostInfo(id:h.peer_id, hostname:h.name, user:h.user))
+						if let datas = info.data
+						{
+							datas.forEach
+							{ h in
+								hosts.append(IdentifiableHostInfo(id:h.peer_id, hostname:h.name, user:h.user))
+							}
 						}
 
 						let formatter = DateFormatter()
@@ -316,10 +319,21 @@ struct MainView:View
 
 	func logout()
 	{
+		removeFromKeychain(key:GLBDataModel.shared.SessionKeyChainKey)
 		NetworkHandler.clinfo = nil
 		if let c = controller
 		{
 			c.setView(.login)
+		}
+	}
+
+	func removeFromKeychain(key:String)
+	{
+		let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key]
+		let status = SecItemDelete(query as CFDictionary)
+		if status == errSecSuccess
+		{
+			print("Successfully removed data from keychain.")
 		}
 	}
 }
