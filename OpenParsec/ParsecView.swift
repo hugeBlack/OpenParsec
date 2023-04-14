@@ -28,6 +28,12 @@ struct ParsecView:View
 			ParsecGLKViewController()
 				.zIndex(0)
 
+			// Input handlers
+			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
+				.zIndex(1)
+			UIViewControllerWrapper(KeyboardViewController())
+				.zIndex(-1)
+
 			// Overlay elements
 			VStack()
 			{
@@ -144,5 +150,66 @@ struct ParsecView:View
 		{
 			c.setView(.main)
 		}
+	}
+
+	func onTouch(typeOfTap:ParsecMouseButton, location:CGPoint, state:UIGestureRecognizer.State)
+	{
+		// Log the touch location
+		print("Touch location: \(location)")
+		print("Touch type: \(typeOfTap)")
+		print("Touch state: \(state)")
+
+		// print("Touch finger count:" \(pointerId))
+		// Convert the touch location to the host's coordinate system
+		let screenWidth = UIScreen.main.bounds.width
+		let screenHeight = UIScreen.main.bounds.height
+		let x = Int32(location.x * CGFloat(CParsec.hostWidth) / screenWidth)
+		let y = Int32(location.y * CGFloat(CParsec.hostHeight) / screenHeight)
+
+		// Log the screen and host dimensions and calculated coordinates
+		print("Screen dimensions: \(screenWidth) x \(screenHeight)")
+		print("Host dimensions: \(CParsec.hostWidth) x \(CParsec.hostHeight)")
+		print("Calculated coordinates: (\(x), \(y))")
+
+		// Send the mouse input to the host
+		switch state
+		{
+			case .began:
+				CParsec.sendMouseMessage(typeOfTap, x, y, true)
+			case .changed:
+				CParsec.sendMousePosition(x, y)
+			case .ended, .cancelled:
+				CParsec.sendMouseMessage(typeOfTap, x, y, false)
+			default:
+				break
+		}
+	}
+
+	func onTap(typeOfTap:ParsecMouseButton, location:CGPoint)
+	{
+		// Log the touch location
+		print("Touch location: \(location)")
+		print("Touch type: \(typeOfTap)")
+
+		// print("Touch finger count:" \(pointerId))
+		// Convert the touch location to the host's coordinate system
+		let screenWidth = UIScreen.main.bounds.width
+		let screenHeight = UIScreen.main.bounds.height
+		let x = Int32(location.x * CGFloat(CParsec.hostWidth) / screenWidth)
+		let y = Int32(location.y * CGFloat(CParsec.hostHeight) / screenHeight)
+
+		// Log the screen and host dimensions and calculated coordinates
+		print("Screen dimensions: \(screenWidth) x \(screenHeight)")
+		print("Host dimensions: \(CParsec.hostWidth) x \(CParsec.hostHeight)")
+		print("Calculated coordinates: (\(x), \(y))")
+
+		// Send the mouse input to the host
+		CParsec.sendMouseMessage(typeOfTap, x, y, true)
+		CParsec.sendMouseMessage(typeOfTap, x, y, false)
+	}
+
+	func handleKeyCommand(sender:UIKeyCommand)
+	{
+		CParsec.sendKeyboardMessage(sender:sender)
 	}
 }
