@@ -5,7 +5,9 @@ struct MainView:View
 {
 	var controller:ContentView?
 
+	@State var hostCountStr:String = "0 Hosts"
 	@State var refreshTime:String = "Last refreshed at 1/1/1970 12:00 AM"
+
 	@State var hosts:Array<IdentifiableHostInfo> = []
 
 	@State var showBaseAlert:Bool = false
@@ -37,7 +39,7 @@ struct MainView:View
 		{
 			// Background
 			Rectangle()
-				.fill(Color("BackgroundGray"))
+				.fill(Color("BackgroundTab"))
 				.edgesIgnoringSafeArea(.all)
 
 			// Main controls
@@ -47,22 +49,35 @@ struct MainView:View
 				ZStack()
 				{
 					Rectangle()
-						.fill(Color("BackgroundGray"))
+						.fill(Color("BackgroundTab"))
 						.frame(height:52)
 						.shadow(color:Color("Shading"), radius:4, y:6)
 					HStack()
 					{
-						Button(action:{ showLogoutAlert = true }, label:{ Image(systemName:"chevron.left") })
+						Button(action:{ showLogoutAlert = true }, label:{ Image("SymbolExit").scaleEffect(x:-1) })
 							.padding()
 							.alert(isPresented:$showLogoutAlert)
 							{
 								Alert(title:Text("Are you sure you want to logout?"), primaryButton:.destructive(Text("Logout"), action:logout), secondaryButton:.cancel(Text("Cancel")))
 							}
 						Spacer()
-						Button(action:refreshList, label:{ Image(systemName:"arrow.clockwise") })
+						HStack()
+						{
+							// Probably not the best solution for equal spacing, but I don't know how to do math properly in SwiftUI. Please send me an issue if you have a better solution.
+							Image(systemName:"arrow.clockwise")
+								.padding(4)
+								.opacity(0)
+
+							Text(hostCountStr)
+								.multilineTextAlignment(.center)
+								.foregroundColor(Color("Foreground"))
+								.font(.system(size:20, weight:.medium))
+							Button(action:refreshList, label:{ Image(systemName:"arrow.clockwise") })
+								.padding(4)
+						}
+						Spacer()
+						Button(action:{ inSettings = true }, label:{ Image(systemName:"gear") })
 							.padding()
-//						Button(action:{ withAnimation { inSettings = true } }, label:{ Image(systemName:"gear") })
-//							.padding()
 					}
 					.foregroundColor(Color("AccentColor"))
 				}
@@ -116,6 +131,7 @@ struct MainView:View
 				}
 				.padding(.top, -8)
 				.frame(maxWidth:.infinity)
+				.background(Color("BackgroundGray"))
 				.alert(isPresented:$showBaseAlert)
 				{
 					Alert(title:Text(baseAlertText))
@@ -123,6 +139,9 @@ struct MainView:View
 			}
 			.onAppear(perform:refreshList)
 			.disabled(busy) // disable view if busy
+
+			// Settings screen
+			SettingsView(visible:$inSettings)
 
 			// Loading elements
 			if isConnecting
@@ -179,35 +198,6 @@ struct MainView:View
 					.padding()
 				}
 			}
-
-			// Settings screen
-			if inSettings
-			{
-				ZStack()
-				{
-					Rectangle() // Darken background
-						.fill(Color.black)
-						.opacity(0.5)
-						.edgesIgnoringSafeArea(.all)
-					VStack()
-					{
-						HStack()
-						{
-							Button(action:{ withAnimation { inSettings = false } }, label:{ Image(systemName:"xmark") })
-							Spacer()
-						}
-						.foregroundColor(Color("AccentColor"))
-						ScrollView(.vertical)
-						{
-
-						}
-					}
-					.padding()
-					.background(Rectangle().fill(Color("BackgroundGray")))
-					.cornerRadius(8)
-					.padding()
-				}
-			}
 		}
 		.foregroundColor(Color("Foreground"))
 	}
@@ -255,6 +245,14 @@ struct MainView:View
 								hosts.append(IdentifiableHostInfo(id:h.peer_id, hostname:h.name, user:h.user))
 							}
 						}
+
+						var grammar:String = "hosts"
+						if hosts.count == 1
+						{
+							grammar = "host"
+						}
+
+						hostCountStr = "\(hosts.count) \(grammar)"
 
 						let formatter = DateFormatter()
 						formatter.dateFormat = "M/d/yyyy h:mm a"

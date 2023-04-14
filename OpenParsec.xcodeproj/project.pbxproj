@@ -10,6 +10,7 @@
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
 		271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */; };
+		274A69CF29EA07FA00F595A5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 274A69CE29EA07FA00F595A5 /* SettingsView.swift */; };
 		27899AC7292FE2A9001ACA33 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 27899AC5292FE2A9001ACA33 /* audio.c */; };
 		27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */; };
 		27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */; };
@@ -48,6 +49,7 @@
 		271D14F8292E90EB00D7F1D6 /* ParsecView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecView.swift; sourceTree = "<group>"; };
 		271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKRenderer.swift; sourceTree = "<group>"; };
 		271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKViewController.swift; sourceTree = "<group>"; };
+		274A69CE29EA07FA00F595A5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		27899AC4292FE2A8001ACA33 /* OpenParsec-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "OpenParsec-Bridging-Header.h"; sourceTree = "<group>"; };
 		27899AC5292FE2A9001ACA33 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = audio.c; sourceTree = "<group>"; };
 		27899AC6292FE2A9001ACA33 /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = "<group>"; };
@@ -133,6 +135,7 @@
 				27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */,
 				27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */,
 				27A923E329E9035D00F54BDA /* KeyboardViewController.swift */,
+				274A69CE29EA07FA00F595A5 /* SettingsView.swift */,
 			);
 			path = OpenParsec;
 			sourceTree = "<group>";
@@ -222,6 +225,7 @@
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
 				271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */,
+				274A69CF29EA07FA00F595A5 /* SettingsView.swift in Sources */,
 				27E61AA8292994B500FF6563 /* ActivityIndicator.swift in Sources */,
 				271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */,
 				27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */,
