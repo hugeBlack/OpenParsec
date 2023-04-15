@@ -94,12 +94,25 @@ struct MainView:View
 						{ i in
 							VStack()
 							{
-								Image("IconTransparent")
-									.resizable()
-									.aspectRatio(contentMode: .fit)
-									.frame(width:64, height:64)
-									.background(Rectangle().fill(Color("BackgroundPrompt")))
-									.cornerRadius(8)
+								URLImage(url:URL(string:"https://parsecusercontent.com/cors-resize-image/w=64,h=64,fit=crop,background=white,q=90,f=jpeg/avatars/\(String(i.user.id))/avatar"),
+										output:
+										{
+											$0
+												.resizable()
+												.aspectRatio(contentMode:.fit)
+												.frame(width:64, height:64)
+												.cornerRadius(8)
+										},
+										placeholder:
+										{
+											Image("IconTransparent")
+												.resizable()
+												.aspectRatio(contentMode:.fit)
+												.frame(width:64, height:64)
+												.background(Rectangle()
+																.fill(Color("BackgroundPrompt")))
+												.cornerRadius(8)
+										})
 								Text(i.hostname)
 									.font(.system(size:20, weight:.medium))
 									.multilineTextAlignment(.center)
@@ -220,7 +233,7 @@ struct MainView:View
 			let apiURL = URL(string:"https://kessel-api.parsecgaming.com/v2/hosts?mode=desktop&public=false")!
 
 			var request = URLRequest(url:apiURL)
-			request.httpMethod = "GET";
+			request.httpMethod = "GET"
 			request.setValue("application/json", forHTTPHeaderField:"Content-Type")
 			request.setValue("Bearer \(clinfo!.session_id)", forHTTPHeaderField:"Authorization")
 

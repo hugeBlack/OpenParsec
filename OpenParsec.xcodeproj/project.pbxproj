@@ -15,6 +15,7 @@
 		27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */; };
 		27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */; };
 		27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E329E9035D00F54BDA /* KeyboardViewController.swift */; };
+		27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AC751729EA339B00E8CAF7 /* URLImage.swift */; };
 		27B8D564292DC7A000A324AD /* CParsec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B8D563292DC7A000A324AD /* CParsec.swift */; };
 		27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27B8D56F292DCA5800A324AD /* ParsecSDK.framework */; };
 		27B8D572292DCA5B00A324AD /* ParsecSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 27B8D56F292DCA5800A324AD /* ParsecSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -56,6 +57,7 @@
 		27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchHandlingView.swift; sourceTree = "<group>"; };
 		27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewControllerWrapper.swift; sourceTree = "<group>"; };
 		27A923E329E9035D00F54BDA /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		27AC751729EA339B00E8CAF7 /* URLImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLImage.swift; sourceTree = "<group>"; };
 		27B8D563292DC7A000A324AD /* CParsec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CParsec.swift; sourceTree = "<group>"; };
 		27B8D56F292DCA5800A324AD /* ParsecSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = ParsecSDK.framework; sourceTree = "<group>"; };
 		27E61A8E292965FC00FF6563 /* OpenParsec.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenParsec.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +138,7 @@
 				27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */,
 				27A923E329E9035D00F54BDA /* KeyboardViewController.swift */,
 				274A69CE29EA07FA00F595A5 /* SettingsView.swift */,
+				27AC751729EA339B00E8CAF7 /* URLImage.swift */,
 			);
 			path = OpenParsec;
 			sourceTree = "<group>";
@@ -221,6 +224,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC16A7AD29A97BDA00BB70A7 /* Shared.swift in Sources */,
+				27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */,
 				27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */,
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
