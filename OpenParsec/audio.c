@@ -4,7 +4,7 @@
 
 #include <AudioToolbox/AudioToolbox.h>
 
-#define NUM_AUDIO_BUF 16
+#define NUM_AUDIO_BUF 24
 #define BUFFER_SIZE 4096
 
 bool isMuted = false;
