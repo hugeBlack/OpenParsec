@@ -51,6 +51,9 @@ struct MainView:View
 			Rectangle()
 				.fill(Color("BackgroundTab"))
 				.edgesIgnoringSafeArea(.all)
+			Rectangle()
+				.fill(Color("BackgroundGray"))
+				.padding(.vertical, 52)
 
 			// Main controls
 			VStack()
@@ -94,9 +97,11 @@ struct MainView:View
 						.padding()
 				}
 				.foregroundColor(Color("AccentColor"))
-				.background(Rectangle().fill(Color("BackgroundTab"))
+				.background(Color("BackgroundTab")
 					.frame(height:52)
-					.shadow(color:Color("Shading"), radius:4, y:6))
+					.shadow(color:Color("Shading"), radius:4, y:6)
+					.mask(Rectangle().frame(height:80).offset(y:50))
+				)
 				.zIndex(1)
 
 				ZStack()
@@ -271,7 +276,6 @@ struct MainView:View
 				}
 				.padding(.top, -8)
 				.frame(maxWidth:.infinity)
-				.background(Color("BackgroundGray"))
 				.alert(isPresented:$showBaseAlert)
 				{
 					Alert(title:Text(baseAlertText))
@@ -305,10 +309,11 @@ struct MainView:View
 					Spacer()
 				}
 				.padding([.leading, .bottom, .trailing], 4)
-				.background(Rectangle()
-					.fill(Color("BackgroundTab"))
+				.background(Color("BackgroundTab")
 					.padding(.top, -8)
-					.shadow(color:Color("Shading"), radius:4, y:-2))
+					.shadow(color:Color("Shading"), radius:4, y:-2)
+					.mask(Rectangle().frame(height:80).offset(y:-50))
+				)
 				.zIndex(1)
 			}
 			.onAppear(perform:initView)
