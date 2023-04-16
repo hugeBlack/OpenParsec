@@ -175,7 +175,7 @@ struct LoginView:View
 
 		withAnimation { isLoading = true }
 
-		let apiURL = URL(string:"https://kessel-api.parsecgaming.com/v1/auth")!
+		let apiURL = URL(string:"https://kessel-api.parsec.app/v1/auth")!
 
 		var request = URLRequest(url:apiURL)
 		request.httpMethod = "POST";
