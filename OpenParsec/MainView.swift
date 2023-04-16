@@ -8,13 +8,13 @@ struct MainView:View
 	@State private var page:Page = .hosts
 
 	// Host page vars
-	@State var hostCountStr:String = "0 Hosts"
+	@State var hostCountStr:String = "0 hosts"
 	@State var refreshTime:String = "Last refreshed at 1/1/1970 12:00 AM"
 
 	@State var hosts:Array<IdentifiableHostInfo> = []
 
 	// Friend page vars
-	@State var friendCountStr:String = "0 Friends"
+	@State var friendCountStr:String = "0 friends"
 
 	@State var userInfo:IdentifiableUserInfo? = nil
 	@State var friends:Array<IdentifiableUserInfo> = []
@@ -543,10 +543,10 @@ struct MainView:View
 							}
 						}
 
-						var grammar:String = "Friends"
+						var grammar:String = "friends"
 						if friends.count == 1
 						{
-							grammar = "Friend"
+							grammar = "friend"
 						}
 
 						friendCountStr = "\(friends.count) \(grammar)"
