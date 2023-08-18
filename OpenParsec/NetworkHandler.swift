@@ -22,8 +22,8 @@ struct UserInfo:Decodable
 	var id:Int
 	var name:String
 	var warp:Bool
-	var external_id:String
-	var external_provider:String
+//	var external_id:String
+//	var external_provider:String
 	var team_id:String
 }
 
