@@ -1,0 +1,5 @@
+[submodule "Frameworks/ParsecSDK.framework"]
+	path = Frameworks/ParsecSDK.framework
+	url = https://github.com/dicksonhk/parsec-sdk
+	branch = sdk/ios
+	shallow = true
