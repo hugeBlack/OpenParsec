@@ -47,11 +47,29 @@ class CParsec
 
 	static func connect(_ peerID:String) -> ParsecStatus
 	{
-		return ParsecClientConnect(_parsec, nil, NetworkHandler.clinfo?.session_id, peerID)
+		var parsecClientCfg = ParsecClientConfig()
+		parsecClientCfg.video.0.decoderIndex = 1
+		parsecClientCfg.video.0.resolutionX = 0
+		parsecClientCfg.video.0.resolutionY = 0
+		parsecClientCfg.video.0.decoderCompatibility = false
+		parsecClientCfg.video.0.decoderH265 = true
+		
+		parsecClientCfg.video.1.decoderIndex = 1
+		parsecClientCfg.video.1.resolutionX = 0
+		parsecClientCfg.video.1.resolutionY = 0
+		parsecClientCfg.video.1.decoderCompatibility = false
+		parsecClientCfg.video.1.decoderH265 = true
+		
+	    parsecClientCfg.mediaContainer = 0
+		parsecClientCfg.protocol = 1
+		//parsecClientCfg.secret = ""
+		parsecClientCfg.pngCursor = false
+		return ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
 	}
 
 	static func disconnect()
 	{
+        audio_clear(&_audio)
 		ParsecClientDisconnect(_parsec)
 	}
 
@@ -60,6 +78,11 @@ class CParsec
 		return ParsecClientGetStatus(_parsec, nil)
 	}
 
+    static func getStatusEx(pcs: inout ParsecClientStatus) -> ParsecStatus
+	{
+		return ParsecClientGetStatus(_parsec, &pcs)
+	}
+	
 	static func setFrame(_ width:CGFloat, _ height:CGFloat, _ scale:CGFloat)
 	{
 		ParsecClientSetDimensions(_parsec, UInt8(DEFAULT_STREAM), UInt32(width), UInt32(height), Float(scale))
@@ -84,7 +107,29 @@ class CParsec
 
 	static func setMuted(_ muted:Bool)
 	{
-		audio_mute(muted)
+		audio_mute(muted, _audioPtr)
+	}
+	
+	static func setH265(_ preferH265:Bool)
+	{
+		var parsecClientCfg = ParsecClientConfig()
+		parsecClientCfg.video.0.decoderIndex = 1
+		parsecClientCfg.video.0.resolutionX = 0
+		parsecClientCfg.video.0.resolutionY = 0
+		parsecClientCfg.video.0.decoderCompatibility = false
+		parsecClientCfg.video.0.decoderH265 = preferH265
+		
+		parsecClientCfg.video.1.decoderIndex = 1
+		parsecClientCfg.video.1.resolutionX = 0
+		parsecClientCfg.video.1.resolutionY = 0
+		parsecClientCfg.video.1.decoderCompatibility = false
+		parsecClientCfg.video.1.decoderH265 = preferH265
+		
+	    parsecClientCfg.mediaContainer = 0
+		parsecClientCfg.protocol = 1
+		//parsecClientCfg.secret = ""
+		parsecClientCfg.pngCursor = false
+		ParsecClientSetConfig(_parsec, &parsecClientCfg);
 	}
 
 	static func sendMouseMessage(_ button:ParsecMouseButton, _ x:Int32, _ y:Int32, _ pressed:Bool)
@@ -270,5 +315,43 @@ class CParsec
 
 			default: return ParsecKeycode(UInt32(0))
 		}
+	}
+	
+	static func sendGameControllerButtonMessage(controllerId:UInt32, _ button:ParsecGamepadButton, pressed:Bool)
+	{
+		var pmsg = ParsecMessage()
+		pmsg.type = MESSAGE_GAMEPAD_BUTTON
+		pmsg.gamepadButton.id = controllerId
+		pmsg.gamepadButton.button = button
+		pmsg.gamepadButton.pressed = pressed
+		ParsecClientSendMessage(_parsec, &pmsg)
+	}
+	
+	/*static func sendGameControllerTriggerButtonMessage(controllerId:UInt32, _ button:ParsecGamepadAxis, pressed:Bool)
+	{
+	    var pmsg = ParsecMessage()
+		pmsg.type = MESSAGE_GAMEPAD_AXIS
+		pmsg.gamepadAxis.id = controllerId
+		pmsg.gamepadAxis.button = button
+		pmsg.gamepadAxis.pressed = pressed
+		ParsecClientSendMessage(_parsec, &pmsg)
+	}*/
+	
+	static func sendGameControllerAxisMessage(controllerId:UInt32, _ button:ParsecGamepadAxis, _ value: Int16)
+	{
+	    var pmsg = ParsecMessage()
+		pmsg.type = MESSAGE_GAMEPAD_AXIS
+		pmsg.gamepadAxis.id = controllerId
+		pmsg.gamepadAxis.axis = button
+		pmsg.gamepadAxis.value = value
+		ParsecClientSendMessage(_parsec, &pmsg)
+	}
+	
+	static func sendGameControllerUnplugMessage(controllerId:UInt32)
+	{
+	    var pmsg = ParsecMessage()
+		pmsg.type = MESSAGE_GAMEPAD_UNPLUG;
+		pmsg.gamepadUnplug.id = controllerId;
+		ParsecClientSendMessage(_parsec, &pmsg)
 	}
 }

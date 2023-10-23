@@ -17,7 +17,7 @@
 		27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E329E9035D00F54BDA /* KeyboardViewController.swift */; };
 		27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AC751729EA339B00E8CAF7 /* URLImage.swift */; };
 		27B8D564292DC7A000A324AD /* CParsec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B8D563292DC7A000A324AD /* CParsec.swift */; };
-		27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27B8D56F292DCA5800A324AD /* ParsecSDK.framework */; };
+		27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27B8D56F292DCA5800A324AD /* ParsecSDK.framework */; settings = {ATTRIBUTES = (Required, ); }; };
 		27B8D572292DCA5B00A324AD /* ParsecSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 27B8D56F292DCA5800A324AD /* ParsecSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E61A91292965FC00FF6563 /* AppDelegate.swift */; };
 		27E61A94292965FC00FF6563 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E61A93292965FC00FF6563 /* SceneDelegate.swift */; };
@@ -29,6 +29,7 @@
 		27E61AA8292994B500FF6563 /* ActivityIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E61AA7292994B500FF6563 /* ActivityIndicator.swift */; };
 		27E61AAA2929B92200FF6563 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E61AA92929B92200FF6563 /* MainView.swift */; };
 		27ED36FF292D4F9800B1BE3D /* NetworkHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27ED36FE292D4F9800B1BE3D /* NetworkHandler.swift */; };
+		84480EBE2ADC4FDA007DE5F1 /* GameController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84480EBD2ADC4FDA007DE5F1 /* GameController.swift */; };
 		FC16A7AD29A97BDA00BB70A7 /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC16A7AC29A97BDA00BB70A7 /* Shared.swift */; };
 /* End PBXBuildFile section */
 
@@ -72,6 +73,7 @@
 		27E61AA7292994B500FF6563 /* ActivityIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityIndicator.swift; sourceTree = "<group>"; };
 		27E61AA92929B92200FF6563 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		27ED36FE292D4F9800B1BE3D /* NetworkHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkHandler.swift; sourceTree = "<group>"; };
+		84480EBD2ADC4FDA007DE5F1 /* GameController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GameController.swift; sourceTree = "<group>"; };
 		FC16A7AC29A97BDA00BB70A7 /* Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -115,6 +117,7 @@
 		27E61A90292965FC00FF6563 /* OpenParsec */ = {
 			isa = PBXGroup;
 			children = (
+				84480EBD2ADC4FDA007DE5F1 /* GameController.swift */,
 				27899AC5292FE2A9001ACA33 /* audio.c */,
 				27899AC6292FE2A9001ACA33 /* audio.h */,
 				271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */,
@@ -224,6 +227,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC16A7AD29A97BDA00BB70A7 /* Shared.swift in Sources */,
+				84480EBE2ADC4FDA007DE5F1 /* GameController.swift in Sources */,
 				27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */,
 				27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */,
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
