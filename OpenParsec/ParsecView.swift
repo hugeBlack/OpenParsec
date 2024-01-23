@@ -4,19 +4,18 @@ import ParsecSDK
 struct ParsecView:View
 {
 	var controller:ContentView?
-
-	@State var pollTimer:Timer?
-	//@State var audioPollTimer:Timer?
 	
 	@State var showDCAlert:Bool = false
 	@State var DCAlertText:String = "Disconnected (reason unknown)"
-    @State var MetricInfo1:String = "None"
+    @State var metricInfo:String = "Loading..."
 	
 	@State var hideOverlay:Bool = false
 	@State var showMenu:Bool = false
 
 	@State var muted:Bool = false
     @State var preferH265:Bool = true
+	
+	//@State var showDisplays:Bool = false
 	
 	init(_ controller:ContentView?)
 	{
@@ -28,13 +27,21 @@ struct ParsecView:View
 		ZStack()
 		{
 			// Stream view controller
-			ParsecGLKViewController()
-				.zIndex(0)
-                .edgesIgnoringSafeArea(.all)
-				//.onAppear(perform:startAudioPollTimer)
-				//.onDisappear(perform:stopAudioPollTimer)
-				
-				
+			//switch SettingsHandler.renderer
+			//{
+				//case .opengl:
+				ParsecGLKViewController(onBeforeRender:poll)
+						.zIndex(0)
+						.edgesIgnoringSafeArea(.all)
+				//case .metal:
+				//	Text("Metal is a work in progress, check back soon!")
+				//		.background(Color.black)
+				//		.foregroundColor(.white)
+					/*ParsecMetalViewController(onBeforeRender:poll)
+						.zIndex(0)
+						.edgesIgnoringSafeArea(.all)*/
+			//}
+			
 			// Input handlers
 			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
 				.zIndex(2)
@@ -42,13 +49,13 @@ struct ParsecView:View
 				.zIndex(-1)
             UIViewControllerWrapper(GamepadViewController())
 			    .zIndex(-2)
-				
+			
 			// Overlay elements
 			if showMenu
             {
                 VStack()
                 {
-                    Text("\(MetricInfo1)")
+                    Text("\(metricInfo)")
                         .frame(minWidth:200, maxWidth:.infinity, maxHeight:20)
                         .multilineTextAlignment(.leading)
                         .font(.system(size: 10))
@@ -87,7 +94,7 @@ struct ParsecView:View
 				{	
 					HStack()
 					{
-						VStack(spacing:4)
+						VStack(spacing:3)
 						{
 							Button(action:disableOverlay)
 							{
@@ -103,13 +110,21 @@ struct ParsecView:View
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
-							Button(action:toggleH265)
+							/*Button(action:{showDisplays = true})
 							{
-								Text("Decoder: \(preferH265 ? "prefer H265" : "H264")")
+								Text("Switch Display")
 									.padding(12)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
+							.actionSheet(isPresented:$showDisplays, content:genDisplaySheet)*/
+							/*Button(action:{inSettings = true})
+							{
+								Text("Settings")
+									.padding(12)
+									.frame(maxWidth:.infinity)
+									.multilineTextAlignment(.center)
+							}*/
 							Rectangle()
 								.fill(Color("Foreground"))
 								.opacity(0.25)
@@ -141,75 +156,43 @@ struct ParsecView:View
 		{
 			Alert(title:Text(DCAlertText), dismissButton:.default(Text("Close"), action:disconnect))
 		}
-		.onAppear(perform:startPollTimer)
-		.onDisappear(perform:stopPollTimer)
+		.onAppear(perform:post)
 		.edgesIgnoringSafeArea(.all)
 	}
-
-    func FromBuf(ptr: UnsafeMutablePointer<CChar>, length len: Int) -> String {
-        // convert the bytes using the UTF8 encoding
-        //let theString = NSString(bytes: ptr, length: len, encoding: NSUTF8StringEncoding)
-		let theString = NSString(bytes: ptr, length: len, encoding: NSASCIIStringEncoding)
-        return theString as! String
-    }
 	
-	func startPollTimer()
+	func post()
 	{
-		if pollTimer != nil { return }
+		CParsec.applyConfig()
+		CParsec.setMuted(muted)
 		
-		pollTimer = Timer.scheduledTimer(withTimeInterval:1, repeats:true)
-		{ timer in
-		
-		    if showMenu == false
-			{
-			    //var pcs = ParsecClientStatus()
-		        let status = CParsec.getStatus()
-		        if status != PARSEC_OK
-		        {
-		        	DCAlertText = "Disconnected (code \(status.rawValue))"
-		        	showDCAlert = true
-		        	timer.invalidate()
-		        }
-			}
-			else
-			{
-			    var pcs = ParsecClientStatus()
-			    let status = CParsec.getStatusEx(pcs:&pcs)
-			    if status != PARSEC_OK
-			    {
-			    	DCAlertText = "Disconnected (code \(status.rawValue))"
-			    	showDCAlert = true
-			    	timer.invalidate()
-			    }
-			    
-	            let str = FromBuf(ptr: &pcs.decoder.0.name.0, length: 16)
-			    MetricInfo1 = "Decode \(String(format:"%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format:"%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format:"%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format:"%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"	    
-			}
-		}
-        
-        CParsec.setMuted(muted)
-	}
-
-	func stopPollTimer()
-	{
-		pollTimer!.invalidate()
+		hideOverlay = SettingsHandler.noOverlay
 	}
 	
-	/*func startAudioPollTimer()
+	func poll()
 	{
-		if audioPollTimer != nil { return }
+		if showDCAlert
+		{
+			return // no need to poll if we aren't connected anymore
+		}
 		
-		audioPollTimer = Timer.scheduledTimer(withTimeInterval:0.01666667, repeats:true)
-		{ timer in
+		var pcs = ParsecClientStatus()
+		let status = CParsec.getStatusEx(&pcs)
 		
-		    CParsec.pollAudio()
+		if status != PARSEC_OK
+		{
+			DCAlertText = "Disconnected (code \(status.rawValue))"
+			showDCAlert = true
+			return
+		}
+		
+		CParsec.pollAudio()
+		
+		if showMenu
+		{
+			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
+			metricInfo = "Decode \(String(format:"%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format:"%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format:"%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format:"%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
 		}
 	}
-
-	func stopAudioPollTimer()
-	{
-		audioPollTimer!.invalidate()
-	}*/
 	
 	func disableOverlay()
 	{
@@ -222,12 +205,31 @@ struct ParsecView:View
 		muted.toggle()
 		CParsec.setMuted(muted)
 	}
-
-    func toggleH265()
+	
+	/*func genDisplaySheet() -> ActionSheet
 	{
-		preferH265.toggle()
-		CParsec.setH265(preferH265)
-	}
+		let len:Int = 16
+		var outputs = [ParsecOutput?](repeating:nil, count:len)
+		ParsecGetOutputs(&outputs, UInt32(len))
+		print("Listing \(outputs.count) displays")
+
+		func getDeviceName(_ output:ParsecOutput) -> String
+		{
+			return withUnsafePointer(to:output.device)
+			{
+				$0.withMemoryRebound(to:UInt8.self, capacity:MemoryLayout.size(ofValue:$0))
+				{
+					String(cString:$0)
+				}
+			}
+		}
+
+		let buttons = outputs.enumerated().map
+		{ i, output in
+			Alert.Button.default(Text("\(i) - \(getDeviceName(output))"), action:{print("Selected device \(i)")})
+		}
+		return ActionSheet(title:Text("Select a Display:"), buttons:buttons + [Alert.Button.cancel()])
+	}*/
 	
 	func disconnect()
 	{

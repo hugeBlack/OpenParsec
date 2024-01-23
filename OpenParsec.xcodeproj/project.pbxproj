@@ -12,10 +12,14 @@
 		271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */; };
 		274A69CF29EA07FA00F595A5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 274A69CE29EA07FA00F595A5 /* SettingsView.swift */; };
 		27899AC7292FE2A9001ACA33 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 27899AC5292FE2A9001ACA33 /* audio.c */; };
+		27A267352B1AEAB700F34C63 /* SettingsHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A267342B1AEAB700F34C63 /* SettingsHandler.swift */; };
 		27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */; };
 		27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */; };
 		27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E329E9035D00F54BDA /* KeyboardViewController.swift */; };
 		27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AC751729EA339B00E8CAF7 /* URLImage.swift */; };
+		27AD36602B19731800C8A607 /* ExUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AD365F2B19731800C8A607 /* ExUI.swift */; };
+		27B23A222B1B979C00B52F14 /* ParsecMetalRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B23A212B1B979C00B52F14 /* ParsecMetalRenderer.swift */; };
+		27B23A242B1B98EF00B52F14 /* ParsecMetalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B23A232B1B98EF00B52F14 /* ParsecMetalViewController.swift */; };
 		27B8D564292DC7A000A324AD /* CParsec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B8D563292DC7A000A324AD /* CParsec.swift */; };
 		27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27B8D56F292DCA5800A324AD /* ParsecSDK.framework */; settings = {ATTRIBUTES = (Required, ); }; };
 		27B8D572292DCA5B00A324AD /* ParsecSDK.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 27B8D56F292DCA5800A324AD /* ParsecSDK.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -55,12 +59,16 @@
 		27899AC4292FE2A8001ACA33 /* OpenParsec-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "OpenParsec-Bridging-Header.h"; sourceTree = "<group>"; };
 		27899AC5292FE2A9001ACA33 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = audio.c; sourceTree = "<group>"; };
 		27899AC6292FE2A9001ACA33 /* audio.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = audio.h; sourceTree = "<group>"; };
+		27A267342B1AEAB700F34C63 /* SettingsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHandler.swift; sourceTree = "<group>"; };
 		27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchHandlingView.swift; sourceTree = "<group>"; };
 		27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewControllerWrapper.swift; sourceTree = "<group>"; };
 		27A923E329E9035D00F54BDA /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		27AC751729EA339B00E8CAF7 /* URLImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLImage.swift; sourceTree = "<group>"; };
+		27AD365F2B19731800C8A607 /* ExUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExUI.swift; sourceTree = "<group>"; };
+		27B23A212B1B979C00B52F14 /* ParsecMetalRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecMetalRenderer.swift; sourceTree = "<group>"; };
+		27B23A232B1B98EF00B52F14 /* ParsecMetalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecMetalViewController.swift; sourceTree = "<group>"; };
 		27B8D563292DC7A000A324AD /* CParsec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CParsec.swift; sourceTree = "<group>"; };
-		27B8D56F292DCA5800A324AD /* ParsecSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = ParsecSDK.framework; sourceTree = "<group>"; };
+		27B8D56F292DCA5800A324AD /* ParsecSDK.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ParsecSDK.framework; path = Frameworks/ParsecSDK.framework; sourceTree = SOURCE_ROOT; };
 		27E61A8E292965FC00FF6563 /* OpenParsec.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenParsec.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		27E61A91292965FC00FF6563 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		27E61A93292965FC00FF6563 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -105,6 +113,7 @@
 				27E61A8F292965FC00FF6563 /* Products */,
 			);
 			sourceTree = "<group>";
+			usesTabs = 1;
 		};
 		27E61A8F292965FC00FF6563 /* Products */ = {
 			isa = PBXGroup;
@@ -122,6 +131,8 @@
 				27899AC6292FE2A9001ACA33 /* audio.h */,
 				271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */,
 				271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */,
+				27B23A212B1B979C00B52F14 /* ParsecMetalRenderer.swift */,
+				27B23A232B1B98EF00B52F14 /* ParsecMetalViewController.swift */,
 				27E61A91292965FC00FF6563 /* AppDelegate.swift */,
 				27E61A93292965FC00FF6563 /* SceneDelegate.swift */,
 				27E61A95292965FC00FF6563 /* ContentView.swift */,
@@ -141,7 +152,9 @@
 				27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */,
 				27A923E329E9035D00F54BDA /* KeyboardViewController.swift */,
 				274A69CE29EA07FA00F595A5 /* SettingsView.swift */,
+				27A267342B1AEAB700F34C63 /* SettingsHandler.swift */,
 				27AC751729EA339B00E8CAF7 /* URLImage.swift */,
+				27AD365F2B19731800C8A607 /* ExUI.swift */,
 			);
 			path = OpenParsec;
 			sourceTree = "<group>";
@@ -229,6 +242,7 @@
 				FC16A7AD29A97BDA00BB70A7 /* Shared.swift in Sources */,
 				84480EBE2ADC4FDA007DE5F1 /* GameController.swift in Sources */,
 				27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */,
+				27B23A242B1B98EF00B52F14 /* ParsecMetalViewController.swift in Sources */,
 				27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */,
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
@@ -238,10 +252,13 @@
 				271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */,
 				27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */,
 				27E61A94292965FC00FF6563 /* SceneDelegate.swift in Sources */,
+				27A267352B1AEAB700F34C63 /* SettingsHandler.swift in Sources */,
+				27AD36602B19731800C8A607 /* ExUI.swift in Sources */,
 				27899AC7292FE2A9001ACA33 /* audio.c in Sources */,
 				27E61AA62929817700FF6563 /* LoginView.swift in Sources */,
 				27B8D564292DC7A000A324AD /* CParsec.swift in Sources */,
 				27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */,
+				27B23A222B1B979C00B52F14 /* ParsecMetalRenderer.swift in Sources */,
 				27E61A96292965FC00FF6563 /* ContentView.swift in Sources */,
 				27ED36FF292D4F9800B1BE3D /* NetworkHandler.swift in Sources */,
 				271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */,
@@ -305,6 +322,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
+					GLES_SILENCE_DEPRECATION,
 					"$(inherited)",
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -362,6 +380,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = GLES_SILENCE_DEPRECATION;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;

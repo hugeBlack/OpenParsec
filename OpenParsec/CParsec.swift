@@ -1,9 +1,23 @@
 import ParsecSDK
+import MetalKit
 import UIKit
 
-enum RendererType
+enum RendererType:Int
 {
 	case opengl
+    case metal
+}
+
+enum DecoderPref:Int
+{
+    case h264
+    case h265
+}
+
+enum CursorMode:Int
+{
+    case touchpad
+    case direct
 }
 
 class CParsec
@@ -16,6 +30,10 @@ class CParsec
 
 	public static var hostWidth:Float = 0
 	public static var hostHeight:Float = 0
+	
+	public static var netProtocol:Int32 = 1
+	public static var mediaContainer:Int32 = 0
+	public static var pngCursor:Bool = false
 
 	static let PARSEC_VER:UInt32 = UInt32((PARSEC_VER_MAJOR << 16) | PARSEC_VER_MINOR)
 
@@ -78,7 +96,7 @@ class CParsec
 		return ParsecClientGetStatus(_parsec, nil)
 	}
 
-    static func getStatusEx(pcs: inout ParsecClientStatus) -> ParsecStatus
+    static func getStatusEx(_ pcs:inout ParsecClientStatus) -> ParsecStatus
 	{
 		return ParsecClientGetStatus(_parsec, &pcs)
 	}
@@ -91,16 +109,17 @@ class CParsec
 		hostHeight = Float(height)
 	}
 
-	static func renderFrame(_ type:RendererType, timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS
+	static func renderGLFrame(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 	{
-		switch type
-		{
-			case .opengl:
-				ParsecClientGLRenderFrame(_parsec, UInt8(DEFAULT_STREAM), nil, nil, timeout)
-		}
+		ParsecClientGLRenderFrame(_parsec, UInt8(DEFAULT_STREAM), nil, nil, timeout)
 	}
+	
+	/*static func renderMetalFrame(_ queue:inout MTLCommandQueue, _ texturePtr:UnsafeMutablePointer<UnsafeMutableRawPointer?>, timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
+	{
+		ParsecClientMetalRenderFrame(_parsec, UInt8(DEFAULT_STREAM), &queue, texturePtr, nil, nil, timeout)
+	}*/
 
-	static func pollAudio(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS
+	static func pollAudio(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 	{
 		ParsecClientPollAudio(_parsec, audio_cb, timeout, _audioPtr)
 	}
@@ -110,25 +129,27 @@ class CParsec
 		audio_mute(muted, _audioPtr)
 	}
 	
-	static func setH265(_ preferH265:Bool)
+	static func applyConfig()
 	{
 		var parsecClientCfg = ParsecClientConfig()
+		
 		parsecClientCfg.video.0.decoderIndex = 1
 		parsecClientCfg.video.0.resolutionX = 0
 		parsecClientCfg.video.0.resolutionY = 0
 		parsecClientCfg.video.0.decoderCompatibility = false
-		parsecClientCfg.video.0.decoderH265 = preferH265
+		parsecClientCfg.video.0.decoderH265 = SettingsHandler.decoder == .h265
 		
 		parsecClientCfg.video.1.decoderIndex = 1
 		parsecClientCfg.video.1.resolutionX = 0
 		parsecClientCfg.video.1.resolutionY = 0
 		parsecClientCfg.video.1.decoderCompatibility = false
-		parsecClientCfg.video.1.decoderH265 = preferH265
+		parsecClientCfg.video.1.decoderH265 = SettingsHandler.decoder == .h265
 		
-	    parsecClientCfg.mediaContainer = 0
-		parsecClientCfg.protocol = 1
+	    parsecClientCfg.mediaContainer = mediaContainer
+		parsecClientCfg.protocol = netProtocol
 		//parsecClientCfg.secret = ""
-		parsecClientCfg.pngCursor = false
+		parsecClientCfg.pngCursor = pngCursor
+		
 		ParsecClientSetConfig(_parsec, &parsecClientCfg);
 	}
 

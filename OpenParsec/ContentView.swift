@@ -35,6 +35,9 @@ struct ContentView:View
 	func initApp()
 	{
 		CParsec.initialize()
+		
+		// Load prefs
+		SettingsHandler.load()
 
 		// Check to see if we have old session data
 		if let data = loadFromKeychain(key: GLBDataModel.shared.SessionKeyChainKey)

@@ -5,10 +5,11 @@ struct ParsecGLKViewController:UIViewControllerRepresentable
 {
 	let glkView = GLKView()
 	let glkViewController = GLKViewController()
+	let onBeforeRender:() -> Void
 
 	func makeCoordinator() -> ParsecGLKRenderer
 	{
-		ParsecGLKRenderer(glkView, glkViewController)
+		ParsecGLKRenderer(glkView, glkViewController, onBeforeRender)
 	}
 
 	func makeUIViewController(context:UIViewControllerRepresentableContext<ParsecGLKViewController>) -> GLKViewController
