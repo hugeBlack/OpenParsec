@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
 		271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */; };
@@ -52,6 +53,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBoardTest.swift; sourceTree = "<group>"; };
 		271D14F8292E90EB00D7F1D6 /* ParsecView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecView.swift; sourceTree = "<group>"; };
 		271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKRenderer.swift; sourceTree = "<group>"; };
 		271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKViewController.swift; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 				27A267342B1AEAB700F34C63 /* SettingsHandler.swift */,
 				27AC751729EA339B00E8CAF7 /* URLImage.swift */,
 				27AD365F2B19731800C8A607 /* ExUI.swift */,
+				17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */,
 			);
 			path = OpenParsec;
 			sourceTree = "<group>";
@@ -261,6 +264,7 @@
 				27B23A222B1B979C00B52F14 /* ParsecMetalRenderer.swift in Sources */,
 				27E61A96292965FC00FF6563 /* ContentView.swift in Sources */,
 				27ED36FF292D4F9800B1BE3D /* NetworkHandler.swift in Sources */,
+				17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */,
 				271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -405,15 +409,16 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"OpenParsec/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 3C3YHUUV75;
 				ENABLE_PREVIEWS = YES;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				INFOPLIST_FILE = OpenParsec/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.AngelDTF.OpenParsec;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -432,15 +437,16 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"OpenParsec/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 3C3YHUUV75;
 				ENABLE_PREVIEWS = YES;
+				"EXCLUDED_ARCHS[sdk=*]" = arm64;
 				INFOPLIST_FILE = OpenParsec/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.AngelDTF.OpenParsec;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

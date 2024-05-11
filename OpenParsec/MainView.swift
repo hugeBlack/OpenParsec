@@ -67,6 +67,16 @@ struct MainView:View
 						{
 							Alert(title:Text("Are you sure you want to logout?"), primaryButton:.destructive(Text("Logout"), action:logout), secondaryButton:.cancel(Text("Cancel")))
 						}
+					Button(action: {
+						if let c = controller
+						{
+							c.setView(.test)
+						}
+						
+					}, label: {
+						Text("Show Parsec View")
+					})
+					
 					Spacer()
 					HStack()
 					{
@@ -409,6 +419,7 @@ struct MainView:View
 			request.httpMethod = "GET"
 			request.setValue("application/json", forHTTPHeaderField:"Content-Type")
 			request.setValue("Bearer \(clinfo!.session_id)", forHTTPHeaderField:"Authorization")
+			request.setValue("parsec/150-93b Windows/11 libmatoya/4.0", forHTTPHeaderField: "User-Agent")
 
 			let task = URLSession.shared.dataTask(with:request)
 			{ (data, response, error) in
@@ -475,6 +486,7 @@ struct MainView:View
 			request.httpMethod = "GET"
 			request.setValue("application/json", forHTTPHeaderField:"Content-Type")
 			request.setValue("Bearer \(clinfo!.session_id)", forHTTPHeaderField:"Authorization")
+			request.setValue("parsec/150-93b Windows/11 libmatoya/4.0", forHTTPHeaderField: "User-Agent")
 
 			let task = URLSession.shared.dataTask(with:request)
 			{ (data, response, error) in
@@ -520,6 +532,7 @@ struct MainView:View
 			request.httpMethod = "GET"
 			request.setValue("application/json", forHTTPHeaderField:"Content-Type")
 			request.setValue("Bearer \(clinfo!.session_id)", forHTTPHeaderField:"Authorization")
+			request.setValue("parsec/150-93b Windows/11 libmatoya/4.0", forHTTPHeaderField: "User-Agent")
 
 			let task = URLSession.shared.dataTask(with:request)
 			{ (data, response, error) in

@@ -13,7 +13,7 @@ class KeyboardViewController:UIViewController
 	{
 		print("KeyboardViewController keyboard info: \(sender)")
 
-		CParsec.sendKeyboardMessage(sender:sender)
+//		CParsec.sendKeyboardMessage(sender:sender)
 	}
 
 	@objc func handleModifierKeyCommand(sender:UIKeyCommand)

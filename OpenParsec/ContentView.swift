@@ -5,6 +5,7 @@ enum ViewType
 	case login
 	case main
 	case parsec
+	case test
 }
 
 struct ContentView:View
@@ -26,6 +27,8 @@ struct ContentView:View
 						.transition(defaultTransition)
 				case .parsec:
 					ParsecView(self)
+			case .test:
+				TestView(self)
 			 }
 		}
 		.onAppear(perform:initApp)

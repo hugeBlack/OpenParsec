@@ -180,6 +180,7 @@ struct LoginView:View
 		var request = URLRequest(url:apiURL)
 		request.httpMethod = "POST";
 		request.setValue("application/json", forHTTPHeaderField:"Content-Type")
+		request.setValue("parsec/150-93b Windows/11 libmatoya/4.0", forHTTPHeaderField: "User-Agent")
 		request.httpBody = try? JSONSerialization.data(withJSONObject:
 		[
 			"email":inputEmail,

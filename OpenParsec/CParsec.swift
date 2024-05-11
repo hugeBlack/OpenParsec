@@ -20,6 +20,11 @@ enum CursorMode:Int
     case direct
 }
 
+struct KeyBoardKeyEvent {
+	var input: UIKey?
+	var isPressBegin: Bool
+}
+
 class CParsec
 {
 	private static var _initted:Bool = false
@@ -175,37 +180,406 @@ class CParsec
 		ParsecClientSendMessage(_parsec, &motionMessage)
 	}
 
-	static func sendKeyboardMessage(sender:UIKeyCommand)
+	static func sendKeyboardMessage(event:KeyBoardKeyEvent)
 	{
-		var key = sender.input ?? ""
-
-		switch sender.modifierFlags.rawValue
-		{
-			case 131072:
-				key = "SHIFT"
-				break
-			case 262144:
-				key = "CONTROL"
-				break
-
-			default:
-				break
+		if event.input == nil {
+			return
 		}
+//		var key =
+		
+//		print("code =  \(event.input?.keyCode)")
+//		key = event.input?.characters.uppercased() ?? " "
+//		
+//		if key == " " {
+//			key = "SPACE"
+//		}
 
-		print("Keyboard Message: \(key)")
-		print("KeyboardViewController keyboard modifier info \(sender.modifierFlags.rawValue)")
-
+//		switch sender.modifierFlags.rawValue
+//		{
+//			case 131072:
+//				key = "SHIFT"
+//				break
+//			case 262144:
+//				key = "CONTROL"
+//				break
+//
+//			default:
+//				break
+//		}
+//
+//		print("Keyboard Message: \(key)")
+//		print("KeyboardViewController keyboard modifier info \(sender.modifierFlags.rawValue)")
+		
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
-		keyboardMessagePress.keyboard.code = parsecKeyCodeTranslator(key)
-		keyboardMessagePress.keyboard.pressed = true
+		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
+		keyboardMessagePress.keyboard.pressed = event.isPressBegin
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
-
-		var keyboardMessageRelease = ParsecMessage()
-		keyboardMessageRelease.type = MESSAGE_KEYBOARD
-		keyboardMessageRelease.keyboard.code = parsecKeyCodeTranslator(key)
-		keyboardMessageRelease.keyboard.pressed = false
-		ParsecClientSendMessage(_parsec, &keyboardMessageRelease)
+	}
+	
+	static func uiKeyCodeToInt(key: UIKeyboardHIDUsage) -> Int {
+		switch key {
+		case .keyboardErrorRollOver:
+			return 1
+		case .keyboardPOSTFail:
+			return 2
+		case .keyboardErrorUndefined:
+			return 3
+		case .keyboardA:
+			return 4
+		case .keyboardB:
+			return 5
+		case .keyboardC:
+			return 6
+		case .keyboardD:
+			return 7
+		case .keyboardE:
+			return 8
+		case .keyboardF:
+			return 9
+		case .keyboardG:
+			return 10
+		case .keyboardH:
+			return 11
+		case .keyboardI:
+			return 12
+		case .keyboardJ:
+			return 13
+		case .keyboardK:
+			return 14
+		case .keyboardL:
+			return 15
+		case .keyboardM:
+			return 16
+		case .keyboardN:
+			return 17
+		case .keyboardO:
+			return 18
+		case .keyboardP:
+			return 19
+		case .keyboardQ:
+			return 20
+		case .keyboardR:
+			return 21
+		case .keyboardS:
+			return 22
+		case .keyboardT:
+			return 23
+		case .keyboardU:
+			return 24
+		case .keyboardV:
+			return 25
+		case .keyboardW:
+			return 26
+		case .keyboardX:
+			return 27
+		case .keyboardY:
+			return 28
+		case .keyboardZ:
+			return 29
+		case .keyboard1:
+			return 30
+		case .keyboard2:
+			return 31
+		case .keyboard3:
+			return 32
+		case .keyboard4:
+			return 33
+		case .keyboard5:
+			return 34
+		case .keyboard6:
+			return 35
+		case .keyboard7:
+			return 36
+		case .keyboard8:
+			return 37
+		case .keyboard9:
+			return 38
+		case .keyboard0:
+			return 39
+		case .keyboardReturnOrEnter:
+			return 40
+		case .keyboardEscape:
+			return 41
+		case .keyboardDeleteOrBackspace:
+			return 42
+		case .keyboardTab:
+			return 43
+		case .keyboardSpacebar:
+			return 44
+		case .keyboardHyphen:
+			return 45
+		case .keyboardEqualSign:
+			return 46
+		case .keyboardOpenBracket:
+			return 47
+		case .keyboardCloseBracket:
+			return 48
+		case .keyboardBackslash:
+			return 49
+		case .keyboardNonUSPound:
+			return 50
+		case .keyboardSemicolon:
+			return 51
+		case .keyboardQuote:
+			return 52
+		case .keyboardGraveAccentAndTilde:
+			return 53
+		case .keyboardComma:
+			return 54
+		case .keyboardPeriod:
+			return 55
+		case .keyboardSlash:
+			return 56
+		case .keyboardCapsLock:
+			return 57
+		case .keyboardF1:
+			return 58
+		case .keyboardF2:
+			return 59
+		case .keyboardF3:
+			return 60
+		case .keyboardF4:
+			return 61
+		case .keyboardF5:
+			return 62
+		case .keyboardF6:
+			return 63
+		case .keyboardF7:
+			return 64
+		case .keyboardF8:
+			return 65
+		case .keyboardF9:
+			return 66
+		case .keyboardF10:
+			return 67
+		case .keyboardF11:
+			return 68
+		case .keyboardF12:
+			return 69
+		case .keyboardPrintScreen:
+			return 70
+		case .keyboardScrollLock:
+			return 71
+		case .keyboardPause:
+			return 72
+		case .keyboardInsert:
+			return 73
+		case .keyboardHome:
+			return 74
+		case .keyboardPageUp:
+			return 75
+		case .keyboardDeleteForward:
+			return 76
+		case .keyboardEnd:
+			return 77
+		case .keyboardPageDown:
+			return 78
+		case .keyboardRightArrow:
+			return 79
+		case .keyboardLeftArrow:
+			return 80
+		case .keyboardDownArrow:
+			return 81
+		case .keyboardUpArrow:
+			return 82
+		case .keypadNumLock:
+			return 83
+		case .keypadSlash:
+			return 84
+		case .keypadAsterisk:
+			return 85
+		case .keypadHyphen:
+			return 86
+		case .keypadPlus:
+			return 87
+		case .keypadEnter:
+			return 88
+		case .keypad1:
+			return 89
+		case .keypad2:
+			return 90
+		case .keypad3:
+			return 91
+		case .keypad4:
+			return 92
+		case .keypad5:
+			return 93
+		case .keypad6:
+			return 94
+		case .keypad7:
+			return 95
+		case .keypad8:
+			return 96
+		case .keypad9:
+			return 97
+		case .keypad0:
+			return 98
+		case .keypadPeriod:
+			return 99
+		case .keyboardNonUSBackslash:
+			return 100
+		case .keyboardApplication:
+			return 101
+		case .keyboardPower:
+			return 102
+		case .keypadEqualSign:
+			return 103
+		case .keyboardF13:
+			return 104
+		case .keyboardF14:
+			return 105
+		case .keyboardF15:
+			return 106
+		case .keyboardF16:
+			return 107
+		case .keyboardF17:
+			return 108
+		case .keyboardF18:
+			return 109
+		case .keyboardF19:
+			return 110
+		case .keyboardF20:
+			return 111
+		case .keyboardF21:
+			return 112
+		case .keyboardF22:
+			return 113
+		case .keyboardF23:
+			return 114
+		case .keyboardF24:
+			return 115
+		case .keyboardExecute:
+			return 116
+		case .keyboardHelp:
+			return 117
+		case .keyboardMenu:
+			return 118
+		case .keyboardSelect:
+			return 119
+		case .keyboardStop:
+			return 120
+		case .keyboardAgain:
+			return 121
+		case .keyboardUndo:
+			return 122
+		case .keyboardCut:
+			return 123
+		case .keyboardCopy:
+			return 124
+		case .keyboardPaste:
+			return 125
+		case .keyboardFind:
+			return 126
+		case .keyboardMute:
+			return 127
+		case .keyboardVolumeUp:
+			return 128
+		case .keyboardVolumeDown:
+			return 129
+		case .keyboardLockingCapsLock:
+			return 130
+		case .keyboardLockingNumLock:
+			return 131
+		case .keyboardLockingScrollLock:
+			return 132
+		case .keypadComma:
+			return 133
+		case .keypadEqualSignAS400:
+			return 134
+		case .keyboardInternational1:
+			return 135
+		case .keyboardInternational2:
+			return 136
+		case .keyboardInternational3:
+			return 137
+		case .keyboardInternational4:
+			return 138
+		case .keyboardInternational5:
+			return 139
+		case .keyboardInternational6:
+			return 140
+		case .keyboardInternational7:
+			return 141
+		case .keyboardInternational8:
+			return 142
+		case .keyboardInternational9:
+			return 143
+		case .keyboardLANG1:
+			return 144
+		case .keyboardLANG2:
+			return 145
+		case .keyboardLANG3:
+			return 146
+		case .keyboardLANG4:
+			return 147
+		case .keyboardLANG5:
+			return 148
+		case .keyboardLANG6:
+			return 149
+		case .keyboardLANG7:
+			return 150
+		case .keyboardLANG8:
+			return 151
+		case .keyboardLANG9:
+			return 152
+		case .keyboardAlternateErase:
+			return 153
+		case .keyboardSysReqOrAttention:
+			return 154
+		case .keyboardCancel:
+			return 155
+		case .keyboardClear:
+			return 156
+		case .keyboardPrior:
+			return 157
+		case .keyboardReturn:
+			return 158
+		case .keyboardSeparator:
+			return 159
+		case .keyboardOut:
+			return 160
+		case .keyboardOper:
+			return 161
+		case .keyboardClearOrAgain:
+			return 162
+		case .keyboardCrSelOrProps:
+			return 163
+		case .keyboardExSel:
+			return 164
+		case .keyboardLeftControl:
+			return 224
+		case .keyboardLeftShift:
+			return 225
+		case .keyboardLeftAlt:
+			return 226
+		case .keyboardLeftGUI:
+			return 227
+		case .keyboardRightControl:
+			return 228
+		case .keyboardRightShift:
+			return 229
+		case .keyboardRightAlt:
+			return 230
+		case .keyboardRightGUI:
+			return 231
+		case .keyboard_Reserved:
+			return 65535
+		case .keyboardHangul:
+			return 144
+		case .keyboardHanja:
+			return 145
+		case .keyboardKanaSwitch:
+			return 144
+		case .keyboardAlphanumericSwitch:
+			return 145
+		case .keyboardKatakana:
+			return 146
+		case .keyboardHiragana:
+			return 147
+		case .keyboardZenkakuHankakuKanji:
+			return 148
+		}
 	}
 
 	static func parsecKeyCodeTranslator(_ str:String) -> ParsecKeycode

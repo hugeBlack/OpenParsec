@@ -26,11 +26,22 @@ struct ParsecView:View
 	{
 		ZStack()
 		{
+
+			
+			// Input handlers
+			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
+				.zIndex(2)
+//			UIViewControllerWrapper(KeyboardViewController())
+//				.zIndex(3)
+//            UIViewControllerWrapper(GamepadViewController())
+//			    .zIndex(-2)
+			
 			// Stream view controller
 			//switch SettingsHandler.renderer
 			//{
 				//case .opengl:
-				ParsecGLKViewController(onBeforeRender:poll)
+			UIViewControllerWrapper(ParsecGLKViewController(onBeforeRender:poll))
+//			ParsecGLKViewController(onBeforeRender:poll)
 						.zIndex(0)
 						.edgesIgnoringSafeArea(.all)
 				//case .metal:
@@ -41,14 +52,6 @@ struct ParsecView:View
 						.zIndex(0)
 						.edgesIgnoringSafeArea(.all)*/
 			//}
-			
-			// Input handlers
-			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
-				.zIndex(2)
-			UIViewControllerWrapper(KeyboardViewController())
-				.zIndex(-1)
-            UIViewControllerWrapper(GamepadViewController())
-			    .zIndex(-2)
 			
 			// Overlay elements
 			if showMenu
@@ -158,6 +161,7 @@ struct ParsecView:View
 		}
 		.onAppear(perform:post)
 		.edgesIgnoringSafeArea(.all)
+
 	}
 	
 	func post()
@@ -297,8 +301,8 @@ struct ParsecView:View
 		CParsec.sendMouseMessage(typeOfTap, x, y, false)
 	}
 
-	func handleKeyCommand(sender:UIKeyCommand)
-	{
-		CParsec.sendKeyboardMessage(sender:sender)
-	}
+//	func handleKeyCommand(sender:UIKeyCommand)
+//	{
+//		CParsec.sendKeyboardMessage(sender:sender)
+//	}
 }
