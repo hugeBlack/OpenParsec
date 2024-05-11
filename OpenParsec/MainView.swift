@@ -74,7 +74,7 @@ struct MainView:View
 						}
 						
 					}, label: {
-						Text("Show Parsec View")
+						Text("Show TestView")
 					})
 					
 					Spacer()

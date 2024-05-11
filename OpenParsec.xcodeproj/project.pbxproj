@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
 		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
@@ -53,6 +54,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
 		17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBoardTest.swift; sourceTree = "<group>"; };
 		271D14F8292E90EB00D7F1D6 /* ParsecView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecView.swift; sourceTree = "<group>"; };
 		271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKRenderer.swift; sourceTree = "<group>"; };
@@ -128,36 +130,37 @@
 		27E61A90292965FC00FF6563 /* OpenParsec */ = {
 			isa = PBXGroup;
 			children = (
-				84480EBD2ADC4FDA007DE5F1 /* GameController.swift */,
+				27E61AA7292994B500FF6563 /* ActivityIndicator.swift */,
+				27E61A91292965FC00FF6563 /* AppDelegate.swift */,
+				27E61A97292965FD00FF6563 /* Assets.xcassets */,
 				27899AC5292FE2A9001ACA33 /* audio.c */,
 				27899AC6292FE2A9001ACA33 /* audio.h */,
+				27E61A95292965FC00FF6563 /* ContentView.swift */,
+				27B8D563292DC7A000A324AD /* CParsec.swift */,
+				27AD365F2B19731800C8A607 /* ExUI.swift */,
+				84480EBD2ADC4FDA007DE5F1 /* GameController.swift */,
+				27E61A9F292965FD00FF6563 /* Info.plist */,
+				17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */,
+				27A923E329E9035D00F54BDA /* KeyboardViewController.swift */,
+				27E61A9C292965FD00FF6563 /* LaunchScreen.storyboard */,
+				27E61AA52929817700FF6563 /* LoginView.swift */,
+				27E61AA92929B92200FF6563 /* MainView.swift */,
+				27ED36FE292D4F9800B1BE3D /* NetworkHandler.swift */,
+				27899AC4292FE2A8001ACA33 /* OpenParsec-Bridging-Header.h */,
 				271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */,
 				271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */,
 				27B23A212B1B979C00B52F14 /* ParsecMetalRenderer.swift */,
 				27B23A232B1B98EF00B52F14 /* ParsecMetalViewController.swift */,
-				27E61A91292965FC00FF6563 /* AppDelegate.swift */,
-				27E61A93292965FC00FF6563 /* SceneDelegate.swift */,
-				27E61A95292965FC00FF6563 /* ContentView.swift */,
-				27E61A97292965FD00FF6563 /* Assets.xcassets */,
-				27E61A9C292965FD00FF6563 /* LaunchScreen.storyboard */,
-				27E61A9F292965FD00FF6563 /* Info.plist */,
-				27E61A99292965FD00FF6563 /* Preview Content */,
-				27E61AA52929817700FF6563 /* LoginView.swift */,
-				27E61AA7292994B500FF6563 /* ActivityIndicator.swift */,
-				27E61AA92929B92200FF6563 /* MainView.swift */,
-				27ED36FE292D4F9800B1BE3D /* NetworkHandler.swift */,
-				27B8D563292DC7A000A324AD /* CParsec.swift */,
 				271D14F8292E90EB00D7F1D6 /* ParsecView.swift */,
-				27899AC4292FE2A8001ACA33 /* OpenParsec-Bridging-Header.h */,
+				170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */,
+				27E61A99292965FD00FF6563 /* Preview Content */,
+				27E61A93292965FC00FF6563 /* SceneDelegate.swift */,
+				27A267342B1AEAB700F34C63 /* SettingsHandler.swift */,
+				274A69CE29EA07FA00F595A5 /* SettingsView.swift */,
 				FC16A7AC29A97BDA00BB70A7 /* Shared.swift */,
 				27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */,
 				27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */,
-				27A923E329E9035D00F54BDA /* KeyboardViewController.swift */,
-				274A69CE29EA07FA00F595A5 /* SettingsView.swift */,
-				27A267342B1AEAB700F34C63 /* SettingsHandler.swift */,
 				27AC751729EA339B00E8CAF7 /* URLImage.swift */,
-				27AD365F2B19731800C8A607 /* ExUI.swift */,
-				17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */,
 			);
 			path = OpenParsec;
 			sourceTree = "<group>";
@@ -261,6 +264,7 @@
 				27E61AA62929817700FF6563 /* LoginView.swift in Sources */,
 				27B8D564292DC7A000A324AD /* CParsec.swift in Sources */,
 				27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */,
+				170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */,
 				27B23A222B1B979C00B52F14 /* ParsecMetalRenderer.swift in Sources */,
 				27E61A96292965FC00FF6563 /* ContentView.swift in Sources */,
 				27ED36FF292D4F9800B1BE3D /* NetworkHandler.swift in Sources */,
@@ -413,7 +417,7 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				INFOPLIST_FILE = OpenParsec/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -441,7 +445,7 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=*]" = arm64;
 				INFOPLIST_FILE = OpenParsec/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

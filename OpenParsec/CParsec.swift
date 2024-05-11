@@ -25,20 +25,37 @@ struct KeyBoardKeyEvent {
 	var isPressBegin: Bool
 }
 
+struct RGBA {
+	let R:UInt8
+	let G:UInt8
+	let B:UInt8
+	let A:UInt8
+}
+
 class CParsec
 {
 	private static var _initted:Bool = false
 
 	private static var _parsec:OpaquePointer!
 	private static var _audio:OpaquePointer!
+	private static var _event: ParsecClientEvent = ParsecClientEvent()
 	private static let _audioPtr:UnsafeRawPointer = UnsafeRawPointer(_audio)
+	private static let _eventPtr = UnsafeMutablePointer<ParsecClientEvent>(&_event)
 
+	
 	public static var hostWidth:Float = 0
 	public static var hostHeight:Float = 0
 	
 	public static var netProtocol:Int32 = 1
 	public static var mediaContainer:Int32 = 0
 	public static var pngCursor:Bool = false
+	
+	public static var mouseX:Int32 = 1
+	public static var mouseY:Int32 = 1
+	public static var cursorWidth = 0
+	public static var cursorHeight = 0
+	
+	
 
 	static let PARSEC_VER:UInt32 = UInt32((PARSEC_VER_MAJOR << 16) | PARSEC_VER_MINOR)
 
@@ -128,7 +145,64 @@ class CParsec
 	{
 		ParsecClientPollAudio(_parsec, audio_cb, timeout, _audioPtr)
 	}
+	
+	static var cursorImg: CGImage?
+	static var getFirstCursor = false
 
+	static func pollEvent(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
+	{
+		ParsecClientPollEvents(_parsec, timeout, _eventPtr)
+		let e: ParsecClientEvent = _eventPtr.pointee
+		let cursor = e.cursor
+		if cursor.cursor.imageUpdate || !getFirstCursor{
+			getFirstCursor = true
+			let imgKey = cursor.key
+			let pointer = ParsecGetBuffer(_parsec, imgKey)
+			if pointer == nil{
+				return
+			}
+			let size = cursor.cursor.size
+			let width = cursor.cursor.width
+			let height = cursor.cursor.height
+			cursorWidth = Int(width)
+			cursorHeight = Int(height)
+			mouseX = Int32(cursor.cursor.positionX)
+			mouseY = Int32(cursor.cursor.positionY)
+			if cursor.cursor.hidden {
+				cursorImg = nil
+			}
+			
+			var colors = [RGBA]()
+			let count = size << 2
+			for i in 0..<count {
+				// Calculate the offset for each struct in the memory block
+				_ = UInt32( MemoryLayout<RGBA>.size) * i
+					
+				// Bind the memory at the calculated offset to the struct type
+				let boundPointer = pointer!.bindMemory(to: RGBA.self, capacity: 1)
+					
+				// Access the struct at the current offset
+				let currentStruct = boundPointer.advanced(by: Int(i)).pointee
+					
+				// Append the struct to the array
+				colors.append(currentStruct)
+			}
+			
+			
+			let _: Int = colors.count
+			let elmentLength: Int = 4
+			let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
+			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
+			let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
+			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: &colors, length: Int(size)))
+			let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
+			if cgimage != nil {
+				cursorImg = cgimage
+			}
+		
+		}
+	}
+	
 	static func setMuted(_ muted:Bool)
 	{
 		audio_mute(muted, _audioPtr)
@@ -170,9 +244,23 @@ class CParsec
 		buttonMessage.mouseButton.pressed = pressed
 		ParsecClientSendMessage(_parsec, &buttonMessage)
 	}
+	
+	static func sendMouseClickMessage(_ button:ParsecMouseButton, _ pressed:Bool) {
+		var buttonMessage = ParsecMessage()
+		buttonMessage.type = MESSAGE_MOUSE_BUTTON
+		buttonMessage.mouseButton.button = button
+		buttonMessage.mouseButton.pressed = pressed
+		ParsecClientSendMessage(_parsec, &buttonMessage)
+	}
+	
+	static func sendMouseDelta(_ dx: Int32, _ dy: Int32) {
+		sendMousePosition(mouseX + dx, mouseY + dy)
+	}
 
 	static func sendMousePosition(_ x:Int32, _ y:Int32)
 	{
+		mouseX = x
+		mouseY = y
 		var motionMessage = ParsecMessage()
 		motionMessage.type = MESSAGE_MOUSE_MOTION
 		motionMessage.mouseMotion.x = x
@@ -747,6 +835,14 @@ class CParsec
 	    var pmsg = ParsecMessage()
 		pmsg.type = MESSAGE_GAMEPAD_UNPLUG;
 		pmsg.gamepadUnplug.id = controllerId;
+		ParsecClientSendMessage(_parsec, &pmsg)
+	}
+	
+	static func sendWheelMsg(x: Int32, y: Int32) {
+		var pmsg = ParsecMessage()
+		pmsg.type = MESSAGE_MOUSE_WHEEL;
+		pmsg.mouseWheel.x = x
+		pmsg.mouseWheel.y = y
 		ParsecClientSendMessage(_parsec, &pmsg)
 	}
 }

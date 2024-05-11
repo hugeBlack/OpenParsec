@@ -1,5 +1,6 @@
 import SwiftUI
 import ParsecSDK
+import Foundation
 
 struct ParsecView:View
 {
@@ -29,21 +30,21 @@ struct ParsecView:View
 
 			
 			// Input handlers
-			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
-				.zIndex(2)
-//			UIViewControllerWrapper(KeyboardViewController())
-//				.zIndex(3)
+//			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
+//				.zIndex(2)
+////			UIViewControllerWrapper(KeyboardViewController())
+////				.zIndex(3)
 //            UIViewControllerWrapper(GamepadViewController())
-//			    .zIndex(-2)
-			
-			// Stream view controller
-			//switch SettingsHandler.renderer
-			//{
-				//case .opengl:
-			UIViewControllerWrapper(ParsecGLKViewController(onBeforeRender:poll))
-//			ParsecGLKViewController(onBeforeRender:poll)
-						.zIndex(0)
-						.edgesIgnoringSafeArea(.all)
+//			    .zIndex(1)
+//			
+//			// Stream view controller
+//			//switch SettingsHandler.renderer
+//			//{
+//				//case .opengl:
+//			UIViewControllerWrapper(ParsecGLKViewController(onBeforeRender:poll))
+////			ParsecGLKViewController(onBeforeRender:poll)
+//						.zIndex(0)
+//						.edgesIgnoringSafeArea(.all)
 				//case .metal:
 				//	Text("Metal is a work in progress, check back soon!")
 				//		.background(Color.black)
@@ -52,6 +53,9 @@ struct ParsecView:View
 						.zIndex(0)
 						.edgesIgnoringSafeArea(.all)*/
 			//}
+			
+			UIViewControllerWrapper(ParsecViewController(onBeforeRender: poll))
+				.zIndex(1)
 			
 			// Overlay elements
 			if showMenu
@@ -188,8 +192,23 @@ struct ParsecView:View
 			showDCAlert = true
 			return
 		}
+
+
+		 
+		let item1 = DispatchWorkItem {
+			CParsec.pollAudio()
+		}
+		let item2 = DispatchWorkItem {
+			CParsec.pollEvent()
+		}
+		let mainQueue = DispatchQueue.global()
+		mainQueue.async(execute: item1)
+		mainQueue.async(execute: item2)
 		
-		CParsec.pollAudio()
+		
+		
+		
+		
 		
 		if showMenu
 		{
@@ -245,61 +264,7 @@ struct ParsecView:View
 		}
 	}
 
-	func onTouch(typeOfTap:ParsecMouseButton, location:CGPoint, state:UIGestureRecognizer.State)
-	{
-		// Log the touch location
-		print("Touch location: \(location)")
-		print("Touch type: \(typeOfTap)")
-		print("Touch state: \(state)")
 
-		// print("Touch finger count:" \(pointerId))
-		// Convert the touch location to the host's coordinate system
-		let screenWidth = UIScreen.main.bounds.width
-		let screenHeight = UIScreen.main.bounds.height
-		let x = Int32(location.x * CGFloat(CParsec.hostWidth) / screenWidth)
-		let y = Int32(location.y * CGFloat(CParsec.hostHeight) / screenHeight)
-
-		// Log the screen and host dimensions and calculated coordinates
-		print("Screen dimensions: \(screenWidth) x \(screenHeight)")
-		print("Host dimensions: \(CParsec.hostWidth) x \(CParsec.hostHeight)")
-		print("Calculated coordinates: (\(x), \(y))")
-
-		// Send the mouse input to the host
-		switch state
-		{
-			case .began:
-				CParsec.sendMouseMessage(typeOfTap, x, y, true)
-			case .changed:
-				CParsec.sendMousePosition(x, y)
-			case .ended, .cancelled:
-				CParsec.sendMouseMessage(typeOfTap, x, y, false)
-			default:
-				break
-		}
-	}
-
-	func onTap(typeOfTap:ParsecMouseButton, location:CGPoint)
-	{
-		// Log the touch location
-		print("Touch location: \(location)")
-		print("Touch type: \(typeOfTap)")
-
-		// print("Touch finger count:" \(pointerId))
-		// Convert the touch location to the host's coordinate system
-		let screenWidth = UIScreen.main.bounds.width
-		let screenHeight = UIScreen.main.bounds.height
-		let x = Int32(location.x * CGFloat(CParsec.hostWidth) / screenWidth)
-		let y = Int32(location.y * CGFloat(CParsec.hostHeight) / screenHeight)
-
-		// Log the screen and host dimensions and calculated coordinates
-		print("Screen dimensions: \(screenWidth) x \(screenHeight)")
-		print("Host dimensions: \(CParsec.hostWidth) x \(CParsec.hostHeight)")
-		print("Calculated coordinates: (\(x), \(y))")
-
-		// Send the mouse input to the host
-		CParsec.sendMouseMessage(typeOfTap, x, y, true)
-		CParsec.sendMouseMessage(typeOfTap, x, y, false)
-	}
 
 //	func handleKeyCommand(sender:UIKeyCommand)
 //	{

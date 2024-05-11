@@ -9,6 +9,7 @@ import Foundation
 import ParsecSDK
 import UIKit
 import SwiftUI
+import GameController
 
 struct TestView : View {
 	var controller:ContentView?
@@ -31,32 +32,52 @@ struct TestView : View {
 class KeyboardTestController:UIViewController
 {
 	var id = 0
+	override var prefersStatusBarHidden: Bool {
+		print("Locked!!!")
+		return true
+	}
+	
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
 		self.id += 1
 		print("KEY EVENT!\(self.id)")
 	}
 	
-	override func viewDidLoad() {
+	
+	@objc override func viewDidLoad() {
 		let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-				
-		// Set the minimum number of touches required
-		panGesture.minimumNumberOfTouches = 2
-				
+		
+		let startTime = CFAbsoluteTimeGetCurrent()
+		let endTime = CFAbsoluteTimeGetCurrent()
+		 
+		print("代码执行时长：\((endTime - startTime)*1000) 毫秒")
+		setNeedsStatusBarAppearanceUpdate()
+
 		// Add the gesture recognizer to your view
 		view.addGestureRecognizer(panGesture)
+		
+//		for mouse in GCMouse.mice() {
+//			print("Found Mouse!")
+//			mouse.mouseInput?.leftButton.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
+//				print("leftButtonChanged!")
+//				}
+//			mouse.mouseInput?.rightButton?.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
+//				CParsec.sendMouseMessage(<#T##button: ParsecMouseButton##ParsecMouseButton#>, <#T##x: Int32##Int32#>, <#T##y: Int32##Int32#>, <#T##pressed: Bool##Bool#>)
+//				}
+//			mouse.mouseInput?.mouseMovedHandler={(input: GCMouseInput, v: Float, v2: Float) in
+//				print("mouseMoved!")
+//				}
+//		}
+		
 	}
 	
 	
 	@objc func handlePan(_ gesture: UIPanGestureRecognizer){
-		if gesture.numberOfTouches == 2 {
-			let translation = gesture.translation(in: view)
-			
-			if gesture.velocity(in: view).y < 0 && translation.y < -50 {
-				// Run your function when the user uses two fingers and swipes upwards
-				print("Sweep UP!")
-			} else if gesture.velocity(in: view).y > 0 && translation.y > 50 {
-				print("Sweep DOWN!")
-			}
-		}
+		print("PAN!")
+		setNeedsUpdateOfPrefersPointerLocked()
 	}
+	
+	override func motionBegan(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+		print("MotionBegin!")
+	}
+	
 }
