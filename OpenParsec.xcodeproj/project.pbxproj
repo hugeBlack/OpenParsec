@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
+		17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */; };
 		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
@@ -55,6 +56,7 @@
 
 /* Begin PBXFileReference section */
 		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
+		17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewContainerPatch.swift; sourceTree = "<group>"; };
 		17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBoardTest.swift; sourceTree = "<group>"; };
 		271D14F8292E90EB00D7F1D6 /* ParsecView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecView.swift; sourceTree = "<group>"; };
 		271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKRenderer.swift; sourceTree = "<group>"; };
@@ -130,6 +132,7 @@
 		27E61A90292965FC00FF6563 /* OpenParsec */ = {
 			isa = PBXGroup;
 			children = (
+				17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */,
 				27E61AA7292994B500FF6563 /* ActivityIndicator.swift */,
 				27E61A91292965FC00FF6563 /* AppDelegate.swift */,
 				27E61A97292965FD00FF6563 /* Assets.xcassets */,
@@ -254,6 +257,7 @@
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
 				271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */,
 				274A69CF29EA07FA00F595A5 /* SettingsView.swift in Sources */,
+				17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */,
 				27E61AA8292994B500FF6563 /* ActivityIndicator.swift in Sources */,
 				271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */,
 				27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */,

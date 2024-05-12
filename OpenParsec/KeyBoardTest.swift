@@ -21,18 +21,15 @@ struct TestView : View {
 	
 	var body:some View
 	{
-		ZStack(){
 			
 			UIViewControllerWrapper(KeyboardTestController())
-				.zIndex(3)
-		}
 	}
 }
 
 class KeyboardTestController:UIViewController
 {
 	var id = 0
-	override var prefersStatusBarHidden: Bool {
+	override var prefersPointerLocked: Bool {
 		print("Locked!!!")
 		return true
 	}
@@ -42,15 +39,27 @@ class KeyboardTestController:UIViewController
 		print("KEY EVENT!\(self.id)")
 	}
 	
+	// Must be placed in viewDidAppear since parent do not exist in viewDidLoad!
+	@objc override func viewWillAppear(_ animated: Bool) {
+		if let parent = parent {
+			parent.setChildForHomeIndicatorAutoHidden(self)
+			parent.setChildViewControllerForPointerLock(self)
+			print("tryLocked!")
+		}
+		setNeedsUpdateOfPrefersPointerLocked()
+	}
+	
 	
 	@objc override func viewDidLoad() {
+
+		
 		let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
 		
 		let startTime = CFAbsoluteTimeGetCurrent()
 		let endTime = CFAbsoluteTimeGetCurrent()
 		 
 		print("代码执行时长：\((endTime - startTime)*1000) 毫秒")
-		setNeedsStatusBarAppearanceUpdate()
+		setNeedsUpdateOfPrefersPointerLocked()
 
 		// Add the gesture recognizer to your view
 		view.addGestureRecognizer(panGesture)
@@ -81,3 +90,5 @@ class KeyboardTestController:UIViewController
 	}
 	
 }
+
+

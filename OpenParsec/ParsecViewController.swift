@@ -15,7 +15,6 @@ class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGe
 	var u:UIImageView?
 	var lastImg: CGImage?
 	override var prefersPointerLocked: Bool {
-		print("Locked!")
 		return true
 	}
 	
@@ -88,6 +87,21 @@ class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGe
 		view.backgroundColor = UIColor(red: 0x66, green: 0xcc, blue: 0xff, alpha: 1.0)
 	}
 	
+	override func viewWillAppear(_ animated: Bool) {
+		if let parent = parent {
+			parent.setChildForHomeIndicatorAutoHidden(self)
+			parent.setChildViewControllerForPointerLock(self)
+		}
+		setNeedsUpdateOfPrefersPointerLocked()
+	}
+	
+	override func viewWillDisappear(_ animated: Bool) {
+		super.viewWillDisappear(animated)
+		if let parent = parent {
+			parent.setChildForHomeIndicatorAutoHidden(nil)
+			parent.setChildViewControllerForPointerLock(nil)
+		}
+	}
 	
 	
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
