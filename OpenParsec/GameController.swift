@@ -97,6 +97,9 @@ class GamepadController {
 			mouse.mouseInput?.rightButton?.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
 				CParsec.sendMouseClickMessage(MOUSE_R, pressed)
 				}
+			mouse.mouseInput?.middleButton?.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
+				CParsec.sendMouseClickMessage(MOUSE_MIDDLE, pressed)
+				}
 			mouse.mouseInput?.mouseMovedHandler={(input: GCMouseInput, v: Float, v2: Float) in
 				CParsec.sendMouseDelta(Int32(v/1.25), Int32(-v2/1.25))
 				}

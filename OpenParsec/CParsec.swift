@@ -148,12 +148,18 @@ class CParsec
 	
 	static var cursorImg: CGImage?
 	static var getFirstCursor = false
+	static var cursorHidden = false
+	static var mousePositionRelative = false
 
 	static func pollEvent(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 	{
 		ParsecClientPollEvents(_parsec, timeout, _eventPtr)
 		let e: ParsecClientEvent = _eventPtr.pointee
 		let cursor = e.cursor
+		
+		cursorHidden = cursor.cursor.hidden
+		mousePositionRelative = cursor.cursor.relative
+		
 		if cursor.cursor.imageUpdate || !getFirstCursor{
 			getFirstCursor = true
 			let imgKey = cursor.key
@@ -168,15 +174,10 @@ class CParsec
 			cursorHeight = Int(height)
 			mouseX = Int32(cursor.cursor.positionX)
 			mouseY = Int32(cursor.cursor.positionY)
-			if cursor.cursor.hidden {
-				cursorImg = nil
-			}
 			
 			var colors = [RGBA]()
 			let count = size << 2
 			for i in 0..<count {
-				// Calculate the offset for each struct in the memory block
-				_ = UInt32( MemoryLayout<RGBA>.size) * i
 					
 				// Bind the memory at the calculated offset to the struct type
 				let boundPointer = pointer!.bindMemory(to: RGBA.self, capacity: 1)
@@ -187,6 +188,7 @@ class CParsec
 				// Append the struct to the array
 				colors.append(currentStruct)
 			}
+			ParsecFree(pointer)
 			
 			
 			let _: Int = colors.count
@@ -254,17 +256,35 @@ class CParsec
 	}
 	
 	static func sendMouseDelta(_ dx: Int32, _ dy: Int32) {
-		sendMousePosition(mouseX + dx, mouseY + dy)
+		if mousePositionRelative {
+			sendMouseRelativeMove(dx, dy)
+		} else {
+			sendMousePosition(mouseX + dx, mouseY + dy)
+		}
+		
+	}
+	static func clamp<T>(_ value: T, minValue: T, maxValue: T) -> T where T : Comparable {
+		return min(max(value, minValue), maxValue)
 	}
 
 	static func sendMousePosition(_ x:Int32, _ y:Int32)
 	{
-		mouseX = x
-		mouseY = y
+		mouseX = clamp(x, minValue: 0, maxValue: Int32(self.hostWidth))
+		mouseY = clamp(y, minValue: 0, maxValue: Int32(self.hostHeight))
 		var motionMessage = ParsecMessage()
 		motionMessage.type = MESSAGE_MOUSE_MOTION
 		motionMessage.mouseMotion.x = x
 		motionMessage.mouseMotion.y = y
+		ParsecClientSendMessage(_parsec, &motionMessage)
+	}
+	
+	static func sendMouseRelativeMove(_ dx:Int32, _ dy:Int32)
+	{
+		var motionMessage = ParsecMessage()
+		motionMessage.type = MESSAGE_MOUSE_MOTION
+		motionMessage.mouseMotion.x = dx
+		motionMessage.mouseMotion.y = dy
+		motionMessage.mouseMotion.relative = true
 		ParsecClientSendMessage(_parsec, &motionMessage)
 	}
 

@@ -31,16 +31,14 @@ class ParsecGLKViewController {
 	var glkView: GLKView!
 	let glkViewController = GLKViewController()
 	var glkRenderer: ParsecGLKRenderer!
-	let onBeforeRender:() -> Void
 	let updateImage:() -> Void
 	
 	var gamePadController: GamepadController!
 	
 	let viewController: UIViewController
 
-	init(viewController: UIViewController, onBeforeRender: @escaping () -> Void, updateImage: @escaping () -> Void) {
+	init(viewController: UIViewController, updateImage: @escaping () -> Void) {
 		self.viewController = viewController
-		self.onBeforeRender = onBeforeRender
 		self.updateImage = updateImage
 	}
 
@@ -50,7 +48,7 @@ class ParsecGLKViewController {
 
 	public func viewDidLoad() {
 		glkView = GLKView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height))
-		glkRenderer = ParsecGLKRenderer(glkView, glkViewController, onBeforeRender, updateImage)
+		glkRenderer = ParsecGLKRenderer(glkView, glkViewController, updateImage)
 		self.viewController.view.addSubview(glkView)
 		setupGLKViewController()
 		

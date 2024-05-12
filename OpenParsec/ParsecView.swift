@@ -193,23 +193,7 @@ struct ParsecView:View
 			return
 		}
 
-
-		 
-		let item1 = DispatchWorkItem {
-			CParsec.pollAudio()
-		}
-		let item2 = DispatchWorkItem {
-			CParsec.pollEvent()
-		}
-		let mainQueue = DispatchQueue.global()
-		mainQueue.async(execute: item1)
-		mainQueue.async(execute: item2)
-		
-		
-		
-		
-		
-		
+		// FIXME: This may cause memory leak?
 		if showMenu
 		{
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
