@@ -35,18 +35,18 @@ class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGe
 	}
 	
 	func updateImage() {
-		if CParsec.cursorImg != nil && !CParsec.cursorHidden {
-			if lastImg != CParsec.cursorImg{
-				u!.image = UIImage(cgImage: CParsec.cursorImg!)
-				lastImg = CParsec.cursorImg!
+		if CParsec.mouseInfo.cursorImg != nil && !CParsec.mouseInfo.cursorHidden {
+			if lastImg != CParsec.mouseInfo.cursorImg{
+				u!.image = UIImage(cgImage: CParsec.mouseInfo.cursorImg!)
+				lastImg = CParsec.mouseInfo.cursorImg!
 			}
 			let screenWidth = UIScreen.main.bounds.width
 			let screenHeight = UIScreen.main.bounds.height
 			
-			u?.frame = CGRect(x: Int(CGFloat(CParsec.mouseX) * screenWidth) / Int(CParsec.hostWidth),
-							  y: Int(CGFloat(CParsec.mouseY) * screenHeight) / Int(CParsec.hostHeight),
-							  width: CParsec.cursorWidth / 2,
-							  height: CParsec.cursorHeight / 2)
+			u?.frame = CGRect(x: Int(CGFloat(CParsec.mouseInfo.mouseX) * screenWidth) / Int(CParsec.hostWidth) - CParsec.mouseInfo.cursorHotX / 2,
+							  y: Int(CGFloat(CParsec.mouseInfo.mouseY) * screenHeight) / Int(CParsec.hostHeight) - CParsec.mouseInfo.cursorHotY / 2,
+							  width: CParsec.mouseInfo.cursorWidth / 2,
+							  height: CParsec.mouseInfo.cursorHeight / 2)
 			
 		} else {
 			u?.image = nil

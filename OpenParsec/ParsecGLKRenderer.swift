@@ -38,15 +38,19 @@ class ParsecGLKRenderer:NSObject, GLKViewDelegate, GLKViewControllerDelegate
 		    CParsec.setFrame(view.frame.size.width, view.frame.size.height, view.contentScaleFactor)
 	        lastWidth = view.frame.size.width
 		}
-		CParsec.renderGLFrame(timeout:16)
-
+		let startTime = CFAbsoluteTimeGetCurrent()
+		CParsec.renderGLFrame(timeout:1600)
+		let endTime = CFAbsoluteTimeGetCurrent()
+		if 1000 * (endTime - startTime) > 16 {
+			print("代码执行时长：\((endTime - startTime)*1000) 毫秒")
+		}
 		
 		
 		updateImage()
 		
 		
 
-		
+		glFinish()
 		//glFlush()
 	}
 

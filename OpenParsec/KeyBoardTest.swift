@@ -10,6 +10,7 @@ import ParsecSDK
 import UIKit
 import SwiftUI
 import GameController
+import WebRTC
 
 struct TestView : View {
 	var controller:ContentView?
@@ -28,9 +29,20 @@ struct TestView : View {
 
 class KeyboardTestController:UIViewController
 {
+	func webRTCClient(_ client: WebRTCClient, didDiscoverLocalCandidate candidate: RTCIceCandidate) {
+		
+	}
+	
+	func webRTCClient(_ client: WebRTCClient, didChangeConnectionState state: RTCIceConnectionState) {
+		
+	}
+	
+	func webRTCClient(_ client: WebRTCClient, didReceiveData data: Data) {
+		
+	}
+	
 	var id = 0
 	override var prefersPointerLocked: Bool {
-		print("Locked!!!")
 		return true
 	}
 	
@@ -44,7 +56,6 @@ class KeyboardTestController:UIViewController
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(self)
 			parent.setChildViewControllerForPointerLock(self)
-			print("tryLocked!")
 		}
 		setNeedsUpdateOfPrefersPointerLocked()
 	}
@@ -64,18 +75,8 @@ class KeyboardTestController:UIViewController
 		// Add the gesture recognizer to your view
 		view.addGestureRecognizer(panGesture)
 		
-//		for mouse in GCMouse.mice() {
-//			print("Found Mouse!")
-//			mouse.mouseInput?.leftButton.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
-//				print("leftButtonChanged!")
-//				}
-//			mouse.mouseInput?.rightButton?.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
-//				CParsec.sendMouseMessage(<#T##button: ParsecMouseButton##ParsecMouseButton#>, <#T##x: Int32##Int32#>, <#T##y: Int32##Int32#>, <#T##pressed: Bool##Bool#>)
-//				}
-//			mouse.mouseInput?.mouseMovedHandler={(input: GCMouseInput, v: Float, v2: Float) in
-//				print("mouseMoved!")
-//				}
-//		}
+		let p = ParsecWeb()
+		p.connect("2fud0XnqknMBmau7n2f8x42IUuT")
 		
 	}
 	
@@ -83,10 +84,6 @@ class KeyboardTestController:UIViewController
 	@objc func handlePan(_ gesture: UIPanGestureRecognizer){
 		print("PAN!")
 		setNeedsUpdateOfPrefersPointerLocked()
-	}
-	
-	override func motionBegan(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-		print("MotionBegin!")
 	}
 	
 }

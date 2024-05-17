@@ -3,12 +3,24 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
+		17A6207B2BF75A7400B6878B /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 17A6207A2BF75A7400B6878B /* WebRTC */; };
+		17A6207D2BF7748100B6878B /* WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A6207C2BF7748100B6878B /* WebSocket.swift */; };
 		17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */; };
+		17EA35F72BF712A8001BE0DF /* ParsecSDKBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */; };
+		17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F82BF71774001BE0DF /* ParsecWeb.swift */; };
+		17EA36052BF74BF5001BE0DF /* NativeWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */; };
+		17EA36072BF74BF5001BE0DF /* WebSocketProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35FF2BF74BF5001BE0DF /* WebSocketProvider.swift */; };
+		17EA36082BF74BF5001BE0DF /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA36012BF74BF5001BE0DF /* Message.swift */; };
+		17EA36092BF74BF5001BE0DF /* SignalingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA36022BF74BF5001BE0DF /* SignalingClient.swift */; };
+		17EA360A2BF74BF5001BE0DF /* WebRTCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA36032BF74BF5001BE0DF /* WebRTCClient.swift */; };
+		17EA360F2BF74EAA001BE0DF /* IceCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360B2BF74EAA001BE0DF /* IceCandidate.swift */; };
+		17EA36102BF74EAA001BE0DF /* RTCStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360C2BF74EAA001BE0DF /* RTCStates.swift */; };
+		17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */; };
 		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
@@ -56,7 +68,18 @@
 
 /* Begin PBXFileReference section */
 		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
+		17A6207C2BF7748100B6878B /* WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocket.swift; sourceTree = "<group>"; };
 		17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewContainerPatch.swift; sourceTree = "<group>"; };
+		17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecSDKBridge.swift; sourceTree = "<group>"; };
+		17EA35F82BF71774001BE0DF /* ParsecWeb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWeb.swift; sourceTree = "<group>"; };
+		17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeWebSocket.swift; sourceTree = "<group>"; };
+		17EA35FF2BF74BF5001BE0DF /* WebSocketProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebSocketProvider.swift; sourceTree = "<group>"; };
+		17EA36012BF74BF5001BE0DF /* Message.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
+		17EA36022BF74BF5001BE0DF /* SignalingClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalingClient.swift; sourceTree = "<group>"; };
+		17EA36032BF74BF5001BE0DF /* WebRTCClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebRTCClient.swift; sourceTree = "<group>"; };
+		17EA360B2BF74EAA001BE0DF /* IceCandidate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IceCandidate.swift; sourceTree = "<group>"; };
+		17EA360C2BF74EAA001BE0DF /* RTCStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RTCStates.swift; sourceTree = "<group>"; };
+		17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionDescription.swift; sourceTree = "<group>"; };
 		17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBoardTest.swift; sourceTree = "<group>"; };
 		271D14F8292E90EB00D7F1D6 /* ParsecView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecView.swift; sourceTree = "<group>"; };
 		271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKRenderer.swift; sourceTree = "<group>"; };
@@ -97,12 +120,43 @@
 			buildActionMask = 2147483647;
 			files = (
 				27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */,
+				17A6207B2BF75A7400B6878B /* WebRTC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		17EA36002BF74BF5001BE0DF /* WebSocketProvider */ = {
+			isa = PBXGroup;
+			children = (
+				17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */,
+				17EA35FF2BF74BF5001BE0DF /* WebSocketProvider.swift */,
+			);
+			path = WebSocketProvider;
+			sourceTree = "<group>";
+		};
+		17EA36042BF74BF5001BE0DF /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				17EA36002BF74BF5001BE0DF /* WebSocketProvider */,
+				17EA36012BF74BF5001BE0DF /* Message.swift */,
+				17EA36022BF74BF5001BE0DF /* SignalingClient.swift */,
+				17EA36032BF74BF5001BE0DF /* WebRTCClient.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		17EA360E2BF74EAA001BE0DF /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				17EA360B2BF74EAA001BE0DF /* IceCandidate.swift */,
+				17EA360C2BF74EAA001BE0DF /* RTCStates.swift */,
+				17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
 		27B8D56A292DC98B00A324AD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -114,6 +168,7 @@
 		27E61A85292965FC00FF6563 = {
 			isa = PBXGroup;
 			children = (
+				17EA35F82BF71774001BE0DF /* ParsecWeb.swift */,
 				27B8D56A292DC98B00A324AD /* Frameworks */,
 				27E61A90292965FC00FF6563 /* OpenParsec */,
 				27E61A8F292965FC00FF6563 /* Products */,
@@ -132,6 +187,8 @@
 		27E61A90292965FC00FF6563 /* OpenParsec */ = {
 			isa = PBXGroup;
 			children = (
+				17EA360E2BF74EAA001BE0DF /* Extensions */,
+				17EA36042BF74BF5001BE0DF /* Services */,
 				17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */,
 				27E61AA7292994B500FF6563 /* ActivityIndicator.swift */,
 				27E61A91292965FC00FF6563 /* AppDelegate.swift */,
@@ -164,6 +221,8 @@
 				27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */,
 				27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */,
 				27AC751729EA339B00E8CAF7 /* URLImage.swift */,
+				17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */,
+				17A6207C2BF7748100B6878B /* WebSocket.swift */,
 			);
 			path = OpenParsec;
 			sourceTree = "<group>";
@@ -193,6 +252,9 @@
 			dependencies = (
 			);
 			name = OpenParsec;
+			packageProductDependencies = (
+				17A6207A2BF75A7400B6878B /* WebRTC */,
+			);
 			productName = OpenParsec;
 			productReference = 27E61A8E292965FC00FF6563 /* OpenParsec.app */;
 			productType = "com.apple.product-type.application";
@@ -221,6 +283,9 @@
 				Base,
 			);
 			mainGroup = 27E61A85292965FC00FF6563;
+			packageReferences = (
+				17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */,
+			);
 			productRefGroup = 27E61A8F292965FC00FF6563 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -255,22 +320,33 @@
 				27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */,
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
+				17EA360A2BF74BF5001BE0DF /* WebRTCClient.swift in Sources */,
 				271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */,
+				17EA36072BF74BF5001BE0DF /* WebSocketProvider.swift in Sources */,
 				274A69CF29EA07FA00F595A5 /* SettingsView.swift in Sources */,
 				17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */,
+				17A6207D2BF7748100B6878B /* WebSocket.swift in Sources */,
+				17EA36102BF74EAA001BE0DF /* RTCStates.swift in Sources */,
 				27E61AA8292994B500FF6563 /* ActivityIndicator.swift in Sources */,
+				17EA360F2BF74EAA001BE0DF /* IceCandidate.swift in Sources */,
 				271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */,
+				17EA36082BF74BF5001BE0DF /* Message.swift in Sources */,
 				27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */,
 				27E61A94292965FC00FF6563 /* SceneDelegate.swift in Sources */,
+				17EA36092BF74BF5001BE0DF /* SignalingClient.swift in Sources */,
 				27A267352B1AEAB700F34C63 /* SettingsHandler.swift in Sources */,
 				27AD36602B19731800C8A607 /* ExUI.swift in Sources */,
 				27899AC7292FE2A9001ACA33 /* audio.c in Sources */,
 				27E61AA62929817700FF6563 /* LoginView.swift in Sources */,
+				17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */,
 				27B8D564292DC7A000A324AD /* CParsec.swift in Sources */,
 				27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */,
 				170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */,
 				27B23A222B1B979C00B52F14 /* ParsecMetalRenderer.swift in Sources */,
 				27E61A96292965FC00FF6563 /* ContentView.swift in Sources */,
+				17EA35F72BF712A8001BE0DF /* ParsecSDKBridge.swift in Sources */,
+				17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */,
+				17EA36052BF74BF5001BE0DF /* NativeWebSocket.swift in Sources */,
 				27ED36FF292D4F9800B1BE3D /* NetworkHandler.swift in Sources */,
 				17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */,
 				271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */,
@@ -415,6 +491,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"OpenParsec/Preview Content\"";
 				DEVELOPMENT_TEAM = 3C3YHUUV75;
@@ -428,6 +506,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -443,11 +522,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"OpenParsec/Preview Content\"";
 				DEVELOPMENT_TEAM = 3C3YHUUV75;
 				ENABLE_PREVIEWS = YES;
-				"EXCLUDED_ARCHS[sdk=*]" = arm64;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				INFOPLIST_FILE = OpenParsec/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -456,6 +537,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = $PROJECT_DIR/Frameworks;
@@ -486,6 +568,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 121.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		17A6207A2BF75A7400B6878B /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 27E61A86292965FC00FF6563 /* Project object */;
 }
