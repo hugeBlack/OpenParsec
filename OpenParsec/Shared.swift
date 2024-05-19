@@ -40,6 +40,7 @@ struct Queue<T> {
 	}
 	
 	mutating func dequeue() -> T? {
+		// TODO 线程安全
 		guard !elements.isEmpty else {
 			return nil
 		}

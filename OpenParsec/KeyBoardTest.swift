@@ -24,6 +24,7 @@ struct TestView : View {
 	{
 			
 			UIViewControllerWrapper(KeyboardTestController())
+			.ignoresSafeArea(.all, edges: .all)
 	}
 }
 
@@ -38,7 +39,9 @@ class KeyboardTestController:UIViewController
 	init() {
 
 		imgView = UIImageView()
-		imgView.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+		imgView.contentMode = .scaleAspectFit
+		imgView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+		
 		super.init(nibName: nil, bundle: nil)
 		view.addSubview(imgView)
 	}
@@ -83,7 +86,7 @@ class KeyboardTestController:UIViewController
 		p = ParsecWeb()
 		p!.connect("2fud0XnqknMBmau7n2f8x42IUuT")
 		
-		var helloWorldTimer = Timer.scheduledTimer(timeInterval: 0.2, target: self, selector: #selector(updateImg), userInfo: nil, repeats: true)
+		var helloWorldTimer = Timer.scheduledTimer(timeInterval: 0.016, target: self, selector: #selector(updateImg), userInfo: nil, repeats: true)
 
 		
 	}

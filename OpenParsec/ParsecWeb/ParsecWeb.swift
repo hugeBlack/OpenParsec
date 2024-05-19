@@ -22,7 +22,7 @@ class VideoChannelDelegate: NSObject, RTCDataChannelDelegate {
 	var videoStream = VideoStream()
 	let decoder : VideoDecoder
 	
-	private let size = CGSize(width: 2560, height: 1440)
+	private let size = CGSize(width: 1920, height: 1080)
 	
 	init(decoder: VideoDecoder) {
 		self.decoder = decoder
@@ -90,7 +90,6 @@ class DecoderDelegate : VideoDecoderDelegate {
 	
 	func decodeOutput(video: CMSampleBuffer) {
 		buffer.decodedVideoBuffer.enqueue(video)
-		
 	}
 	
 	func decodeOutput(error: DecodeError) {
@@ -321,6 +320,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	func renderGLFrame(timeout: UInt32) {
 		var newFrame : CMSampleBuffer?
 		
+		
 		// 直接取出队列的最后一帧,其他全部丢弃
 		while true {
 			let s = self.buffer.decodedVideoBuffer.dequeue()
@@ -355,7 +355,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 			let cgImg = data.image?.cgImage
 			glGetError()
 			let desc = try! GLKTextureLoader.texture(with: cgImg!)
-			var textureName : UInt32 = desc.name
+			let textureName : UInt32 = desc.name
 
 			glClearColor(0x66/255.0, 0xcc/255.0, 1.0, 1.0)
 			glClear(GLbitfield(GL_COLOR_BUFFER_BIT))
