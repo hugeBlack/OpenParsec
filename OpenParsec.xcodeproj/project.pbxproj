@@ -10,6 +10,7 @@
 		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
 		17A6207B2BF75A7400B6878B /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 17A6207A2BF75A7400B6878B /* WebRTC */; };
 		17A6207D2BF7748100B6878B /* WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A6207C2BF7748100B6878B /* WebSocket.swift */; };
+		17B9F1912BF861450001D04E /* ParsecWebDataParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */; };
 		17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */; };
 		17EA35F72BF712A8001BE0DF /* ParsecSDKBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */; };
 		17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F82BF71774001BE0DF /* ParsecWeb.swift */; };
@@ -22,6 +23,7 @@
 		17EA36102BF74EAA001BE0DF /* RTCStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360C2BF74EAA001BE0DF /* RTCStates.swift */; };
 		17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */; };
 		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
+		17F681D82BF9A05300882855 /* VideoDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 17F681D72BF9A05300882855 /* VideoDecoder */; };
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
 		271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */; };
@@ -69,6 +71,7 @@
 /* Begin PBXFileReference section */
 		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
 		17A6207C2BF7748100B6878B /* WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocket.swift; sourceTree = "<group>"; };
+		17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWebDataParser.swift; sourceTree = "<group>"; };
 		17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewContainerPatch.swift; sourceTree = "<group>"; };
 		17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecSDKBridge.swift; sourceTree = "<group>"; };
 		17EA35F82BF71774001BE0DF /* ParsecWeb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWeb.swift; sourceTree = "<group>"; };
@@ -120,6 +123,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */,
+				17F681D82BF9A05300882855 /* VideoDecoder in Frameworks */,
 				17A6207B2BF75A7400B6878B /* WebRTC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -127,6 +131,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		17B9F1972BF88C9C0001D04E /* ParsecWeb */ = {
+			isa = PBXGroup;
+			children = (
+				17EA36042BF74BF5001BE0DF /* Services */,
+				17EA35F82BF71774001BE0DF /* ParsecWeb.swift */,
+				17A6207C2BF7748100B6878B /* WebSocket.swift */,
+				17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */,
+			);
+			path = ParsecWeb;
+			sourceTree = "<group>";
+		};
 		17EA36002BF74BF5001BE0DF /* WebSocketProvider */ = {
 			isa = PBXGroup;
 			children = (
@@ -168,7 +183,6 @@
 		27E61A85292965FC00FF6563 = {
 			isa = PBXGroup;
 			children = (
-				17EA35F82BF71774001BE0DF /* ParsecWeb.swift */,
 				27B8D56A292DC98B00A324AD /* Frameworks */,
 				27E61A90292965FC00FF6563 /* OpenParsec */,
 				27E61A8F292965FC00FF6563 /* Products */,
@@ -187,9 +201,6 @@
 		27E61A90292965FC00FF6563 /* OpenParsec */ = {
 			isa = PBXGroup;
 			children = (
-				17EA360E2BF74EAA001BE0DF /* Extensions */,
-				17EA36042BF74BF5001BE0DF /* Services */,
-				17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */,
 				27E61AA7292994B500FF6563 /* ActivityIndicator.swift */,
 				27E61A91292965FC00FF6563 /* AppDelegate.swift */,
 				27E61A97292965FD00FF6563 /* Assets.xcassets */,
@@ -197,6 +208,7 @@
 				27899AC6292FE2A9001ACA33 /* audio.h */,
 				27E61A95292965FC00FF6563 /* ContentView.swift */,
 				27B8D563292DC7A000A324AD /* CParsec.swift */,
+				17EA360E2BF74EAA001BE0DF /* Extensions */,
 				27AD365F2B19731800C8A607 /* ExUI.swift */,
 				84480EBD2ADC4FDA007DE5F1 /* GameController.swift */,
 				27E61A9F292965FD00FF6563 /* Info.plist */,
@@ -211,8 +223,10 @@
 				271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */,
 				27B23A212B1B979C00B52F14 /* ParsecMetalRenderer.swift */,
 				27B23A232B1B98EF00B52F14 /* ParsecMetalViewController.swift */,
+				17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */,
 				271D14F8292E90EB00D7F1D6 /* ParsecView.swift */,
 				170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */,
+				17B9F1972BF88C9C0001D04E /* ParsecWeb */,
 				27E61A99292965FD00FF6563 /* Preview Content */,
 				27E61A93292965FC00FF6563 /* SceneDelegate.swift */,
 				27A267342B1AEAB700F34C63 /* SettingsHandler.swift */,
@@ -221,8 +235,7 @@
 				27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */,
 				27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */,
 				27AC751729EA339B00E8CAF7 /* URLImage.swift */,
-				17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */,
-				17A6207C2BF7748100B6878B /* WebSocket.swift */,
+				17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */,
 			);
 			path = OpenParsec;
 			sourceTree = "<group>";
@@ -254,6 +267,7 @@
 			name = OpenParsec;
 			packageProductDependencies = (
 				17A6207A2BF75A7400B6878B /* WebRTC */,
+				17F681D72BF9A05300882855 /* VideoDecoder */,
 			);
 			productName = OpenParsec;
 			productReference = 27E61A8E292965FC00FF6563 /* OpenParsec.app */;
@@ -285,6 +299,7 @@
 			mainGroup = 27E61A85292965FC00FF6563;
 			packageReferences = (
 				17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */,
+				17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */,
 			);
 			productRefGroup = 27E61A8F292965FC00FF6563 /* Products */;
 			projectDirPath = "";
@@ -320,6 +335,7 @@
 				27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */,
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
+				17B9F1912BF861450001D04E /* ParsecWebDataParser.swift in Sources */,
 				17EA360A2BF74BF5001BE0DF /* WebRTCClient.swift in Sources */,
 				271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */,
 				17EA36072BF74BF5001BE0DF /* WebSocketProvider.swift in Sources */,
@@ -499,7 +515,7 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				INFOPLIST_FILE = OpenParsec/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -530,7 +546,7 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 				INFOPLIST_FILE = OpenParsec/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -578,6 +594,14 @@
 				minimumVersion = 121.0.0;
 			};
 		};
+		17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/songbihai/VideoDecoder";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -585,6 +609,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */;
 			productName = WebRTC;
+		};
+		17F681D72BF9A05300882855 /* VideoDecoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */;
+			productName = VideoDecoder;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

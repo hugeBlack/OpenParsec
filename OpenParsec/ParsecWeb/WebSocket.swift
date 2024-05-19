@@ -43,6 +43,23 @@ struct ParsecWsOfferPayload : Codable {
 	var to: String
 }
 
+struct ParsecWsCandexPayloadData : Codable {
+	var from_stun :Bool
+	var ip : String
+	var lan : Bool
+	var port : Int
+	var sync : Bool
+	var ver_data = 1
+	var versions: ParsecWsVersions = ParsecWsVersions()
+}
+
+struct ParsecWsCandexPayload : Codable {
+	var attempt_id: String
+	var data: ParsecWsCandexPayloadData
+	var to: String
+}
+
+
 protocol WebSocketDelegate: AnyObject {
 	func webSocketDidConnect(_ webSocket: WebSocket)
 	func webSocket(_ webSocket: WebSocket, didFailWith error: Error)

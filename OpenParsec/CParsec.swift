@@ -1,5 +1,6 @@
 import ParsecSDK
 import CoreGraphics
+import GLKit
 
 struct MouseInfo {
 	var pngCursor:Bool = false
@@ -59,7 +60,8 @@ class CParsec
 
 	static func initialize()
 	{
-		parsecImpl = ParsecSDKBridge()
+//		parsecImpl = ParsecSDKBridge()
+		parsecImpl = ParsecWeb()
 	}
 
 	static func destroy()
@@ -87,7 +89,7 @@ class CParsec
 		return parsecImpl.getStatusEx(&pcs)
 	}
 	
-	static func setFrame(_ width:CGFloat, _ height:CGFloat, _ scale:CGFloat)
+	static func setFrame(_ width:CGFloat, _ height:CGFloat, _ scale:CGFloat )
 	{
 		parsecImpl.setFrame(width, height, scale)
 	}

@@ -29,19 +29,24 @@ struct TestView : View {
 
 class KeyboardTestController:UIViewController
 {
-	func webRTCClient(_ client: WebRTCClient, didDiscoverLocalCandidate candidate: RTCIceCandidate) {
-		
-	}
-	
-	func webRTCClient(_ client: WebRTCClient, didChangeConnectionState state: RTCIceConnectionState) {
-		
-	}
-	
-	func webRTCClient(_ client: WebRTCClient, didReceiveData data: Data) {
-		
-	}
-	
 	var id = 0
+	
+	let imgView: UIImageView
+	
+	var p: ParsecWeb?
+	
+	init() {
+
+		imgView = UIImageView()
+		imgView.frame = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+		super.init(nibName: nil, bundle: nil)
+		view.addSubview(imgView)
+	}
+	
+	required init?(coder: NSCoder) {
+		fatalError("init(coder:) has not been implemented")
+	}
+	
 	override var prefersPointerLocked: Bool {
 		return true
 	}
@@ -75,15 +80,30 @@ class KeyboardTestController:UIViewController
 		// Add the gesture recognizer to your view
 		view.addGestureRecognizer(panGesture)
 		
-		let p = ParsecWeb()
-		p.connect("2fud0XnqknMBmau7n2f8x42IUuT")
+		p = ParsecWeb()
+		p!.connect("2fud0XnqknMBmau7n2f8x42IUuT")
 		
+		var helloWorldTimer = Timer.scheduledTimer(timeInterval: 0.2, target: self, selector: #selector(updateImg), userInfo: nil, repeats: true)
+
+		
+	}
+	
+	@objc func updateImg() {
+		guard let p = p else {
+			return
+		}
+		
+		if let data = p.buffer.decodedVideoBuffer.dequeue() {
+			imgView.image = data.image
+		}
 	}
 	
 	
 	@objc func handlePan(_ gesture: UIPanGestureRecognizer){
 		print("PAN!")
 		setNeedsUpdateOfPrefersPointerLocked()
+		
+
 	}
 	
 }

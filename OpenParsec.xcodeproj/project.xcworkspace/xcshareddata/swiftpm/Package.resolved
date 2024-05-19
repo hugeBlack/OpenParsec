@@ -1,6 +1,15 @@
 {
-  "originHash" : "7ca243407a3b132834ec3b117a3aea85a8f743151ef868a872c8bbf8082921f6",
+  "originHash" : "9ad290a4f1ffe9396fa9aeeeb7a380f12a578543572f2ac8c6ac50b3310ea2d2",
   "pins" : [
+    {
+      "identity" : "videodecoder",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/songbihai/VideoDecoder",
+      "state" : {
+        "revision" : "8d4fa11a2ed25cd435037ec1515a2cc9092f674c",
+        "version" : "1.1.1"
+      }
+    },
     {
       "identity" : "webrtc",
       "kind" : "remoteSourceControl",
