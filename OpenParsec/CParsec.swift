@@ -13,9 +13,12 @@ struct MouseInfo {
 	var cursorHotY = 0
 	var cursorImg: CGImage?
 	var cursorHidden = false
+	var mousePositionRelative = false
 }
 
 protocol ParsecService {
+	var clientWidth: Float { get }
+	var clientHeight: Float { get }
 	var hostWidth: Float { get }
 	var hostHeight: Float { get }
 	var mouseInfo: MouseInfo { get }
@@ -32,7 +35,6 @@ protocol ParsecService {
 	func sendMouseClickMessage(_ button: ParsecMouseButton, _ pressed: Bool)
 	func sendMouseDelta(_ dx: Int32, _ dy: Int32)
 	func sendMousePosition(_ x: Int32, _ y: Int32)
-	func sendMouseRelativeMove(_ dx: Int32, _ dy: Int32)
 	func sendKeyboardMessage(event: KeyBoardKeyEvent)
 	func sendGameControllerButtonMessage(controllerId: UInt32, _ button: ParsecGamepadButton, pressed: Bool)
 	func sendGameControllerAxisMessage(controllerId: UInt32, _ button: ParsecGamepadAxis, _ value: Int16)
@@ -47,6 +49,13 @@ class CParsec
 	}
 	public static var hostHeight:Float {
 		return parsecImpl.hostHeight
+	}
+	
+	public static var clientWidth:Float {
+		return parsecImpl.clientWidth
+	}
+	public static var clientHeight:Float {
+		return parsecImpl.clientHeight
 	}
 
 	public static var mouseInfo: MouseInfo {
@@ -124,11 +133,6 @@ class CParsec
 	static func sendMousePosition(_ x:Int32, _ y:Int32)
 	{
 		parsecImpl.sendMousePosition(x, y)
-	}
-	
-	static func sendMouseRelativeMove(_ dx:Int32, _ dy:Int32)
-	{
-		parsecImpl.sendMouseRelativeMove(dx, dy)
 	}
 
 	static func sendKeyboardMessage(event:KeyBoardKeyEvent)

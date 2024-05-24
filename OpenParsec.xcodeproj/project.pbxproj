@@ -13,6 +13,8 @@
 		17A6207D2BF7748100B6878B /* WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A6207C2BF7748100B6878B /* WebSocket.swift */; };
 		17B9F1912BF861450001D04E /* ParsecWebDataParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */; };
 		17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */; };
+		17DA6F182C008E5E00C9C567 /* ControlChannelDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DA6F172C008E5E00C9C567 /* ControlChannelDelegate.swift */; };
+		17DA6F1A2C00A23700C9C567 /* InputPackets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DA6F192C00A23700C9C567 /* InputPackets.swift */; };
 		17EA35F72BF712A8001BE0DF /* ParsecSDKBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */; };
 		17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F82BF71774001BE0DF /* ParsecWeb.swift */; };
 		17EA36052BF74BF5001BE0DF /* NativeWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */; };
@@ -79,6 +81,8 @@
 		17A6207C2BF7748100B6878B /* WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocket.swift; sourceTree = "<group>"; };
 		17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWebDataParser.swift; sourceTree = "<group>"; };
 		17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewContainerPatch.swift; sourceTree = "<group>"; };
+		17DA6F172C008E5E00C9C567 /* ControlChannelDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlChannelDelegate.swift; sourceTree = "<group>"; };
+		17DA6F192C00A23700C9C567 /* InputPackets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputPackets.swift; sourceTree = "<group>"; };
 		17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecSDKBridge.swift; sourceTree = "<group>"; };
 		17EA35F82BF71774001BE0DF /* ParsecWeb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWeb.swift; sourceTree = "<group>"; };
 		17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeWebSocket.swift; sourceTree = "<group>"; };
@@ -151,6 +155,8 @@
 				17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */,
 				17F7C4F12BFA61B100EF731B /* AudioPlayer.swift */,
 				1759390D2BFF97C90045C0D9 /* OpusDecoder.swift */,
+				17DA6F172C008E5E00C9C567 /* ControlChannelDelegate.swift */,
+				17DA6F192C00A23700C9C567 /* InputPackets.swift */,
 			);
 			path = ParsecWeb;
 			sourceTree = "<group>";
@@ -352,6 +358,7 @@
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
 				17B9F1912BF861450001D04E /* ParsecWebDataParser.swift in Sources */,
+				17DA6F182C008E5E00C9C567 /* ControlChannelDelegate.swift in Sources */,
 				17EA360A2BF74BF5001BE0DF /* WebRTCClient.swift in Sources */,
 				271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */,
 				17EA36072BF74BF5001BE0DF /* WebSocketProvider.swift in Sources */,
@@ -383,6 +390,7 @@
 				17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */,
 				17EA36052BF74BF5001BE0DF /* NativeWebSocket.swift in Sources */,
 				27ED36FF292D4F9800B1BE3D /* NetworkHandler.swift in Sources */,
+				17DA6F1A2C00A23700C9C567 /* InputPackets.swift in Sources */,
 				17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */,
 				271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */,
 			);

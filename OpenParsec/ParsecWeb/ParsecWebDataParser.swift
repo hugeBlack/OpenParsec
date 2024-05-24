@@ -32,6 +32,11 @@ class ParsecWebDataParser {
 		return ans
 	}
 	
+	// Remember to dealloc
+	static func get13ByteBuffer() -> UnsafeMutableRawPointer {
+		return UnsafeMutableRawPointer.allocate(byteCount: 13, alignment: 1)
+	}
+	
 	static func setCommandBytes(ptr: UnsafeMutableRawPointer, command: UInt8, p1: Int32, p2: Int32, p3: Int32) {
 		ptr.storeBytes(of: p1.bigEndian, toByteOffset: 0, as: Int32.self)
 		ptr.storeBytes(of: p2.bigEndian, toByteOffset: 4, as: Int32.self)

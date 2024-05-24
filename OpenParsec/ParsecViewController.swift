@@ -46,11 +46,9 @@ class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGe
 				u!.image = UIImage(cgImage: CParsec.mouseInfo.cursorImg!)
 				lastImg = CParsec.mouseInfo.cursorImg!
 			}
-			let screenWidth = UIScreen.main.bounds.width
-			let screenHeight = UIScreen.main.bounds.height
-			
-			u?.frame = CGRect(x: Int(CGFloat(CParsec.mouseInfo.mouseX) * screenWidth) / Int(CParsec.hostWidth) - CParsec.mouseInfo.cursorHotX / 2,
-							  y: Int(CGFloat(CParsec.mouseInfo.mouseY) * screenHeight) / Int(CParsec.hostHeight) - CParsec.mouseInfo.cursorHotY / 2,
+
+			u?.frame = CGRect(x: Int(CParsec.mouseInfo.mouseX) - CParsec.mouseInfo.cursorHotX / 2,
+							  y: Int(CParsec.mouseInfo.mouseY) - CParsec.mouseInfo.cursorHotY / 2,
 							  width: CParsec.mouseInfo.cursorWidth / 2,
 							  height: CParsec.mouseInfo.cursorHeight / 2)
 			

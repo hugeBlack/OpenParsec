@@ -18,6 +18,9 @@ class ParsecWebBuffer {
 	var controlBuffer : Data?
 	var parsecStatus: ParsecStatus = ParsecStatus(20)
 	var exStatus: ParsecClientStatus = ParsecClientStatus()
+	var mouseInfo = MouseInfo()
+	var hostHeight : Float = 1920
+	var hostWidth : Float = 1080
 }
 
 class VideoChannelDelegate: NSObject, RTCDataChannelDelegate {
@@ -50,47 +53,7 @@ class VideoChannelDelegate: NSObject, RTCDataChannelDelegate {
 	
 }
 
-class ControlChannelDelegate: NSObject, RTCDataChannelDelegate {
-	let buffer: ParsecWebBuffer
-	init(buffer: ParsecWebBuffer) {
-		self.buffer = buffer
-	}
-	
-	func dataChannelDidChangeState(_ dataChannel: RTCDataChannel) {
-		// 控制通道切换为open后要发送一个控制消息,这样host才会开始发送数据
-		if (dataChannel.readyState != .open) {
-			return
-		}
-		let data = ParsecWebDataParser.getResolutionByte(1920, 1080)
-		dataChannel.sendData(RTCDataBuffer.init(data: data, isBinary: true))
-		buffer.parsecStatus = ParsecStatus(0)
-	}
-	
-	func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {
-//		print("control channel received data!")
-		let status = buffer.data
-		status.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) in
-			let ptr2 = ptr.baseAddress
-			let type = ptr2?.load(fromByteOffset: 12, as: UInt8.self)
-			let p1 = ptr2?.load(fromByteOffset: 0, as: UInt8.self).byteSwapped
-			let p2 = ptr2?.load(fromByteOffset: 4, as: UInt32.self).byteSwapped
-			let p3 = ptr2?.load(fromByteOffset: 8, as: UInt32.self).byteSwapped
 
-			
-			switch type {
-			case 21:
-				self.buffer.exStatus.`self`.metrics.0.encodeLatency = Float(p2!) / 1000
-				break
-			default:
-				print("Got control msg type: \(type!)")
-			}
-			
-			
-		}
-
-	}
-	
-}
 //MARK: Audio Delegate
 class AudioChannelDelegate: NSObject, RTCDataChannelDelegate {
 	let buffer: ParsecWebBuffer
@@ -135,8 +98,12 @@ class DecoderDelegate : VideoDecoderDelegate {
 		}
 		lastOutputTime = timeNow
 		if let size = video.image?.size {
+			
 			buffer.exStatus.decoder.0.height = UInt32(size.height)
 			buffer.exStatus.decoder.0.width = UInt32(size.width)
+			buffer.hostWidth = Float(size.width)
+			buffer.hostHeight = Float(size.height)
+			
 		}
 		
 	}
@@ -149,17 +116,26 @@ class DecoderDelegate : VideoDecoderDelegate {
 }
 
 class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
+	var clientWidth: Float = 1920
 	
-	public var hostWidth:Float = 0
-	public var hostHeight:Float = 0
+	var clientHeight: Float = 1080
+	
+
+	public var hostWidth:Float {
+		return self.buffer.hostWidth
+	}
+	public var hostHeight:Float {
+		return self.buffer.hostHeight
+	}
 	
 	public var netProtocol:Int32 = 1
 	public var mediaContainer:Int32 = 0
 	public var pngCursor:Bool = false
 	private var remoteUfrag: String = ""
 	
-	public var mouseInfo = MouseInfo()
-	
+	var mouseInfo: MouseInfo {
+		return self.buffer.mouseInfo
+	}
 	private let client: WebRTCClient
 	private let ws = WebSocket()
 	
@@ -383,6 +359,8 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat) {
 		// Implementation here
+		self.clientWidth = Float(width)
+		self.clientHeight = Float(height)
 	}
 	
 	private var isFirst = true
@@ -484,27 +462,45 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	}
 
 	func sendMouseMessage(_ button: ParsecMouseButton, _ x: Int32, _ y: Int32, _ pressed: Bool) {
-		// Implementation here
+		sendMousePosition(x, y)
+		sendMouseClickMessage(button, pressed)
 	}
 
 	func sendMouseClickMessage(_ button: ParsecMouseButton, _ pressed: Bool) {
-		// Implementation here
+		let packet = MouseButtonPacket(button: button.rawValue, pressed: pressed)
+		self.client.controlChannel.sendData(RTCDataBuffer(data: packet.getPacket(), isBinary: true))
 	}
 
 	func sendMouseDelta(_ dx: Int32, _ dy: Int32) {
-		// Implementation here
+		if mouseInfo.mousePositionRelative {
+			sendMouseRelativeMove(dx, dy)
+		} else {
+			sendMousePosition(buffer.mouseInfo.mouseX + dx, buffer.mouseInfo.mouseY + dy)
+		}
 	}
 
 	func sendMousePosition(_ x: Int32, _ y: Int32) {
-		// Implementation here
+		buffer.mouseInfo.mouseX = ParsecSDKBridge.clamp(x, minValue: 0, maxValue: Int32(CParsec.clientWidth))
+		buffer.mouseInfo.mouseY = ParsecSDKBridge.clamp(y, minValue: 0, maxValue: Int32(CParsec.clientHeight))
+		let packet = MouseMovePacket(x: Int(x), y: Int(y), relative: false)
+		self.client.controlChannel.sendData(RTCDataBuffer(data: packet.getPacket(), isBinary: true))
 	}
 
 	func sendMouseRelativeMove(_ dx: Int32, _ dy: Int32) {
-		// Implementation here
+		let packet = MouseMovePacket(x: Int(dx), y: Int(dy), relative: true)
+		self.client.controlChannel.sendData(RTCDataBuffer(data: packet.getPacket(), isBinary: true))
 	}
 
 	func sendKeyboardMessage(event: KeyBoardKeyEvent) {
-		// Implementation here
+		if event.input == nil {
+			return
+		}
+		
+		let packet = KeyboardPacket(
+			code: Int32(ParsecSDKBridge.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)),
+			mod: 0,
+			pressed: event.isPressBegin)
+		self.client.controlChannel.sendData(RTCDataBuffer(data: packet.getPacket(), isBinary: true))
 	}
 
 	func sendGameControllerButtonMessage(controllerId: UInt32, _ button: ParsecGamepadButton, pressed: Bool) {
@@ -520,6 +516,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	}
 
 	func sendWheelMsg(x: Int32, y: Int32) {
-		// Implementation here
+		let packet = MouseWheelPacket(x: x, y: y)
+		self.client.controlChannel.sendData(RTCDataBuffer(data: packet.getPacket(), isBinary: true))
 	}
 }

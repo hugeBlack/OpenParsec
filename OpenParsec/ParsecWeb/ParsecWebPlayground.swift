@@ -26,10 +26,13 @@ class ParsecWebPlayground : ParsecPlayground {
 	}
 	
 	func viewDidLoad() {
+		CParsec.setFrame(UIScreen.main.bounds.width, UIScreen.main.bounds.height, 1.0)
 		updateTimer = Timer.scheduledTimer(timeInterval: 0.016, target: self, selector: #selector(updateFrame), userInfo: nil, repeats: true)
 		
 		imgView.contentMode = .scaleAspectFit
-		imgView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+		let frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+		imgView.frame = frame
+
 		viewController.view.addSubview(imgView)
 	}
 	
@@ -37,7 +40,7 @@ class ParsecWebPlayground : ParsecPlayground {
 		
 		if let data = parsec.buffer.decodedVideoBuffer.dequeue() {
 			imgView.image = data.image
-
+			updateImage()
 		}
 	}
 	

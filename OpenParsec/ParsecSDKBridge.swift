@@ -34,6 +34,11 @@ struct RGBA {
 
 class ParsecSDKBridge: ParsecService
 {
+	var hostWidth: Float = 1920
+	
+	var hostHeight: Float = 1080
+	
+	
 	static let PARSEC_VER:UInt32 = UInt32((PARSEC_VER_MAJOR << 16) | PARSEC_VER_MINOR)
 	
 	private var _parsec:OpaquePointer!
@@ -41,8 +46,8 @@ class ParsecSDKBridge: ParsecService
 	private let _audioPtr:UnsafeRawPointer
 
 	
-	public var hostWidth:Float = 0
-	public var hostHeight:Float = 0
+	public var clientWidth:Float = 1920
+	public var clientHeight:Float = 1080
 	
 	public var netProtocol:Int32 = 1
 	public var mediaContainer:Int32 = 0
@@ -114,15 +119,18 @@ class ParsecSDKBridge: ParsecService
 
 	func getStatusEx(_ pcs:inout ParsecClientStatus) -> ParsecStatus
 	{
+		self.hostHeight = Float(pcs.decoder.0.height)
+		self.hostWidth = Float(pcs.decoder.0.width)
 		return ParsecClientGetStatus(_parsec, &pcs)
+
 	}
 	
 	func setFrame(_ width:CGFloat, _ height:CGFloat, _ scale:CGFloat)
 	{
 		ParsecClientSetDimensions(_parsec, UInt8(DEFAULT_STREAM), UInt32(width), UInt32(height), Float(scale))
 
-		hostWidth = Float(width)
-		hostHeight = Float(height)
+		clientWidth = Float(width)
+		clientHeight = Float(height)
 	}
 
 	func renderGLFrame(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
@@ -156,7 +164,7 @@ class ParsecSDKBridge: ParsecService
 		let cursor = e.cursor
 		
 		mouseInfo.cursorHidden = cursor.cursor.hidden
-		mousePositionRelative = cursor.cursor.relative
+		mouseInfo.mousePositionRelative = cursor.cursor.relative
 		
 		if cursor.cursor.imageUpdate || !getFirstCursor{
 			getFirstCursor = true
@@ -257,7 +265,7 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func sendMouseDelta(_ dx: Int32, _ dy: Int32) {
-		if mousePositionRelative {
+		if mouseInfo.mousePositionRelative {
 			sendMouseRelativeMove(dx, dy)
 		} else {
 			sendMousePosition(mouseInfo.mouseX + dx, mouseInfo.mouseY + dy)
@@ -270,8 +278,8 @@ class ParsecSDKBridge: ParsecService
 
 	func sendMousePosition(_ x:Int32, _ y:Int32)
 	{
-		mouseInfo.mouseX = ParsecSDKBridge.clamp(x, minValue: 0, maxValue: Int32(self.hostWidth))
-		mouseInfo.mouseY = ParsecSDKBridge.clamp(y, minValue: 0, maxValue: Int32(self.hostHeight))
+		mouseInfo.mouseX = ParsecSDKBridge.clamp(x, minValue: 0, maxValue: Int32(self.clientWidth))
+		mouseInfo.mouseY = ParsecSDKBridge.clamp(y, minValue: 0, maxValue: Int32(self.clientHeight))
 		var motionMessage = ParsecMessage()
 		motionMessage.type = MESSAGE_MOUSE_MOTION
 		motionMessage.mouseMotion.x = x

@@ -23,22 +23,9 @@ class TouchController
 	
 	func onTouch(typeOfTap:Int, location:CGPoint, state:UIGestureRecognizer.State)
 	{
-		// Log the touch location
-		print("Touch location: \(location)")
-		print("Touch type: \(typeOfTap)")
-		print("Touch state: \(state)")
+		let x = Int32(location.x)
+		let y = Int32(location.y)
 
-		// print("Touch finger count:" \(pointerId))
-		// Convert the touch location to the host's coordinate system
-		let screenWidth = UIScreen.main.bounds.width
-		let screenHeight = UIScreen.main.bounds.height
-		let x = Int32(location.x * CGFloat(CParsec.hostWidth) / screenWidth)
-		let y = Int32(location.y * CGFloat(CParsec.hostHeight) / screenHeight)
-
-		// Log the screen and host dimensions and calculated coordinates
-//		print("Screen dimensions: \(screenWidth) x \(screenHeight)")
-//		print("Host dimensions: \(CParsec.hostWidth) x \(CParsec.hostHeight)")
-//		print("Calculated coordinates: (\(x), \(y))")
 
 		// Send the mouse input to the host
 		let parsecTap = ParsecMouseButton(rawValue:UInt32(typeOfTap))
@@ -61,17 +48,8 @@ class TouchController
 		print("Touch location: \(location)")
 		print("Touch type: \(typeOfTap)")
 
-		// print("Touch finger count:" \(pointerId))
-		// Convert the touch location to the host's coordinate system
-		let screenWidth = UIScreen.main.bounds.width
-		let screenHeight = UIScreen.main.bounds.height
-		let x = Int32(location.x * CGFloat(CParsec.hostWidth) / screenWidth)
-		let y = Int32(location.y * CGFloat(CParsec.hostHeight) / screenHeight)
-
-//		// Log the screen and host dimensions and calculated coordinates
-//		print("Screen dimensions: \(screenWidth) x \(screenHeight)")
-//		print("Host dimensions: \(CParsec.hostWidth) x \(CParsec.hostHeight)")
-//		print("Calculated coordinates: (\(x), \(y))")
+		let x = Int32(location.x)
+		let y = Int32(location.y)
 
 		// Send the mouse input to the host
 		let parsecTap = ParsecMouseButton(rawValue:UInt32(typeOfTap))
