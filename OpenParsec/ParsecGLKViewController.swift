@@ -26,7 +26,7 @@
 import UIKit
 import GLKit
 
-class ParsecGLKViewController {
+class ParsecGLKViewController : ParsecPlayground {
 
 	var glkView: GLKView!
 	let glkViewController = GLKViewController()
@@ -36,14 +36,10 @@ class ParsecGLKViewController {
 	var gamePadController: GamepadController!
 	
 	let viewController: UIViewController
-
-	init(viewController: UIViewController, updateImage: @escaping () -> Void) {
+	
+	required init(viewController: UIViewController, updateImage: @escaping () -> Void) {
 		self.viewController = viewController
 		self.updateImage = updateImage
-	}
-
-	required init?(coder aDecoder: NSCoder) {
-		fatalError("init(coder:) has not been implemented")
 	}
 
 	public func viewDidLoad() {
@@ -62,6 +58,10 @@ class ParsecGLKViewController {
 		self.viewController.addChild(glkViewController)
 		self.viewController.view.addSubview(glkViewController.view)
 		self.glkViewController.didMove(toParent: self.viewController)
+	}
+	
+	func cleanUp() {
+		
 	}
 	
 	

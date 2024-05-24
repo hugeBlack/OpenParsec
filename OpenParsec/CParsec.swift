@@ -1,4 +1,5 @@
 import ParsecSDK
+import SwiftUI
 import CoreGraphics
 import GLKit
 
@@ -25,8 +26,6 @@ protocol ParsecService {
 	func getStatusEx(_ pcs: inout ParsecClientStatus) -> ParsecStatus
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat)
 	func renderGLFrame(timeout: UInt32)
-	func pollAudio(timeout: UInt32)
-	func pollEvent(timeout: UInt32)
 	func setMuted(_ muted: Bool)
 	func applyConfig()
 	func sendMouseMessage(_ button: ParsecMouseButton, _ x: Int32, _ y: Int32, _ pressed: Bool)
@@ -98,17 +97,6 @@ class CParsec
 	{
 		parsecImpl.renderGLFrame(timeout: timeout)
 	}
-
-	static func pollAudio(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
-	{
-		parsecImpl.pollAudio(timeout: timeout)
-	}
-	
-
-	static func pollEvent(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
-	{
-		parsecImpl.pollEvent(timeout: timeout)
-	}
 	
 	static func setMuted(_ muted:Bool)
 	{
@@ -166,5 +154,9 @@ class CParsec
 	
 	static func sendWheelMsg(x: Int32, y: Int32) {
 		parsecImpl.sendWheelMsg(x: x, y: y)
+	}
+	
+	static func getImpl() -> ParsecService {
+		return parsecImpl
 	}
 }

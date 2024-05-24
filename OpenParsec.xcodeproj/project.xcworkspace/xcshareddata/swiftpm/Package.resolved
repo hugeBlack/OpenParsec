@@ -1,6 +1,15 @@
 {
-  "originHash" : "9ad290a4f1ffe9396fa9aeeeb7a380f12a578543572f2ac8c6ac50b3310ea2d2",
+  "originHash" : "9dc92f6b678557657fbf90811092242bb428ba4254a4b4ea83e0c5b0043378f4",
   "pins" : [
+    {
+      "identity" : "swift-opus",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/alta/swift-opus",
+      "state" : {
+        "revision" : "5f0164b8915fb9001265c54413aa0f0efbd3df06",
+        "version" : "0.0.2"
+      }
+    },
     {
       "identity" : "videodecoder",
       "kind" : "remoteSourceControl",

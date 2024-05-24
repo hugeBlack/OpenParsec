@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
+		1759390E2BFF97C90045C0D9 /* OpusDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1759390D2BFF97C90045C0D9 /* OpusDecoder.swift */; };
 		17A6207B2BF75A7400B6878B /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 17A6207A2BF75A7400B6878B /* WebRTC */; };
 		17A6207D2BF7748100B6878B /* WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A6207C2BF7748100B6878B /* WebSocket.swift */; };
 		17B9F1912BF861450001D04E /* ParsecWebDataParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */; };
@@ -24,6 +25,10 @@
 		17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */; };
 		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
 		17F681D82BF9A05300882855 /* VideoDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 17F681D72BF9A05300882855 /* VideoDecoder */; };
+		17F7C4EB2BFA48A400EF731B /* ParsecWebPlayground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */; };
+		17F7C4EE2BFA5F0200EF731B /* Copus in Frameworks */ = {isa = PBXBuildFile; productRef = 17F7C4ED2BFA5F0200EF731B /* Copus */; };
+		17F7C4F02BFA5F0200EF731B /* Opus in Frameworks */ = {isa = PBXBuildFile; productRef = 17F7C4EF2BFA5F0200EF731B /* Opus */; };
+		17F7C4F22BFA61B100EF731B /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F7C4F12BFA61B100EF731B /* AudioPlayer.swift */; };
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
 		271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */; };
@@ -70,6 +75,7 @@
 
 /* Begin PBXFileReference section */
 		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
+		1759390D2BFF97C90045C0D9 /* OpusDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpusDecoder.swift; sourceTree = "<group>"; };
 		17A6207C2BF7748100B6878B /* WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocket.swift; sourceTree = "<group>"; };
 		17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWebDataParser.swift; sourceTree = "<group>"; };
 		17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewContainerPatch.swift; sourceTree = "<group>"; };
@@ -84,6 +90,8 @@
 		17EA360C2BF74EAA001BE0DF /* RTCStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RTCStates.swift; sourceTree = "<group>"; };
 		17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionDescription.swift; sourceTree = "<group>"; };
 		17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBoardTest.swift; sourceTree = "<group>"; };
+		17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWebPlayground.swift; sourceTree = "<group>"; };
+		17F7C4F12BFA61B100EF731B /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		271D14F8292E90EB00D7F1D6 /* ParsecView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecView.swift; sourceTree = "<group>"; };
 		271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKRenderer.swift; sourceTree = "<group>"; };
 		271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKViewController.swift; sourceTree = "<group>"; };
@@ -125,6 +133,8 @@
 				27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */,
 				17F681D82BF9A05300882855 /* VideoDecoder in Frameworks */,
 				17A6207B2BF75A7400B6878B /* WebRTC in Frameworks */,
+				17F7C4F02BFA5F0200EF731B /* Opus in Frameworks */,
+				17F7C4EE2BFA5F0200EF731B /* Copus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -138,6 +148,9 @@
 				17EA35F82BF71774001BE0DF /* ParsecWeb.swift */,
 				17A6207C2BF7748100B6878B /* WebSocket.swift */,
 				17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */,
+				17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */,
+				17F7C4F12BFA61B100EF731B /* AudioPlayer.swift */,
+				1759390D2BFF97C90045C0D9 /* OpusDecoder.swift */,
 			);
 			path = ParsecWeb;
 			sourceTree = "<group>";
@@ -268,6 +281,8 @@
 			packageProductDependencies = (
 				17A6207A2BF75A7400B6878B /* WebRTC */,
 				17F681D72BF9A05300882855 /* VideoDecoder */,
+				17F7C4ED2BFA5F0200EF731B /* Copus */,
+				17F7C4EF2BFA5F0200EF731B /* Opus */,
 			);
 			productName = OpenParsec;
 			productReference = 27E61A8E292965FC00FF6563 /* OpenParsec.app */;
@@ -300,6 +315,7 @@
 			packageReferences = (
 				17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */,
 				17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */,
+				17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */,
 			);
 			productRefGroup = 27E61A8F292965FC00FF6563 /* Products */;
 			projectDirPath = "";
@@ -354,7 +370,10 @@
 				27AD36602B19731800C8A607 /* ExUI.swift in Sources */,
 				27899AC7292FE2A9001ACA33 /* audio.c in Sources */,
 				27E61AA62929817700FF6563 /* LoginView.swift in Sources */,
+				17F7C4EB2BFA48A400EF731B /* ParsecWebPlayground.swift in Sources */,
+				17F7C4F22BFA61B100EF731B /* AudioPlayer.swift in Sources */,
 				17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */,
+				1759390E2BFF97C90045C0D9 /* OpusDecoder.swift in Sources */,
 				27B8D564292DC7A000A324AD /* CParsec.swift in Sources */,
 				27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */,
 				170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */,
@@ -602,6 +621,14 @@
 				minimumVersion = 1.1.1;
 			};
 		};
+		17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/alta/swift-opus";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.0.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -614,6 +641,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */;
 			productName = VideoDecoder;
+		};
+		17F7C4ED2BFA5F0200EF731B /* Copus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */;
+			productName = Copus;
+		};
+		17F7C4EF2BFA5F0200EF731B /* Opus */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */;
+			productName = Opus;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

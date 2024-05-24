@@ -47,6 +47,7 @@ class ParsecSDKBridge: ParsecService
 	public var netProtocol:Int32 = 1
 	public var mediaContainer:Int32 = 0
 	public var pngCursor:Bool = false
+	var backgroundTaskRunning = true
 	
 	public var mouseInfo = MouseInfo()
 	
@@ -93,6 +94,9 @@ class ParsecSDKBridge: ParsecService
 		parsecClientCfg.protocol = 1
 		//parsecClientCfg.secret = ""
 		parsecClientCfg.pngCursor = false
+		
+		self.startBackgroundTask()
+		
 		return ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
 	}
 
@@ -100,6 +104,7 @@ class ParsecSDKBridge: ParsecService
 	{
         audio_clear(&_audio)
 		ParsecClientDisconnect(_parsec)
+		backgroundTaskRunning = false
 	}
 
 	func getStatus() -> ParsecStatus
@@ -862,5 +867,28 @@ class ParsecSDKBridge: ParsecService
 		pmsg.mouseWheel.x = x
 		pmsg.mouseWheel.y = y
 		ParsecClientSendMessage(_parsec, &pmsg)
+	}
+	
+	func startBackgroundTask(){
+	
+		
+		let item1 = DispatchWorkItem {
+			while self.backgroundTaskRunning {
+				self.pollAudio()
+			}
+			
+		}
+
+		let item2 = DispatchWorkItem {
+			while self.backgroundTaskRunning {
+				self.pollEvent()
+	
+				
+			}
+			
+		}
+		let mainQueue = DispatchQueue.global()
+		mainQueue.async(execute: item1)
+		mainQueue.async(execute: item2)
 	}
 }

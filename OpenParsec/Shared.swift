@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import VideoDecoder
 
 var appScheme:ColorScheme = .dark
 
@@ -28,23 +29,30 @@ struct Queue<T> {
 	private var elements: [T] = []
 	private let maxLength: Int
 	
+	private let lock: NSLock = NSLock()
+	
 	init(maxLength: Int) {
 		self.maxLength = maxLength
 	}
 	
 	mutating func enqueue(_ element: T) {
+		lock.lock()
 		if elements.count >= maxLength {
-			let _ = dequeue()
+			let _ = elements.removeFirst()
 		}
 		elements.append(element)
+		lock.unlock()
 	}
 	
 	mutating func dequeue() -> T? {
-		// TODO 线程安全
+		lock.lock()
 		guard !elements.isEmpty else {
+			lock.unlock()
 			return nil
 		}
-		return elements.removeFirst()
+		let ans = elements.removeFirst()
+		lock.unlock()
+		return ans
 	}
 	
 	func peek() -> T? {
@@ -67,6 +75,7 @@ struct Queue<T> {
 class VideoStream {
 	private var stream = [UInt8]()
 	
+	// TODO : This code is super inefficient and consumes lot of CPU
 	public func pushAndGetNalu(_ data: Data) -> [[UInt8]] {
 		let orgLength = stream.count
 		var ans = [[UInt8]]()
@@ -84,6 +93,7 @@ class VideoStream {
 		}
 		return ans
 	}
+	
 }
 
 class OpenGLHelpers {

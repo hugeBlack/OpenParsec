@@ -16,11 +16,17 @@ struct ParsecView:View
 	@State var muted:Bool = false
     @State var preferH265:Bool = true
 	
+	var parsecViewController : ParsecViewController!
+	
+	let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+	
 	//@State var showDisplays:Bool = false
 	
 	init(_ controller:ContentView?)
 	{
 		self.controller = controller
+		parsecViewController = ParsecViewController()
+		
 	}
 
 	var body:some View
@@ -54,7 +60,8 @@ struct ParsecView:View
 						.edgesIgnoringSafeArea(.all)*/
 			//}
 			
-			UIViewControllerWrapper(ParsecViewController(onBeforeRender: poll))
+			
+			UIViewControllerWrapper(self.parsecViewController)
 				.zIndex(1)
 			
 			// Overlay elements
@@ -152,6 +159,8 @@ struct ParsecView:View
 						.padding(.horizontal)
 						//.edgesIgnoringSafeArea(.all)
 						Spacer()
+					}.onReceive(timer) { p in
+						poll()
 					}
 				}
 				Spacer()
@@ -194,6 +203,7 @@ struct ParsecView:View
 		}
 
 		// FIXME: This may cause memory leak?
+		
 		if showMenu
 		{
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
@@ -241,6 +251,7 @@ struct ParsecView:View
 	func disconnect()
 	{
 		CParsec.disconnect()
+		self.parsecViewController.glkView.cleanUp()
 
 		if let c = controller
 		{

@@ -10,17 +10,21 @@ import ParsecSDK
 import WebRTC
 import VideoDecoder
 import GLKit
+import Opus
 
 class ParsecWebBuffer {
 	var decodedVideoBuffer = Queue<CMSampleBuffer>(maxLength: 5)
-	var encodedAudioBuffer : Data?
+	var decodedAudioBuffer = Queue<AVAudioPCMBuffer>(maxLength: 5)
 	var controlBuffer : Data?
 	var parsecStatus: ParsecStatus = ParsecStatus(20)
+	var exStatus: ParsecClientStatus = ParsecClientStatus()
 }
 
 class VideoChannelDelegate: NSObject, RTCDataChannelDelegate {
 	var videoStream = VideoStream()
 	let decoder : VideoDecoder
+	
+	var isFirst = true
 	
 	private let size = CGSize(width: 1920, height: 1080)
 	
@@ -53,7 +57,6 @@ class ControlChannelDelegate: NSObject, RTCDataChannelDelegate {
 	}
 	
 	func dataChannelDidChangeState(_ dataChannel: RTCDataChannel) {
-		
 		// 控制通道切换为open后要发送一个控制消息,这样host才会开始发送数据
 		if (dataChannel.readyState != .open) {
 			return
@@ -64,25 +67,61 @@ class ControlChannelDelegate: NSObject, RTCDataChannelDelegate {
 	}
 	
 	func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {
-		print("control channel received data!")
+//		print("control channel received data!")
+		let status = buffer.data
+		status.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) in
+			let ptr2 = ptr.baseAddress
+			let type = ptr2?.load(fromByteOffset: 12, as: UInt8.self)
+			let p1 = ptr2?.load(fromByteOffset: 0, as: UInt8.self).byteSwapped
+			let p2 = ptr2?.load(fromByteOffset: 4, as: UInt32.self).byteSwapped
+			let p3 = ptr2?.load(fromByteOffset: 8, as: UInt32.self).byteSwapped
+
+			
+			switch type {
+			case 21:
+				self.buffer.exStatus.`self`.metrics.0.encodeLatency = Float(p2!) / 1000
+				break
+			default:
+				print("Got control msg type: \(type!)")
+			}
+			
+			
+		}
 
 	}
 	
 }
-
+//MARK: Audio Delegate
 class AudioChannelDelegate: NSObject, RTCDataChannelDelegate {
+	let buffer: ParsecWebBuffer
+	let decoder = OpusDecoder(sampleRate: 48000, channels: 2)
+	let player: AudioPlayer
+	var t = 1
+	
+	init(player: AudioPlayer, buffer: ParsecWebBuffer) {
+		self.buffer = buffer
+		self.player = player
+	}
+	
 	func dataChannelDidChangeState(_ dataChannel: RTCDataChannel) {
-		print("video channel State Changed! \(dataChannel.readyState)")
+		print("Audio channel State Changed! \(dataChannel.readyState)")
 	}
 	
 	func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {
-//		print("audio channel received data!")
+		let frame = buffer.data
+		frame.withUnsafeBytes{ (ptr : UnsafeRawBufferPointer) in
+			let ptr2 = ptr.baseAddress?.assumingMemoryBound(to: UInt8.self)
+			let decodedFrame = (try! decoder.decode(ptr2, packetSize: frame.count, frameSize: 960))
+			self.player.play(buffer: decodedFrame)
+			
+		}
 	}
 	
 }
 
 class DecoderDelegate : VideoDecoderDelegate {
 	private var buffer: ParsecWebBuffer
+	private var lastOutputTime: Double = -1
 	
 	init(buffer: ParsecWebBuffer) {
 		self.buffer = buffer
@@ -90,6 +129,16 @@ class DecoderDelegate : VideoDecoderDelegate {
 	
 	func decodeOutput(video: CMSampleBuffer) {
 		buffer.decodedVideoBuffer.enqueue(video)
+		let timeNow = CFAbsoluteTimeGetCurrent() * 1000
+		if lastOutputTime != -1 {
+			self.buffer.exStatus.`self`.metrics.0.decodeLatency = Float(timeNow - lastOutputTime)
+		}
+		lastOutputTime = timeNow
+		if let size = video.image?.size {
+			buffer.exStatus.decoder.0.height = UInt32(size.height)
+			buffer.exStatus.decoder.0.width = UInt32(size.width)
+		}
+		
 	}
 	
 	func decodeOutput(error: DecodeError) {
@@ -125,6 +174,9 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	
 	private let videoDecoder : H264Decoder
 	private var lastFrame : CMSampleBuffer?
+	private let player: AudioPlayer
+	
+	private var statusTimer: Timer?
 	
 	init() {
 		client = WebRTCClient(iceServers: ["stun:stun.parsec.gg:3478"])
@@ -132,8 +184,9 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 		videoDecoder = H264Decoder(delegate: DecoderDelegate(buffer: self.buffer))
 		self.videoChannelDelegate = VideoChannelDelegate(decoder: videoDecoder)
 		self.controlChannelDelegate = ControlChannelDelegate(buffer: buffer)
-		self.audioChannelDelegate = AudioChannelDelegate()
-
+		self.player = AudioPlayer()
+		self.audioChannelDelegate = AudioChannelDelegate(player: player, buffer: buffer)
+		
 		
 		client.videoChannel.delegate = self.videoChannelDelegate
 		client.controlChannel.delegate = self.controlChannelDelegate
@@ -144,6 +197,34 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 
 
 
+	}
+	
+	private var lastReportTime : Double = -1
+	private var lastBytesReceived: Int = -1
+	
+	@objc func updateStatics() {
+		client.getStatus { (report: RTCStatisticsReport) in
+			let timeNow = report.timestamp_us
+			var bytesNow: Int = 0
+			
+			
+			if let d1 = report.statistics["D1"]?.values["bytesReceived"] as? Int,
+			   let d2 = report.statistics["D2"]?.values["bytesReceived"] as? Int,
+			   let d3 = report.statistics["D3"]?.values["bytesReceived"] as? Int
+			{
+				bytesNow = d1 + d2 + d3
+			}
+			
+			if self.lastReportTime != -1 {
+				self.buffer.exStatus.`self`.metrics.0.bitrate = Float (bytesNow - self.lastBytesReceived) / Float((timeNow - self.lastReportTime)) * 8
+			}
+			
+			self.lastReportTime = timeNow
+			self.lastBytesReceived = bytesNow
+
+			
+
+		}
 	}
 	
 	static func parseSDP (_ s: String) -> [String:Any]{
@@ -277,12 +358,18 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 			self.ws.sendAction("offer", payload: payload)
 	
 		})
+		self.statusTimer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(updateStatics), userInfo: nil, repeats: true)
 		
 		return ParsecStatus(4)
 	}
 
 	func disconnect() {
 		// Implementation here
+		print("Disconnect!")
+		ws.close()
+		client.close()
+		self.statusTimer?.invalidate()
+		self.player.stop()
 	}
 
 	func getStatus() -> ParsecStatus {
@@ -290,6 +377,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	}
 
 	func getStatusEx(_ pcs: inout ParsecClientStatus) -> ParsecStatus {
+		pcs = self.buffer.exStatus
 		return buffer.parsecStatus
 	}
 
@@ -385,15 +473,6 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 			glFlush()
 		}
 
-		
-	}
-
-	func pollAudio(timeout: UInt32) {
-		// Implementation here
-	}
-
-	func pollEvent(timeout: UInt32) {
-		// Implementation here
 	}
 
 	func setMuted(_ muted: Bool) {

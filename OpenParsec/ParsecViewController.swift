@@ -8,22 +8,28 @@
 import Foundation
 import UIKit
 
+
+protocol ParsecPlayground {
+	init(viewController: UIViewController, updateImage: @escaping () -> Void)
+	func viewDidLoad()
+	func cleanUp()
+}
+
+
 class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGestureRecognizerDelegate{
-	var glkView: ParsecGLKViewController!
+	var glkView: ParsecPlayground!
 	var gamePadController: GamepadController!
 	var touchController: TouchController!
 	var u:UIImageView?
 	var lastImg: CGImage?
-	var backgroundTaskRunning = true
-	let onBeforeRender: () -> Void
 	override var prefersPointerLocked: Bool {
 		return true
 	}
 	
-	init(onBeforeRender: @escaping () -> Void) {
-		self.onBeforeRender = onBeforeRender
+	init() {
 		super.init(nibName: nil, bundle: nil)
-		self.glkView = ParsecGLKViewController(viewController: self, updateImage: updateImage)
+//		self.glkView = ParsecGLKViewController(viewController: self, updateImage: updateImage)
+		self.glkView = ParsecWebPlayground(viewController: self, updateImage: updateImage)
 		self.gamePadController = GamepadController(viewController: self)
 		self.touchController = TouchController(viewController: self)
 		
@@ -89,7 +95,6 @@ class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGe
 //		view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
 //		view.backgroundColor = UIColor(red: 0x66, green: 0xcc, blue: 0xff, alpha: 1.0)
 		
-		self.startBackgroundTask()
 	}
 	
 	override func viewWillAppear(_ animated: Bool) {
@@ -171,26 +176,7 @@ class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGe
 	}
 	
 	override func viewDidDisappear(_ animated: Bool) {
-		backgroundTaskRunning = false
-	}
-	
-	func startBackgroundTask(){
-		let item1 = DispatchWorkItem {
-			while self.backgroundTaskRunning {
-				CParsec.pollAudio()
-			}
-			
-		}
-		let item2 = DispatchWorkItem {
-			while self.backgroundTaskRunning {
-				CParsec.pollEvent()
-				self.onBeforeRender()
-			}
-			
-		}
-		let mainQueue = DispatchQueue.global()
-		mainQueue.async(execute: item1)
-		mainQueue.async(execute: item2)
+		
 	}
 	
 }
