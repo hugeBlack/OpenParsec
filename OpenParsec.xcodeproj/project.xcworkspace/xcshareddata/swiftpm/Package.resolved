@@ -1,5 +1,5 @@
 {
-  "originHash" : "9dc92f6b678557657fbf90811092242bb428ba4254a4b4ea83e0c5b0043378f4",
+  "originHash" : "4ed3372afa08517c69dafbd467dca4559fea453c2da15e56aaf14864528573da",
   "pins" : [
     {
       "identity" : "swift-opus",
@@ -11,12 +11,12 @@
       }
     },
     {
-      "identity" : "videodecoder",
+      "identity" : "videodecoderswift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/songbihai/VideoDecoder",
+      "location" : "https://github.com/hugeBlack/VideoDecoderSwift",
       "state" : {
-        "revision" : "8d4fa11a2ed25cd435037ec1515a2cc9092f674c",
-        "version" : "1.1.1"
+        "branch" : "master",
+        "revision" : "fa7f4106d52f2fb6f79894809aa554018687278f"
       }
     },
     {

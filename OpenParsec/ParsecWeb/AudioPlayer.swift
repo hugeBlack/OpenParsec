@@ -31,4 +31,9 @@ class AudioPlayer {
 	func stop() {
 		audio_clear(&ctx)
 	}
+	
+	func setMuted(_ muted:Bool)
+	{
+		audio_mute(muted, _audioPtr)
+	}
 }

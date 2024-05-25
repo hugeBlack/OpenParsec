@@ -15,6 +15,7 @@
 		17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */; };
 		17DA6F182C008E5E00C9C567 /* ControlChannelDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DA6F172C008E5E00C9C567 /* ControlChannelDelegate.swift */; };
 		17DA6F1A2C00A23700C9C567 /* InputPackets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DA6F192C00A23700C9C567 /* InputPackets.swift */; };
+		17DED22B2C018A6A005C2639 /* VideoDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 17DED22A2C018A6A005C2639 /* VideoDecoder */; };
 		17EA35F72BF712A8001BE0DF /* ParsecSDKBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */; };
 		17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F82BF71774001BE0DF /* ParsecWeb.swift */; };
 		17EA36052BF74BF5001BE0DF /* NativeWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */; };
@@ -26,7 +27,6 @@
 		17EA36102BF74EAA001BE0DF /* RTCStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360C2BF74EAA001BE0DF /* RTCStates.swift */; };
 		17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */; };
 		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
-		17F681D82BF9A05300882855 /* VideoDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 17F681D72BF9A05300882855 /* VideoDecoder */; };
 		17F7C4EB2BFA48A400EF731B /* ParsecWebPlayground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */; };
 		17F7C4EE2BFA5F0200EF731B /* Copus in Frameworks */ = {isa = PBXBuildFile; productRef = 17F7C4ED2BFA5F0200EF731B /* Copus */; };
 		17F7C4F02BFA5F0200EF731B /* Opus in Frameworks */ = {isa = PBXBuildFile; productRef = 17F7C4EF2BFA5F0200EF731B /* Opus */; };
@@ -135,8 +135,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */,
-				17F681D82BF9A05300882855 /* VideoDecoder in Frameworks */,
 				17A6207B2BF75A7400B6878B /* WebRTC in Frameworks */,
+				17DED22B2C018A6A005C2639 /* VideoDecoder in Frameworks */,
 				17F7C4F02BFA5F0200EF731B /* Opus in Frameworks */,
 				17F7C4EE2BFA5F0200EF731B /* Copus in Frameworks */,
 			);
@@ -286,9 +286,9 @@
 			name = OpenParsec;
 			packageProductDependencies = (
 				17A6207A2BF75A7400B6878B /* WebRTC */,
-				17F681D72BF9A05300882855 /* VideoDecoder */,
 				17F7C4ED2BFA5F0200EF731B /* Copus */,
 				17F7C4EF2BFA5F0200EF731B /* Opus */,
+				17DED22A2C018A6A005C2639 /* VideoDecoder */,
 			);
 			productName = OpenParsec;
 			productReference = 27E61A8E292965FC00FF6563 /* OpenParsec.app */;
@@ -320,8 +320,8 @@
 			mainGroup = 27E61A85292965FC00FF6563;
 			packageReferences = (
 				17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */,
-				17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */,
 				17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */,
+				17C7F9302C01885F00C65DE0 /* XCRemoteSwiftPackageReference "VideoDecoderSwift" */,
 			);
 			productRefGroup = 27E61A8F292965FC00FF6563 /* Products */;
 			projectDirPath = "";
@@ -613,20 +613,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		17C7F9302C01885F00C65DE0 /* XCRemoteSwiftPackageReference "VideoDecoderSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hugeBlack/VideoDecoderSwift";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
 		17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/stasel/WebRTC.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 121.0.0;
-			};
-		};
-		17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/songbihai/VideoDecoder";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.1.1;
 			};
 		};
 		17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */ = {
@@ -645,9 +645,9 @@
 			package = 17EA35FA2BF740BF001BE0DF /* XCRemoteSwiftPackageReference "WebRTC" */;
 			productName = WebRTC;
 		};
-		17F681D72BF9A05300882855 /* VideoDecoder */ = {
+		17DED22A2C018A6A005C2639 /* VideoDecoder */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 17F681D62BF9A05300882855 /* XCRemoteSwiftPackageReference "VideoDecoder" */;
+			package = 17C7F9302C01885F00C65DE0 /* XCRemoteSwiftPackageReference "VideoDecoderSwift" */;
 			productName = VideoDecoder;
 		};
 		17F7C4ED2BFA5F0200EF731B /* Copus */ = {

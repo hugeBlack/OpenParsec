@@ -14,7 +14,7 @@ import Opus
 
 class ParsecWebBuffer {
 	var decodedVideoBuffer = Queue<CMSampleBuffer>(maxLength: 5)
-	var decodedAudioBuffer = Queue<AVAudioPCMBuffer>(maxLength: 5)
+	var audioMuted : Bool = false
 	var controlBuffer : Data?
 	var parsecStatus: ParsecStatus = ParsecStatus(20)
 	var exStatus: ParsecClientStatus = ParsecClientStatus()
@@ -25,13 +25,13 @@ class ParsecWebBuffer {
 
 class VideoChannelDelegate: NSObject, RTCDataChannelDelegate {
 	var videoStream = VideoStream()
-	let decoder : VideoDecoder
+	let decoder : H264Decoder
 	
 	var isFirst = true
 	
 	private let size = CGSize(width: 1920, height: 1080)
 	
-	init(decoder: VideoDecoder) {
+	init(decoder: H264Decoder) {
 		self.decoder = decoder
 	}
 	
@@ -42,13 +42,15 @@ class VideoChannelDelegate: NSObject, RTCDataChannelDelegate {
 	func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {
 		// 拿到的data不一定是一个buffer一个NALU,要对buffer进行拆分
 		// 拿到直接decode,解码器的delegate会把结果放在缓存里等opengl来拿
-		
-		let nalus = videoStream.pushAndGetNalu(buffer.data)
-		for nalu in nalus {
-			let vp = VideoPacket(nalu, bufferSize: nalu.count, fps: 60, type: .h264, videoSize: size)
-			decoder.decodeOnePacket(vp)
+
+		buffer.data.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) in
+			let nalus = self.videoStream.pushAndGetNalu(ptr)
+			
+			for nalu in nalus {
+				let vp = VideoPacket(nalu.0, bufferSize: nalu.1, fps: 60, type: .h264, videoSize: self.size)
+				self.decoder.decodeOnePacketNoParse(vp)
+			}
 		}
-		
 	}
 	
 }
@@ -71,12 +73,15 @@ class AudioChannelDelegate: NSObject, RTCDataChannelDelegate {
 	}
 	
 	func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {
+		if self.buffer.audioMuted {
+			return
+		}
+		
 		let frame = buffer.data
 		frame.withUnsafeBytes{ (ptr : UnsafeRawBufferPointer) in
 			let ptr2 = ptr.baseAddress?.assumingMemoryBound(to: UInt8.self)
 			let decodedFrame = (try! decoder.decode(ptr2, packetSize: frame.count, frameSize: 960))
 			self.player.play(buffer: decodedFrame)
-			
 		}
 	}
 	
@@ -136,7 +141,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	var mouseInfo: MouseInfo {
 		return self.buffer.mouseInfo
 	}
-	private let client: WebRTCClient
+	private var client: WebRTCClient!
 	private let ws = WebSocket()
 	
 	public let buffer: ParsecWebBuffer
@@ -155,24 +160,15 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	private var statusTimer: Timer?
 	
 	init() {
-		client = WebRTCClient(iceServers: ["stun:stun.parsec.gg:3478"])
+
 		self.buffer = ParsecWebBuffer()
 		videoDecoder = H264Decoder(delegate: DecoderDelegate(buffer: self.buffer))
 		self.videoChannelDelegate = VideoChannelDelegate(decoder: videoDecoder)
 		self.controlChannelDelegate = ControlChannelDelegate(buffer: buffer)
 		self.player = AudioPlayer()
 		self.audioChannelDelegate = AudioChannelDelegate(player: player, buffer: buffer)
-		
-		
-		client.videoChannel.delegate = self.videoChannelDelegate
-		client.controlChannel.delegate = self.controlChannelDelegate
-		client.audioChannel.delegate = self.audioChannelDelegate
-		client.delegate = self
 		ws.delegate = self
 		
-
-
-
 	}
 	
 	private var lastReportTime : Double = -1
@@ -324,6 +320,12 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 		
 		
 		attemptId = UUID.init().uuidString
+		
+		client = WebRTCClient(iceServers: ["stun:stun.parsec.gg:3478"])
+		client.videoChannel.delegate = self.videoChannelDelegate
+		client.controlChannel.delegate = self.controlChannelDelegate
+		client.audioChannel.delegate = self.audioChannelDelegate
+		client.delegate = self
 
 		client.offer(completion: { (sdp) in
 			let parsed = ParsecWeb.parseSDP(sdp.sdp)["a"] as! [String:String]
@@ -454,7 +456,8 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	}
 
 	func setMuted(_ muted: Bool) {
-		// Implementation here
+		buffer.audioMuted =  muted
+		player.setMuted(muted)
 	}
 
 	func applyConfig() {

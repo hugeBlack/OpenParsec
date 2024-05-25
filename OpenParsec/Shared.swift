@@ -73,28 +73,34 @@ struct Queue<T> {
 }
 
 class VideoStream {
-	private var stream = [UInt8]()
-	
-	// TODO : This code is super inefficient and consumes lot of CPU
-	public func pushAndGetNalu(_ data: Data) -> [[UInt8]] {
-		let orgLength = stream.count
-		var ans = [[UInt8]]()
-		stream.append(contentsOf: [UInt8](data))
+
+	public func pushAndGetNalu(_ data: UnsafeRawBufferPointer) -> [(UnsafePointer<UInt8>, Int)] {
 		
-		var now = orgLength
+		var ans = [(UnsafePointer<UInt8>, Int)]()
+
+		var now = 0
+		var prev = 0
 		
-		while now < stream.count - 4 {
-			if stream[now..<now+4] == [0,0,0,1] && now > 0 {
-				ans.append([UInt8](stream[0..<now]))
-				stream.removeSubrange(0..<now)
-				now = 4
+		while now < data.count - 4 {
+			if now >= 4 && data.loadUnaligned(fromByteOffset: now, as: UInt32.self) == 16777216 {
+				let ptrStart = data.baseAddress?.advanced(by: prev).assumingMemoryBound(to: UInt8.self)
+				ans.append((ptrStart!, now - prev))
+				prev = now
 			}
 			now += 1
+			// 认为大于1000的话后面全部都是p frame了,直接退出
+			if now - prev > 1000 {
+				break
+			}
 		}
+		let ptrStart = data.baseAddress?.advanced(by: prev).assumingMemoryBound(to: UInt8.self)
+		ans.append((ptrStart!, data.count - prev))
 		return ans
 	}
 	
 }
+
+
 
 class OpenGLHelpers {
 	static let vertexShaderSource = """
