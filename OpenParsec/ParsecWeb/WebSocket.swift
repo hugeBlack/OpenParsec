@@ -106,6 +106,15 @@ class WebSocket : NSObject, URLSessionWebSocketDelegate {
 		}
 	}
 	
+	func sendMsg(_ msg: String) {
+		let message = URLSessionWebSocketTask.Message.string(msg)
+		webSocketSessionTask?.send(message) { error in
+			if let error = error {
+				print("Error sending message: \(error.localizedDescription)")
+			}
+		}
+	}
+	
 	private func receive() {
 		webSocketSessionTask?.receive { [weak self] result in
 			switch result {
@@ -159,8 +168,6 @@ class WebSocket : NSObject, URLSessionWebSocketDelegate {
 			
 			let action = obj["action"] as! String
 			let payload = obj["payload"] as? [String: Any]
-			
-			print("Action received: \(action)")
 			
 			delegate?.webSocket(self, didReceiveAction: action, params: payload ?? [:])
 		} catch {

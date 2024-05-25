@@ -158,6 +158,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	private let player: AudioPlayer
 	
 	private var statusTimer: Timer?
+	private var wsKeepAliveTimer: Timer?
 	
 	init() {
 
@@ -197,6 +198,10 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 			
 
 		}
+	}
+	
+	@objc func wsKeepAlive() {
+		ws.sendMsg("__ping__")
 	}
 	
 	static func parseSDP (_ s: String) -> [String:Any]{
@@ -250,6 +255,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 			let from_stun = data["from_stun"] as! Bool
 			let sdp = "candidate:2395300328 1 udp 2113937151 \(ip) \(port) typ \(from_stun ? "srflx" : "host") generation 0 ufrag \(self.remoteUfrag) network-cost 50";
 			let c = RTCIceCandidate(sdp: sdp, sdpMLineIndex: 0, sdpMid: "0")
+			print("candex relay \(sdp)")
 			self.client.set(remoteCandidate: c, completion: { (err) in
 				if let err = err {
 					print(err)
@@ -319,7 +325,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 		ws.connect(toServer: URL(string: urlStr)!)
 		
 		
-		attemptId = UUID.init().uuidString
+		attemptId = AttemptHelper.generate()
 		
 		client = WebRTCClient(iceServers: ["stun:stun.parsec.gg:3478"])
 		client.videoChannel.delegate = self.videoChannelDelegate
@@ -337,6 +343,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	
 		})
 		self.statusTimer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(updateStatics), userInfo: nil, repeats: true)
+		self.wsKeepAliveTimer = Timer.scheduledTimer(timeInterval: 60, target: self, selector: #selector(wsKeepAlive), userInfo: nil, repeats: true)
 		
 		return ParsecStatus(4)
 	}
@@ -348,6 +355,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 		client.close()
 		self.statusTimer?.invalidate()
 		self.player.stop()
+		self.wsKeepAliveTimer?.invalidate()
 	}
 
 	func getStatus() -> ParsecStatus {

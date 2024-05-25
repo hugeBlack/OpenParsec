@@ -100,6 +100,18 @@ class VideoStream {
 	
 }
 
+class AttemptHelper {
+	static func generate() -> String {
+		func randomHexSegment(length: Int) -> String {
+			let characters = "0123456789abcdef"
+			return String((0..<length).map { _ in characters.randomElement()! })
+		}
+		
+		let segmentLengths = [8, 8, 8, 8, 8, 8]
+		let segments = segmentLengths.map { randomHexSegment(length: $0) }
+		return segments.joined(separator: "-")
+	}
+}
 
 
 class OpenGLHelpers {
