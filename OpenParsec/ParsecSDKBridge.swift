@@ -14,6 +14,12 @@ enum DecoderPref:Int
     case h265
 }
 
+enum ProtocolPref:Int
+{
+	case stcp
+	case bud
+}
+
 enum CursorMode:Int
 {
     case touchpad

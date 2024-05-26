@@ -14,7 +14,7 @@ class ParsecWebPlayground : ParsecPlayground {
 	let updateImage : () -> Void
 	let imgView: UIImageView
 	var updateTimer: Timer?
-	let parsec : ParsecWeb
+	weak var parsec : ParsecWeb?
 	
 	required init(viewController: UIViewController, updateImage: @escaping () -> Void) {
 		self.viewController = viewController
@@ -22,7 +22,7 @@ class ParsecWebPlayground : ParsecPlayground {
 		
 		imgView = UIImageView()
 
-		self.parsec = CParsec.getImpl() as! ParsecWeb
+		self.parsec = (CParsec.getImpl() as! ParsecWeb)
 	}
 	
 	func viewDidLoad() {
@@ -38,7 +38,7 @@ class ParsecWebPlayground : ParsecPlayground {
 	
 	@objc func updateFrame() {
 		
-		if let data = parsec.buffer.decodedVideoBuffer.dequeue() {
+		if let data = parsec?.buffer.decodedVideoBuffer.dequeue() {
 			imgView.image = data.image
 			updateImage()
 		}

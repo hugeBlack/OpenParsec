@@ -28,8 +28,16 @@ class ParsecViewController :UIViewController, UIPointerInteractionDelegate, UIGe
 	
 	init() {
 		super.init(nibName: nil, bundle: nil)
-//		self.glkView = ParsecGLKViewController(viewController: self, updateImage: updateImage)
-		self.glkView = ParsecWebPlayground(viewController: self, updateImage: updateImage)
+		
+		switch SettingsHandler.streamProtocol {
+		case .stcp:
+			self.glkView = ParsecWebPlayground(viewController: self, updateImage: updateImage)
+			break
+		case .bud:
+			self.glkView = ParsecGLKViewController(viewController: self, updateImage: updateImage)
+			break
+		}
+		
 		self.gamePadController = GamepadController(viewController: self)
 		self.touchController = TouchController(viewController: self)
 		

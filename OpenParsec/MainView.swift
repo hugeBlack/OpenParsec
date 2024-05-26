@@ -67,16 +67,16 @@ struct MainView:View
 						{
 							Alert(title:Text("Are you sure you want to logout?"), primaryButton:.destructive(Text("Logout"), action:logout), secondaryButton:.cancel(Text("Cancel")))
 						}
-					Button(action: {
-						if let c = controller
-						{
-							c.setView(.test)
-
-						}
-						
-					}, label: {
-						Text("Show TestView")
-					})
+//					Button(action: {
+//						if let c = controller
+//						{
+//							c.setView(.test)
+//
+//						}
+//						
+//					}, label: {
+//						Text("Show TestView")
+//					})
 					
 					Spacer()
 					HStack()
@@ -582,6 +582,7 @@ struct MainView:View
 
 	func connectTo(_ who:IdentifiableHostInfo)
 	{
+		CParsec.initialize()
 		connectingToName = who.hostname
 		withAnimation { isConnecting = true }
 

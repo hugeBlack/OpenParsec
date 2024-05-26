@@ -33,18 +33,10 @@ class KeyboardTestController:UIViewController
 {
 	var id = 0
 	
-	let imgView: UIImageView
-	
-	var p: ParsecWeb?
 	
 	init() {
-
-		imgView = UIImageView()
-		imgView.contentMode = .scaleAspectFit
-		imgView.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
 		
 		super.init(nibName: nil, bundle: nil)
-		view.addSubview(imgView)
 	}
 	
 	required init?(coder: NSCoder) {
@@ -84,30 +76,14 @@ class KeyboardTestController:UIViewController
 		// Add the gesture recognizer to your view
 		view.addGestureRecognizer(panGesture)
 		
-		p = ParsecWeb()
-		p!.connect("2fud0XnqknMBmau7n2f8x42IUuT")
-		
-		var helloWorldTimer = Timer.scheduledTimer(timeInterval: 0.016, target: self, selector: #selector(updateImg), userInfo: nil, repeats: true)
-
-		
 	}
 	
-	@objc func updateImg() {
-		guard let p = p else {
-			return
-		}
-		
-		if let data = p.buffer.decodedVideoBuffer.dequeue() {
-			imgView.image = data.image
-		}
-	}
 	
 	
 	@objc func handlePan(_ gesture: UIPanGestureRecognizer){
 		print("PAN!")
 		setNeedsUpdateOfPrefersPointerLocked()
 		
-
 	}
 	
 }

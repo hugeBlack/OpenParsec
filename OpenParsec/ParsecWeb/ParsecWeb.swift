@@ -160,6 +160,10 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	private var statusTimer: Timer?
 	private var wsKeepAliveTimer: Timer?
 	
+	private var disconnectCalled = false
+	private var relayAnswered = false
+	private var candexBuffer = [ParsecWsCandexPayload]()
+	
 	init() {
 
 		self.buffer = ParsecWebBuffer()
@@ -253,9 +257,22 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 			let ip = data["ip"] as! String
 			let port = data["port"] as! Int
 			let from_stun = data["from_stun"] as! Bool
-			let sdp = "candidate:2395300328 1 udp 2113937151 \(ip) \(port) typ \(from_stun ? "srflx" : "host") generation 0 ufrag \(self.remoteUfrag) network-cost 50";
+			let ip2 = ip.replacingOccurrences(of: "::ffff:", with: "")
+
+			let sdp = "candidate:2395300328 1 udp 2113937151 \(ip2) \(port) typ \(from_stun ? "srflx" : "host") generation 0 ufrag \(self.remoteUfrag) network-cost 50";
 			let c = RTCIceCandidate(sdp: sdp, sdpMLineIndex: 0, sdpMid: "0")
-			print("candex relay \(sdp)")
+			
+			let sync = data["sync"] as! Bool
+			
+			if sync {
+				print("SYNC!")
+				DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+					let payloadData = ParsecWsCandexPayloadData(from_stun: false, ip: "1.2.3.4", lan: false, port: 1234, sync: true)
+					let payload = ParsecWsCandexPayload(attempt_id: self.attemptId, data: payloadData, to: self.peerId)
+					self.ws.sendAction("candex", payload: payload)
+				}
+			}
+			
 			self.client.set(remoteCandidate: c, completion: { (err) in
 				if let err = err {
 					print(err)
@@ -278,6 +295,13 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 				}
 			})
 			self.remoteUfrag = ice_ufrag
+			
+			// 要在answer relay后发送candex消息,否则早发送的会被服务器忽略掉
+			self.relayAnswered = true
+			for candex in candexBuffer {
+				self.ws.sendAction("candex", payload: candex)
+			}
+			candexBuffer.removeAll()
 		}
 	}
 	
@@ -285,6 +309,7 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 		print("close!")
 	}
 	
+	// MARK: onIceCandidate
 	func webRTCClient(_ client: WebRTCClient, didDiscoverLocalCandidate candidate: RTCIceCandidate) {
 
 		// 要使用UDP
@@ -301,11 +326,22 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 		let payloadData = ParsecWsCandexPayloadData(from_stun: isSrlfx, ip: ip, lan: isHost, port: port, sync: false)
 		let payload = ParsecWsCandexPayload(attempt_id: self.attemptId, data: payloadData, to: self.peerId)
 		
-		self.ws.sendAction("candex", payload: payload)
+		if !relayAnswered {
+			candexBuffer.append(payload)
+		} else {
+			self.ws.sendAction("candex", payload: payload)
+		}
+		
 	}
 	
 	func webRTCClient(_ client: WebRTCClient, didChangeConnectionState state: RTCIceConnectionState) {
 		print("didChangeConnectionState!")
+		if state == .failed {
+			self.buffer.parsecStatus = ParsecStatus(-6105)
+		} else if state == .closed {
+			self.buffer.parsecStatus = ParsecStatus(5)
+			self.disconnect()
+		}
 	}
 	
 	func webRTCClient(_ client: WebRTCClient, didReceiveData data: Data) {
@@ -314,6 +350,10 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 
 	// MARK: connect
 	func connect(_ peerID: String) -> ParsecStatus {
+		buffer.parsecStatus = ParsecStatus(20)
+		disconnectCalled = false
+		relayAnswered = false
+		
 		self.peerId = peerID
 		var urlStr :String = ""
 		if let session_id = NetworkHandler.clinfo?.session_id{
@@ -349,13 +389,16 @@ class ParsecWeb : ParsecService, WebSocketDelegate, WebRTCClientDelegate{
 	}
 
 	func disconnect() {
-		// Implementation here
-		print("Disconnect!")
-		ws.close()
-		client.close()
-		self.statusTimer?.invalidate()
-		self.player.stop()
-		self.wsKeepAliveTimer?.invalidate()
+		if !disconnectCalled {
+			disconnectCalled = true
+			print("Disconnect!")
+			ws.close()
+			client.close()
+			self.statusTimer?.invalidate()
+			self.player.stop()
+			self.wsKeepAliveTimer?.invalidate()
+		}
+
 	}
 
 	func getStatus() -> ParsecStatus {

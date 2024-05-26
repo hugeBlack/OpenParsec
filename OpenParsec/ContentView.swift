@@ -37,7 +37,6 @@ struct ContentView:View
 
 	func initApp()
 	{
-		CParsec.initialize()
 		
 		// Load prefs
 		SettingsHandler.load()

@@ -68,8 +68,15 @@ class CParsec
 
 	static func initialize()
 	{
-//		parsecImpl = ParsecSDKBridge()
-		parsecImpl = ParsecWeb()
+		switch SettingsHandler.streamProtocol {
+		case .stcp:
+			parsecImpl = ParsecWeb()
+			break
+		case .bud:
+			parsecImpl = ParsecSDKBridge()
+			break
+		}
+		
 	}
 
 	static func destroy()
