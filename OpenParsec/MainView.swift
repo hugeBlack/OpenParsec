@@ -429,9 +429,6 @@ struct MainView:View
 					let statusCode:Int = (response as! HTTPURLResponse).statusCode
 					let decoder = JSONDecoder()
 
-					print("/v2/hosts: \(statusCode)")
-					print(String(data:data, encoding:.utf8)!)
-
 					if statusCode == 200 // 200 OK
 					{
 						let info:HostInfoList =  try! decoder.decode(HostInfoList.self, from:data)
@@ -495,9 +492,6 @@ struct MainView:View
 				{
 					let statusCode:Int = (response as! HTTPURLResponse).statusCode
 					let decoder = JSONDecoder()
-
-					print("/me: \(statusCode)")
-					print(String(data:data, encoding:.utf8)!)
 
 					if statusCode == 200 // 200 OK
 					{
