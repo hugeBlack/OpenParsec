@@ -168,7 +168,7 @@ class ParsecSDKBridge: ParsecService
 
 
 		let cursor = e.cursor
-		
+		let prevHidden = mouseInfo.cursorHidden
 		mouseInfo.cursorHidden = cursor.cursor.hidden
 		mouseInfo.mousePositionRelative = cursor.cursor.relative
 		
@@ -184,8 +184,12 @@ class ParsecSDKBridge: ParsecService
 			let height = cursor.cursor.height
 			mouseInfo.cursorWidth = Int(width)
 			mouseInfo.cursorHeight = Int(height)
-			mouseInfo.mouseX = Int32(cursor.cursor.positionX)
-			mouseInfo.mouseY = Int32(cursor.cursor.positionY)
+			// 之前隐藏现在不隐藏了就更新
+			if prevHidden && !cursor.cursor.hidden {
+				mouseInfo.mouseX = Int32(cursor.cursor.positionX)
+				mouseInfo.mouseY = Int32(cursor.cursor.positionY)
+			}
+
 			mouseInfo.cursorHotX = Int(cursor.cursor.hotX)
 			mouseInfo.cursorHotY = Int(cursor.cursor.hotY)
 			
