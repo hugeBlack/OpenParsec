@@ -14,12 +14,6 @@ enum DecoderPref:Int
     case h265
 }
 
-enum ProtocolPref:Int
-{
-	case stcp
-	case bud
-}
-
 enum CursorMode:Int
 {
     case touchpad
@@ -161,37 +155,69 @@ class ParsecSDKBridge: ParsecService
 	{
 		var e: ParsecClientEvent!
 		var _event = ParsecClientEvent()
+		var pollSuccess = false;
 		withUnsafeMutablePointer(to: &_event, {(_eventPtr) in
-			ParsecClientPollEvents(_parsec, timeout, _eventPtr)
+			pollSuccess = ParsecClientPollEvents(_parsec, timeout, _eventPtr)
 			e = _eventPtr.pointee
 		})
-
-
-		let cursor = e.cursor
+		if !pollSuccess {
+			return
+		}
+		if e.type == CLIENT_EVENT_CURSOR {
+			handleCursorEvent(event: e.cursor)
+		} else if e.type == CLIENT_EVENT_USER_DATA {
+			handleUserDataEvent(event: e.userData)
+		}
+	}
+	
+	func handleUserDataEvent(event: ParsecClientUserDataEvent) {
+		let pointer = ParsecGetBuffer(_parsec, event.key)
+		switch event.id {
+		case 11:
+			
+			do {
+				let decoder = JSONDecoder()
+				let config = try decoder.decode(ParsecUserDataVideoConfig.self, from: Data(bytesNoCopy: pointer!, count: strlen(pointer!), deallocator: .none))
+				let videoConfig = config.video[0]
+				DataManager.model.resolutionX = videoConfig.resolutionX
+				DataManager.model.resolutionY = videoConfig.resolutionY
+				DataManager.model.bitrate = videoConfig.encoderMaxBitrate
+				DataManager.model.constantFps = videoConfig.fullFPS
+				
+			} catch {
+				print("error while parsing user data: \(error.localizedDescription)")
+			}
+		default:
+			break
+		}
+		ParsecFree(pointer)
+	}
+	
+	func handleCursorEvent(event: ParsecClientCursorEvent) {
 		let prevHidden = mouseInfo.cursorHidden
-		mouseInfo.cursorHidden = cursor.cursor.hidden
-		mouseInfo.mousePositionRelative = cursor.cursor.relative
+		mouseInfo.cursorHidden = event.cursor.hidden
+		mouseInfo.mousePositionRelative = event.cursor.relative
 		
-		if cursor.cursor.imageUpdate || !getFirstCursor{
+		if event.cursor.imageUpdate || !getFirstCursor{
 			getFirstCursor = true
-			let imgKey = cursor.key
+			let imgKey = event.key
 			let pointer = ParsecGetBuffer(_parsec, imgKey)
 			if pointer == nil{
 				return
 			}
-			let size = cursor.cursor.size
-			let width = cursor.cursor.width
-			let height = cursor.cursor.height
+			let size = event.cursor.size
+			let width = event.cursor.width
+			let height = event.cursor.height
 			mouseInfo.cursorWidth = Int(width)
 			mouseInfo.cursorHeight = Int(height)
 			// 之前隐藏现在不隐藏了就更新
-			if prevHidden && !cursor.cursor.hidden {
-				mouseInfo.mouseX = Int32(cursor.cursor.positionX)
-				mouseInfo.mouseY = Int32(cursor.cursor.positionY)
+			if prevHidden && !event.cursor.hidden {
+				mouseInfo.mouseX = Int32(event.cursor.positionX)
+				mouseInfo.mouseY = Int32(event.cursor.positionY)
 			}
 
-			mouseInfo.cursorHotX = Int(cursor.cursor.hotX)
-			mouseInfo.cursorHotY = Int(cursor.cursor.hotY)
+			mouseInfo.cursorHotX = Int(event.cursor.hotX)
+			mouseInfo.cursorHotY = Int(event.cursor.hotY)
 			
 			
 			var colors = [RGBA]()
@@ -908,5 +934,12 @@ class ParsecSDKBridge: ParsecService
 		let mainQueue = DispatchQueue.global()
 		mainQueue.async(execute: item1)
 		mainQueue.async(execute: item2)
+	}
+	
+	func sendUserData(type: ParsecUserDataType, message: Data) {
+		message.withUnsafeBytes { ptr in
+			let ptr2 = ptr.baseAddress?.assumingMemoryBound(to: CChar.self)
+			ParsecClientSendUserData(_parsec, type.rawValue, ptr2)
+		}
 	}
 }

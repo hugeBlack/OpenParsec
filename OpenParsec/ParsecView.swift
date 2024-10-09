@@ -16,6 +16,9 @@ struct ParsecView:View
 	@State var muted:Bool = false
     @State var preferH265:Bool = true
 	
+	@State var resolutions : [ParsecResolution]
+	@State var bitrates : [Int]
+	
 	var parsecViewController : ParsecViewController!
 	
 	let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
@@ -26,7 +29,8 @@ struct ParsecView:View
 	{
 		self.controller = controller
 		parsecViewController = ParsecViewController()
-		
+		_resolutions = State(initialValue: ParsecResolution.resolutions)
+		_bitrates = State(initialValue: ParsecResolution.bitrates)
 	}
 
 	var body:some View
@@ -89,7 +93,14 @@ struct ParsecView:View
 				{
 					HStack()
 					{
-						Button(action:{ showMenu.toggle() })
+						Button(action:{
+							if showMenu {
+								showMenu = false
+							} else {
+								showMenu = true
+								getHostUserData()
+							}
+						})
 						{
 							Image("IconTransparent")
 								.resizable()
@@ -120,6 +131,37 @@ struct ParsecView:View
 							Button(action:toggleMute)
 							{
 								Text("Sound: \(muted ? "OFF" : "ON")")
+									.padding(12)
+									.frame(maxWidth:.infinity)
+									.multilineTextAlignment(.center)
+							}
+							Menu() {
+								ForEach(resolutions, id: \.self) { resolution in
+									Button(resolution.desc) {
+										changeResolution(res: resolution)
+									}
+								}
+							} label: {
+								Text("Resolution")
+									.padding(12)
+									.frame(maxWidth:.infinity)
+									.multilineTextAlignment(.center)
+							}
+							Menu() {
+								ForEach(bitrates, id: \.self) { bitrate in
+									Button("\(bitrate) Mbps") {
+										changeBitRate(bitrate: bitrate)
+									}
+								}
+							} label: {
+								Text("Bitrate")
+									.padding(12)
+									.frame(maxWidth:.infinity)
+									.multilineTextAlignment(.center)
+							}
+							Button(action:toggleConstantFps)
+							{
+								Text("Constant FPS: \(DataManager.model.constantFps ? "ON" : "OFF")")
 									.padding(12)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
@@ -258,7 +300,38 @@ struct ParsecView:View
 			c.setView(.main)
 		}
 	}
+	
+	func updateHostVideoConfig() {
+		var videoConfig = ParsecUserDataVideoConfig()
+		videoConfig.video[0].resolutionX = DataManager.model.resolutionX
+		videoConfig.video[0].resolutionY = DataManager.model.resolutionY
+		videoConfig.video[0].encoderMaxBitrate = DataManager.model.bitrate
+		videoConfig.video[0].fullFPS = DataManager.model.constantFps
+		let encoder = JSONEncoder()
+		let data = try! encoder.encode(videoConfig)
+		CParsec.sendUserData(type: .setVideoConfig, message: data)
+	}
+	
+	func changeResolution(res: ParsecResolution) {
+		DataManager.model.resolutionX = res.width
+		DataManager.model.resolutionY = res.height
+		updateHostVideoConfig()
+	}
 
+	func changeBitRate(bitrate: Int) {
+		DataManager.model.bitrate = bitrate
+		updateHostVideoConfig()
+	}
+	
+	func toggleConstantFps() {
+		DataManager.model.constantFps.toggle()
+		updateHostVideoConfig()
+	}
+	
+	func getHostUserData() {
+		let data = "".data(using: .utf8)!
+		CParsec.sendUserData(type: .getVideoConfig, message: data)
+	}
 
 
 //	func handleKeyCommand(sender:UIKeyCommand)

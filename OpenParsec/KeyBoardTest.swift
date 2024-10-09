@@ -10,7 +10,6 @@ import ParsecSDK
 import UIKit
 import SwiftUI
 import GameController
-import WebRTC
 
 struct TestView : View {
 	var controller:ContentView?

@@ -6,7 +6,6 @@ struct SettingsView:View
 
 	//@State var renderer:RendererType = SettingsHandler.renderer
 	@State var decoder:DecoderPref = SettingsHandler.decoder
-	@State var streamProtocol:ProtocolPref = SettingsHandler.streamProtocol
 	//@State var cursorMode:CursorMode = SettingsHandler.cursorMode
 	//@State var cursorScale:Float = SettingsHandler.cursorScale
 	@State var noOverlay:Bool = SettingsHandler.noOverlay
@@ -95,14 +94,6 @@ struct SettingsView:View
 									Choice("Prefer H.265", DecoderPref.h265)
 								])
                             }
-							CatItem("Protocol")
-							{
-								MultiPicker(selection:$streamProtocol, options:
-								[
-									Choice("STCP(WebRTC)", ProtocolPref.stcp),
-									Choice("BUD(ParsecSDK)", ProtocolPref.bud)
-								])
-							}
                         }
                         CatTitle("Misc")
                         CatList()
@@ -134,7 +125,6 @@ struct SettingsView:View
 	{
 		//SettingsHandler.renderer = renderer
 		SettingsHandler.decoder = decoder
-		SettingsHandler.streamProtocol = streamProtocol
 		//SettingsHandler.cursorMode = cursorMode
 		//SettingsHandler.cursorScale = cursorScale
 		SettingsHandler.noOverlay = noOverlay

@@ -3,34 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 50;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
-		1759390E2BFF97C90045C0D9 /* OpusDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1759390D2BFF97C90045C0D9 /* OpusDecoder.swift */; };
-		17A6207D2BF7748100B6878B /* WebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A6207C2BF7748100B6878B /* WebSocket.swift */; };
-		17B9F1912BF861450001D04E /* ParsecWebDataParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */; };
+		17840D1D2CB639530097374B /* ParsecUserData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17840D1C2CB6394D0097374B /* ParsecUserData.swift */; };
 		17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */; };
-		17DA6F182C008E5E00C9C567 /* ControlChannelDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DA6F172C008E5E00C9C567 /* ControlChannelDelegate.swift */; };
-		17DA6F1A2C00A23700C9C567 /* InputPackets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DA6F192C00A23700C9C567 /* InputPackets.swift */; };
-		17DED22B2C018A6A005C2639 /* VideoDecoder in Frameworks */ = {isa = PBXBuildFile; productRef = 17DED22A2C018A6A005C2639 /* VideoDecoder */; };
-		17DED22E2C01B1FA005C2639 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 17DED22D2C01B1FA005C2639 /* WebRTC */; };
 		17EA35F72BF712A8001BE0DF /* ParsecSDKBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */; };
-		17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35F82BF71774001BE0DF /* ParsecWeb.swift */; };
-		17EA36052BF74BF5001BE0DF /* NativeWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */; };
-		17EA36072BF74BF5001BE0DF /* WebSocketProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA35FF2BF74BF5001BE0DF /* WebSocketProvider.swift */; };
-		17EA36082BF74BF5001BE0DF /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA36012BF74BF5001BE0DF /* Message.swift */; };
-		17EA36092BF74BF5001BE0DF /* SignalingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA36022BF74BF5001BE0DF /* SignalingClient.swift */; };
-		17EA360A2BF74BF5001BE0DF /* WebRTCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA36032BF74BF5001BE0DF /* WebRTCClient.swift */; };
-		17EA360F2BF74EAA001BE0DF /* IceCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360B2BF74EAA001BE0DF /* IceCandidate.swift */; };
-		17EA36102BF74EAA001BE0DF /* RTCStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360C2BF74EAA001BE0DF /* RTCStates.swift */; };
-		17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */; };
 		17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */; };
-		17F7C4EB2BFA48A400EF731B /* ParsecWebPlayground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */; };
-		17F7C4EE2BFA5F0200EF731B /* Copus in Frameworks */ = {isa = PBXBuildFile; productRef = 17F7C4ED2BFA5F0200EF731B /* Copus */; };
-		17F7C4F02BFA5F0200EF731B /* Opus in Frameworks */ = {isa = PBXBuildFile; productRef = 17F7C4EF2BFA5F0200EF731B /* Opus */; };
-		17F7C4F22BFA61B100EF731B /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F7C4F12BFA61B100EF731B /* AudioPlayer.swift */; };
 		271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14F8292E90EB00D7F1D6 /* ParsecView.swift */; };
 		271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */; };
 		271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */; };
@@ -77,25 +58,10 @@
 
 /* Begin PBXFileReference section */
 		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
-		1759390D2BFF97C90045C0D9 /* OpusDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpusDecoder.swift; sourceTree = "<group>"; };
-		17A6207C2BF7748100B6878B /* WebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocket.swift; sourceTree = "<group>"; };
-		17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWebDataParser.swift; sourceTree = "<group>"; };
+		17840D1C2CB6394D0097374B /* ParsecUserData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecUserData.swift; sourceTree = "<group>"; };
 		17CD1E022BF07BC3003D2102 /* ViewContainerPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewContainerPatch.swift; sourceTree = "<group>"; };
-		17DA6F172C008E5E00C9C567 /* ControlChannelDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlChannelDelegate.swift; sourceTree = "<group>"; };
-		17DA6F192C00A23700C9C567 /* InputPackets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputPackets.swift; sourceTree = "<group>"; };
 		17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecSDKBridge.swift; sourceTree = "<group>"; };
-		17EA35F82BF71774001BE0DF /* ParsecWeb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWeb.swift; sourceTree = "<group>"; };
-		17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NativeWebSocket.swift; sourceTree = "<group>"; };
-		17EA35FF2BF74BF5001BE0DF /* WebSocketProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebSocketProvider.swift; sourceTree = "<group>"; };
-		17EA36012BF74BF5001BE0DF /* Message.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
-		17EA36022BF74BF5001BE0DF /* SignalingClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalingClient.swift; sourceTree = "<group>"; };
-		17EA36032BF74BF5001BE0DF /* WebRTCClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = WebRTCClient.swift; sourceTree = "<group>"; };
-		17EA360B2BF74EAA001BE0DF /* IceCandidate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = IceCandidate.swift; sourceTree = "<group>"; };
-		17EA360C2BF74EAA001BE0DF /* RTCStates.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RTCStates.swift; sourceTree = "<group>"; };
-		17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionDescription.swift; sourceTree = "<group>"; };
 		17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyBoardTest.swift; sourceTree = "<group>"; };
-		17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecWebPlayground.swift; sourceTree = "<group>"; };
-		17F7C4F12BFA61B100EF731B /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
 		271D14F8292E90EB00D7F1D6 /* ParsecView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecView.swift; sourceTree = "<group>"; };
 		271D14FA292EAA3600D7F1D6 /* ParsecGLKRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKRenderer.swift; sourceTree = "<group>"; };
 		271D14FB292EAA3600D7F1D6 /* ParsecGLKViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ParsecGLKViewController.swift; sourceTree = "<group>"; };
@@ -134,63 +100,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				17DED22E2C01B1FA005C2639 /* WebRTC in Frameworks */,
 				27B8D571292DCA5B00A324AD /* ParsecSDK.framework in Frameworks */,
-				17DED22B2C018A6A005C2639 /* VideoDecoder in Frameworks */,
-				17F7C4F02BFA5F0200EF731B /* Opus in Frameworks */,
-				17F7C4EE2BFA5F0200EF731B /* Copus in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		17B9F1972BF88C9C0001D04E /* ParsecWeb */ = {
-			isa = PBXGroup;
-			children = (
-				17EA36042BF74BF5001BE0DF /* Services */,
-				17EA35F82BF71774001BE0DF /* ParsecWeb.swift */,
-				17A6207C2BF7748100B6878B /* WebSocket.swift */,
-				17B9F1902BF861450001D04E /* ParsecWebDataParser.swift */,
-				17F7C4EA2BFA48A400EF731B /* ParsecWebPlayground.swift */,
-				17F7C4F12BFA61B100EF731B /* AudioPlayer.swift */,
-				1759390D2BFF97C90045C0D9 /* OpusDecoder.swift */,
-				17DA6F172C008E5E00C9C567 /* ControlChannelDelegate.swift */,
-				17DA6F192C00A23700C9C567 /* InputPackets.swift */,
-			);
-			path = ParsecWeb;
-			sourceTree = "<group>";
-		};
-		17EA36002BF74BF5001BE0DF /* WebSocketProvider */ = {
-			isa = PBXGroup;
-			children = (
-				17EA35FD2BF74BF5001BE0DF /* NativeWebSocket.swift */,
-				17EA35FF2BF74BF5001BE0DF /* WebSocketProvider.swift */,
-			);
-			path = WebSocketProvider;
-			sourceTree = "<group>";
-		};
-		17EA36042BF74BF5001BE0DF /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				17EA36002BF74BF5001BE0DF /* WebSocketProvider */,
-				17EA36012BF74BF5001BE0DF /* Message.swift */,
-				17EA36022BF74BF5001BE0DF /* SignalingClient.swift */,
-				17EA36032BF74BF5001BE0DF /* WebRTCClient.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
-		17EA360E2BF74EAA001BE0DF /* Extensions */ = {
-			isa = PBXGroup;
-			children = (
-				17EA360B2BF74EAA001BE0DF /* IceCandidate.swift */,
-				17EA360C2BF74EAA001BE0DF /* RTCStates.swift */,
-				17EA360D2BF74EAA001BE0DF /* SessionDescription.swift */,
-			);
-			path = Extensions;
-			sourceTree = "<group>";
-		};
 		27B8D56A292DC98B00A324AD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -220,6 +136,7 @@
 		27E61A90292965FC00FF6563 /* OpenParsec */ = {
 			isa = PBXGroup;
 			children = (
+				17840D1C2CB6394D0097374B /* ParsecUserData.swift */,
 				27E61AA7292994B500FF6563 /* ActivityIndicator.swift */,
 				27E61A91292965FC00FF6563 /* AppDelegate.swift */,
 				27E61A97292965FD00FF6563 /* Assets.xcassets */,
@@ -227,7 +144,6 @@
 				27899AC6292FE2A9001ACA33 /* audio.h */,
 				27E61A95292965FC00FF6563 /* ContentView.swift */,
 				27B8D563292DC7A000A324AD /* CParsec.swift */,
-				17EA360E2BF74EAA001BE0DF /* Extensions */,
 				27AD365F2B19731800C8A607 /* ExUI.swift */,
 				84480EBD2ADC4FDA007DE5F1 /* GameController.swift */,
 				27E61A9F292965FD00FF6563 /* Info.plist */,
@@ -245,7 +161,6 @@
 				17EA35F62BF712A8001BE0DF /* ParsecSDKBridge.swift */,
 				271D14F8292E90EB00D7F1D6 /* ParsecView.swift */,
 				170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */,
-				17B9F1972BF88C9C0001D04E /* ParsecWeb */,
 				27E61A99292965FD00FF6563 /* Preview Content */,
 				27E61A93292965FC00FF6563 /* SceneDelegate.swift */,
 				27A267342B1AEAB700F34C63 /* SettingsHandler.swift */,
@@ -285,10 +200,6 @@
 			);
 			name = OpenParsec;
 			packageProductDependencies = (
-				17F7C4ED2BFA5F0200EF731B /* Copus */,
-				17F7C4EF2BFA5F0200EF731B /* Opus */,
-				17DED22A2C018A6A005C2639 /* VideoDecoder */,
-				17DED22D2C01B1FA005C2639 /* WebRTC */,
 			);
 			productName = OpenParsec;
 			productReference = 27E61A8E292965FC00FF6563 /* OpenParsec.app */;
@@ -319,9 +230,6 @@
 			);
 			mainGroup = 27E61A85292965FC00FF6563;
 			packageReferences = (
-				17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */,
-				17C7F9302C01885F00C65DE0 /* XCRemoteSwiftPackageReference "VideoDecoderSwift" */,
-				17DED22C2C01B1FA005C2639 /* XCRemoteSwiftPackageReference "WebRTC" */,
 			);
 			productRefGroup = 27E61A8F292965FC00FF6563 /* Products */;
 			projectDirPath = "";
@@ -357,40 +265,25 @@
 				27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */,
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,
 				27E61AAA2929B92200FF6563 /* MainView.swift in Sources */,
-				17B9F1912BF861450001D04E /* ParsecWebDataParser.swift in Sources */,
-				17DA6F182C008E5E00C9C567 /* ControlChannelDelegate.swift in Sources */,
-				17EA360A2BF74BF5001BE0DF /* WebRTCClient.swift in Sources */,
 				271D14FD292EAA3600D7F1D6 /* ParsecGLKViewController.swift in Sources */,
-				17EA36072BF74BF5001BE0DF /* WebSocketProvider.swift in Sources */,
 				274A69CF29EA07FA00F595A5 /* SettingsView.swift in Sources */,
 				17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */,
-				17A6207D2BF7748100B6878B /* WebSocket.swift in Sources */,
-				17EA36102BF74EAA001BE0DF /* RTCStates.swift in Sources */,
 				27E61AA8292994B500FF6563 /* ActivityIndicator.swift in Sources */,
-				17EA360F2BF74EAA001BE0DF /* IceCandidate.swift in Sources */,
 				271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */,
-				17EA36082BF74BF5001BE0DF /* Message.swift in Sources */,
 				27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */,
 				27E61A94292965FC00FF6563 /* SceneDelegate.swift in Sources */,
-				17EA36092BF74BF5001BE0DF /* SignalingClient.swift in Sources */,
 				27A267352B1AEAB700F34C63 /* SettingsHandler.swift in Sources */,
 				27AD36602B19731800C8A607 /* ExUI.swift in Sources */,
 				27899AC7292FE2A9001ACA33 /* audio.c in Sources */,
 				27E61AA62929817700FF6563 /* LoginView.swift in Sources */,
-				17F7C4EB2BFA48A400EF731B /* ParsecWebPlayground.swift in Sources */,
-				17F7C4F22BFA61B100EF731B /* AudioPlayer.swift in Sources */,
-				17EA35F92BF71774001BE0DF /* ParsecWeb.swift in Sources */,
-				1759390E2BFF97C90045C0D9 /* OpusDecoder.swift in Sources */,
 				27B8D564292DC7A000A324AD /* CParsec.swift in Sources */,
 				27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */,
 				170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */,
 				27B23A222B1B979C00B52F14 /* ParsecMetalRenderer.swift in Sources */,
+				17840D1D2CB639530097374B /* ParsecUserData.swift in Sources */,
 				27E61A96292965FC00FF6563 /* ContentView.swift in Sources */,
 				17EA35F72BF712A8001BE0DF /* ParsecSDKBridge.swift in Sources */,
-				17EA36112BF74EAA001BE0DF /* SessionDescription.swift in Sources */,
-				17EA36052BF74BF5001BE0DF /* NativeWebSocket.swift in Sources */,
 				27ED36FF292D4F9800B1BE3D /* NetworkHandler.swift in Sources */,
-				17DA6F1A2C00A23700C9C567 /* InputPackets.swift in Sources */,
 				17EEB91C2BEE62BA00502A3A /* KeyBoardTest.swift in Sources */,
 				271D14F9292E90EB00D7F1D6 /* ParsecView.swift in Sources */,
 			);
@@ -547,7 +440,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
@@ -578,7 +471,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
@@ -611,56 +504,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		17C7F9302C01885F00C65DE0 /* XCRemoteSwiftPackageReference "VideoDecoderSwift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/hugeBlack/VideoDecoderSwift";
-			requirement = {
-				branch = master;
-				kind = branch;
-			};
-		};
-		17DED22C2C01B1FA005C2639 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/stasel/WebRTC.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 125.0.0;
-			};
-		};
-		17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/alta/swift-opus";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.0.2;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		17DED22A2C018A6A005C2639 /* VideoDecoder */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 17C7F9302C01885F00C65DE0 /* XCRemoteSwiftPackageReference "VideoDecoderSwift" */;
-			productName = VideoDecoder;
-		};
-		17DED22D2C01B1FA005C2639 /* WebRTC */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 17DED22C2C01B1FA005C2639 /* XCRemoteSwiftPackageReference "WebRTC" */;
-			productName = WebRTC;
-		};
-		17F7C4ED2BFA5F0200EF731B /* Copus */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */;
-			productName = Copus;
-		};
-		17F7C4EF2BFA5F0200EF731B /* Opus */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 17F7C4EC2BFA5F0200EF731B /* XCRemoteSwiftPackageReference "swift-opus" */;
-			productName = Opus;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 27E61A86292965FC00FF6563 /* Project object */;
 }
