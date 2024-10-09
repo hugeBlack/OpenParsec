@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import VideoDecoder
 
 var appScheme:ColorScheme = .dark
 

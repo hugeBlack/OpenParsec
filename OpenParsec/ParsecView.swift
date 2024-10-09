@@ -2,6 +2,66 @@ import SwiftUI
 import ParsecSDK
 import Foundation
 
+struct ParsecStatusBar : View {
+	@Binding var showMenu : Bool
+	@State var metricInfo:String = "Loading..."
+	@Binding var showDCAlert:Bool
+	@Binding var DCAlertText:String
+	let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+	
+	var body: some View {
+		// Overlay elements
+		if showMenu
+		{
+			VStack()
+			{
+				Text(metricInfo)
+					.frame(minWidth:200, maxWidth:.infinity, maxHeight:20)
+					.multilineTextAlignment(.leading)
+					.font(.system(size: 10))
+					.lineSpacing(20)
+					.lineLimit(nil)
+			}
+			.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
+			.foregroundColor(Color("Foreground"))
+			.frame(maxHeight: .infinity, alignment: .top)
+			.zIndex(1)
+			.edgesIgnoringSafeArea(.all)
+
+		}
+		EmptyView()
+			.onReceive(timer) { p in
+				poll()
+			}
+	}
+	
+	func poll()
+	{
+		if showDCAlert
+		{
+			return // no need to poll if we aren't connected anymore
+		}
+		
+		var pcs = ParsecClientStatus()
+		let status = CParsec.getStatusEx(&pcs)
+		
+		if status != PARSEC_OK
+		{
+			DCAlertText = "Disconnected (code \(status.rawValue))"
+			showDCAlert = true
+			return
+		}
+
+		// FIXME: This may cause memory leak?
+		
+		if showMenu
+		{
+			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
+			metricInfo = "Decode \(String(format:"%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format:"%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format:"%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format:"%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
+		}
+	}
+}
+
 struct ParsecView:View
 {
 	var controller:ContentView?
@@ -21,7 +81,6 @@ struct ParsecView:View
 	
 	var parsecViewController : ParsecViewController!
 	
-	let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 	
 	//@State var showDisplays:Bool = false
 	
@@ -68,24 +127,7 @@ struct ParsecView:View
 			UIViewControllerWrapper(self.parsecViewController)
 				.zIndex(1)
 			
-			// Overlay elements
-			if showMenu
-            {
-                VStack()
-                {
-                    Text("\(metricInfo)")
-                        .frame(minWidth:200, maxWidth:.infinity, maxHeight:20)
-                        .multilineTextAlignment(.leading)
-                        .font(.system(size: 10))
-                        .lineSpacing(20)
-                        .lineLimit(nil)
-                }
-                .background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
-                .foregroundColor(Color("Foreground"))
-                .frame(maxHeight: .infinity, alignment: .top)
-                .zIndex(1)
-				.edgesIgnoringSafeArea(.all)
-            }
+			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText)
 			
 			VStack()
 			{
@@ -161,7 +203,7 @@ struct ParsecView:View
 							}
 							Button(action:toggleConstantFps)
 							{
-								Text("Constant FPS: \(DataManager.model.constantFps ? "ON" : "OFF")")
+								Text("Constant FPS: \(DataManager.model.constantFps ? "ON" : "ON")")
 									.padding(12)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
@@ -201,8 +243,6 @@ struct ParsecView:View
 						.padding(.horizontal)
 						//.edgesIgnoringSafeArea(.all)
 						Spacer()
-					}.onReceive(timer) { p in
-						poll()
 					}
 				}
 				Spacer()
@@ -227,31 +267,6 @@ struct ParsecView:View
 		hideOverlay = SettingsHandler.noOverlay
 	}
 	
-	func poll()
-	{
-		if showDCAlert
-		{
-			return // no need to poll if we aren't connected anymore
-		}
-		
-		var pcs = ParsecClientStatus()
-		let status = CParsec.getStatusEx(&pcs)
-		
-		if status != PARSEC_OK
-		{
-			DCAlertText = "Disconnected (code \(status.rawValue))"
-			showDCAlert = true
-			return
-		}
-
-		// FIXME: This may cause memory leak?
-		
-		if showMenu
-		{
-			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
-			metricInfo = "Decode \(String(format:"%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format:"%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format:"%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format:"%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
-		}
-	}
 	
 	func disableOverlay()
 	{
