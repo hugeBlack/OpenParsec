@@ -63,6 +63,8 @@ protocol ParsecService {
 	func sendMouseDelta(_ dx: Int32, _ dy: Int32)
 	func sendMousePosition(_ x: Int32, _ y: Int32)
 	func sendKeyboardMessage(event: KeyBoardKeyEvent)
+	func sendVirtualKeyboardInput(text: String)
+	func sendVirtualKeyboardInput(text: String, isOn: Bool)
 	func sendGameControllerButtonMessage(controllerId: UInt32, _ button: ParsecGamepadButton, pressed: Bool)
 	func sendGameControllerAxisMessage(controllerId: UInt32, _ button: ParsecGamepadAxis, _ value: Int16)
 	func sendGameControllerUnplugMessage(controllerId: UInt32)
@@ -128,8 +130,8 @@ class CParsec
 	{
 		parsecImpl.setFrame(width, height, scale)
 		// set client resolution
-		ParsecResolution.resolutions[1].width = Int(width)
-		ParsecResolution.resolutions[1].height = Int(height)
+		ParsecResolution.resolutions[1].width = Int(width * scale)
+		ParsecResolution.resolutions[1].height = Int(height * scale)
 		
 	}
 
@@ -169,6 +171,14 @@ class CParsec
 	static func sendKeyboardMessage(event:KeyBoardKeyEvent)
 	{
 		parsecImpl.sendKeyboardMessage(event: event)
+	}
+	
+	static func sendVirtualKeyboardInput(text: String) {
+		parsecImpl.sendVirtualKeyboardInput(text: text)
+	}
+	
+	static func sendVirtualKeyboardInput(text: String, isOn: Bool) {
+		parsecImpl.sendVirtualKeyboardInput(text: text, isOn: isOn)
 	}
 	
 	static func sendGameControllerButtonMessage(controllerId:UInt32, _ button:ParsecGamepadButton, pressed:Bool)

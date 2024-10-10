@@ -44,10 +44,6 @@ class TouchController
 
 	func onTap(typeOfTap:Int, location:CGPoint)
 	{
-		// Log the touch location
-		print("Touch location: \(location)")
-		print("Touch type: \(typeOfTap)")
-
 		let x = Int32(location.x)
 		let y = Int32(location.y)
 

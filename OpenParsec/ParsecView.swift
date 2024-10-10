@@ -75,6 +75,7 @@ struct ParsecView:View
 
 	@State var muted:Bool = false
     @State var preferH265:Bool = true
+	@State var constantFps = false
 	
 	@State var resolutions : [ParsecResolution]
 	@State var bitrates : [Int]
@@ -101,8 +102,7 @@ struct ParsecView:View
 			// Input handlers
 //			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
 //				.zIndex(2)
-////			UIViewControllerWrapper(KeyboardViewController())
-////				.zIndex(3)
+
 //            UIViewControllerWrapper(GamepadViewController())
 //			    .zIndex(1)
 //			
@@ -203,26 +203,11 @@ struct ParsecView:View
 							}
 							Button(action:toggleConstantFps)
 							{
-								Text("Constant FPS: \(DataManager.model.constantFps ? "ON" : "ON")")
+								Text("Constant FPS: \(constantFps ? "ON" : "OFF")")
 									.padding(12)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
-							/*Button(action:{showDisplays = true})
-							{
-								Text("Switch Display")
-									.padding(12)
-									.frame(maxWidth:.infinity)
-									.multilineTextAlignment(.center)
-							}
-							.actionSheet(isPresented:$showDisplays, content:genDisplaySheet)*/
-							/*Button(action:{inSettings = true})
-							{
-								Text("Settings")
-									.padding(12)
-									.frame(maxWidth:.infinity)
-									.multilineTextAlignment(.center)
-							}*/
 							Rectangle()
 								.fill(Color("Foreground"))
 								.opacity(0.25)
@@ -340,6 +325,7 @@ struct ParsecView:View
 	
 	func toggleConstantFps() {
 		DataManager.model.constantFps.toggle()
+		constantFps = DataManager.model.constantFps
 		updateHostVideoConfig()
 	}
 	

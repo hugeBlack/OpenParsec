@@ -20,7 +20,6 @@
 		27A267352B1AEAB700F34C63 /* SettingsHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A267342B1AEAB700F34C63 /* SettingsHandler.swift */; };
 		27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */; };
 		27A923E229E8FEE900F54BDA /* UIViewControllerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */; };
-		27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A923E329E9035D00F54BDA /* KeyboardViewController.swift */; };
 		27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AC751729EA339B00E8CAF7 /* URLImage.swift */; };
 		27AD36602B19731800C8A607 /* ExUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AD365F2B19731800C8A607 /* ExUI.swift */; };
 		27B23A222B1B979C00B52F14 /* ParsecMetalRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B23A212B1B979C00B52F14 /* ParsecMetalRenderer.swift */; };
@@ -72,7 +71,6 @@
 		27A267342B1AEAB700F34C63 /* SettingsHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHandler.swift; sourceTree = "<group>"; };
 		27A923DF29E8E53000F54BDA /* TouchHandlingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchHandlingView.swift; sourceTree = "<group>"; };
 		27A923E129E8FEE900F54BDA /* UIViewControllerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewControllerWrapper.swift; sourceTree = "<group>"; };
-		27A923E329E9035D00F54BDA /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		27AC751729EA339B00E8CAF7 /* URLImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLImage.swift; sourceTree = "<group>"; };
 		27AD365F2B19731800C8A607 /* ExUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExUI.swift; sourceTree = "<group>"; };
 		27B23A212B1B979C00B52F14 /* ParsecMetalRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecMetalRenderer.swift; sourceTree = "<group>"; };
@@ -148,7 +146,6 @@
 				84480EBD2ADC4FDA007DE5F1 /* GameController.swift */,
 				27E61A9F292965FD00FF6563 /* Info.plist */,
 				17EEB91B2BEE62BA00502A3A /* KeyBoardTest.swift */,
-				27A923E329E9035D00F54BDA /* KeyboardViewController.swift */,
 				27E61A9C292965FD00FF6563 /* LaunchScreen.storyboard */,
 				27E61AA52929817700FF6563 /* LoginView.swift */,
 				27E61AA92929B92200FF6563 /* MainView.swift */,
@@ -270,7 +267,6 @@
 				17CD1E032BF07BC3003D2102 /* ViewContainerPatch.swift in Sources */,
 				27E61AA8292994B500FF6563 /* ActivityIndicator.swift in Sources */,
 				271D14FC292EAA3600D7F1D6 /* ParsecGLKRenderer.swift in Sources */,
-				27A923E429E9035D00F54BDA /* KeyboardViewController.swift in Sources */,
 				27E61A94292965FC00FF6563 /* SceneDelegate.swift in Sources */,
 				27A267352B1AEAB700F34C63 /* SettingsHandler.swift in Sources */,
 				27AD36602B19731800C8A607 /* ExUI.swift in Sources */,
