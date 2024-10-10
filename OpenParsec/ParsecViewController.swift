@@ -24,6 +24,8 @@ class ParsecViewController :UIViewController {
 	var u:UIImageView?
 	var lastImg: CGImage?
 	
+	var lastLongPressPoint : CGPoint = CGPoint()
+	
 	var keyboardAccessoriesView : UIToolbar?
 	
 	override var prefersPointerLocked: Bool {
@@ -100,6 +102,10 @@ class ParsecViewController :UIViewController {
 		threeFingerTapGestureRecognizer.numberOfTouchesRequired = 3
 		view.addGestureRecognizer(threeFingerTapGestureRecognizer)
 		
+		let longPressGestureRecognizer = UILongPressGestureRecognizer(target:self, action:#selector(handleLongPress(_:)))
+		longPressGestureRecognizer.numberOfTouchesRequired = 1
+		view.addGestureRecognizer(longPressGestureRecognizer)
+		
 		
 	}
 	
@@ -151,19 +157,29 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 				CParsec.sendWheelMsg(x: 0, y: Int32(translation.y / 2))
 				return
 			}
-			let location = gestureRecognizer.location(in:gestureRecognizer.view)
-			touchController.onTouch(typeOfTap: 1, location: location, state: gestureRecognizer.state)
+			if SettingsHandler.cursorMode == .direct {
+				let location = gestureRecognizer.location(in:gestureRecognizer.view)
+				touchController.onTouch(typeOfTap: 1, location: location, state: gestureRecognizer.state)
+			}
+
 		} else if gestureRecognizer.numberOfTouches == 1 {
-			let position = gestureRecognizer.location(in: gestureRecognizer.view)
-			CParsec.sendMousePosition(Int32(position.x), Int32(position.y))
+
+			if SettingsHandler.cursorMode == .direct {
+				let position = gestureRecognizer.location(in: gestureRecognizer.view)
+				CParsec.sendMousePosition(Int32(position.x), Int32(position.y))
+			} else {
+				let delta = gestureRecognizer.velocity(in: gestureRecognizer.view)
+				CParsec.sendMouseDelta(Int32(delta.x / 60), Int32(delta.y / 60))
+			}
+
 			
-			if gestureRecognizer.state == .began {
+			if gestureRecognizer.state == .began && SettingsHandler.cursorMode == .direct {
 				let button = ParsecMouseButton.init(rawValue: 1)
 				CParsec.sendMouseClickMessage(button, true)
 			}
 			
 		} else if gestureRecognizer.numberOfTouches == 0 {
-			if gestureRecognizer.state == .ended || gestureRecognizer.state == .cancelled {
+			if (gestureRecognizer.state == .ended || gestureRecognizer.state == .cancelled) && SettingsHandler.cursorMode == .direct {
 				let button = ParsecMouseButton.init(rawValue: 1)
 				CParsec.sendMouseClickMessage(button, false)
 			}
@@ -187,6 +203,24 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 	
 	@objc func handleThreeFinderTap(_ gestureRecognizer:UITapGestureRecognizer) {
 		showKeyboard()
+	}
+	
+	@objc func handleLongPress(_ gestureRecognizer:UIGestureRecognizer) {
+		if SettingsHandler.cursorMode != .touchpad {
+			return
+		}
+		let button = ParsecMouseButton.init(rawValue: 1)
+		
+		if gestureRecognizer.state == .began{
+			CParsec.sendMouseClickMessage(button, true)
+			lastLongPressPoint = gestureRecognizer.location(in: gestureRecognizer.view)
+		} else if gestureRecognizer.state == .ended {
+			CParsec.sendMouseClickMessage(button, false)
+		} else if gestureRecognizer.state == .changed {
+			let newLocation = gestureRecognizer.location(in: gestureRecognizer.view)
+			CParsec.sendMouseDelta(Int32(newLocation.x - lastLongPressPoint.x), Int32(newLocation.y - lastLongPressPoint.y))
+			lastLongPressPoint = newLocation
+		}
 	}
 	
 }

@@ -6,10 +6,22 @@ struct SettingsView:View
 
 	//@State var renderer:RendererType = SettingsHandler.renderer
 	@State var decoder:DecoderPref = SettingsHandler.decoder
-	//@State var cursorMode:CursorMode = SettingsHandler.cursorMode
+	@State var cursorMode:CursorMode = SettingsHandler.cursorMode
+	@State var resolution : ParsecResolution = SettingsHandler.resolution
 	//@State var cursorScale:Float = SettingsHandler.cursorScale
 	@State var noOverlay:Bool = SettingsHandler.noOverlay
+	
+	let resolutionChoices : [Choice<ParsecResolution>]
 
+	init(visible: Binding<Bool>) {
+		_visible = visible
+		var tmp : [Choice<ParsecResolution>] = []
+		for res in ParsecResolution.resolutions {
+			tmp.append(Choice(res.desc, res))
+		}
+		resolutionChoices = tmp
+	}
+	
 	var body:some View
 	{
 		ZStack()
@@ -58,7 +70,7 @@ struct SettingsView:View
 
 					ScrollView()
 					{
-                        /*CatTitle("Interactivity")
+                        CatTitle("Interactivity")
                         CatList()
                         {
                             CatItem("Mouse Movement")
@@ -69,11 +81,11 @@ struct SettingsView:View
 									Choice("Direct", CursorMode.direct)
 								])
                             }
-                            CatItem("Cursor Scale")
-                            {
-                                Slider(value: $cursorScale, in:0.1...4, step:0.1)
-                            }
-                        }*/
+//                            CatItem("Cursor Scale")
+//                            {
+//                                Slider(value: $cursorScale, in:0.1...4, step:0.1)
+//                            }
+                        }
                         CatTitle("Graphics")
                         CatList()
                         {
@@ -86,6 +98,10 @@ struct SettingsView:View
 								])
                                 .frame(width:165)
                             }*/
+							CatItem("Default Resolution")
+							{
+								MultiPicker(selection:$resolution, options:resolutionChoices)
+							}
                             CatItem("Decoder")
                             {
 								MultiPicker(selection:$decoder, options:
@@ -125,7 +141,8 @@ struct SettingsView:View
 	{
 		//SettingsHandler.renderer = renderer
 		SettingsHandler.decoder = decoder
-		//SettingsHandler.cursorMode = cursorMode
+		SettingsHandler.resolution = resolution
+		SettingsHandler.cursorMode = cursorMode
 		//SettingsHandler.cursorScale = cursorScale
 		SettingsHandler.noOverlay = noOverlay
 		

@@ -3,13 +3,27 @@ import SwiftUI
 import CoreGraphics
 import GLKit
 
-struct ParsecResolution : Hashable{
+class ParsecResolution : Hashable {
 	var width : Int
 	var height : Int
 	var desc : String
+	private init(width: Int, height: Int, desc: String) {
+		self.height = height
+		self.width = width
+		self.desc = desc
+	}
+	
+	static func == (lhs: ParsecResolution, rhs: ParsecResolution) -> Bool {
+		ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+	}
+
+	func hash(into hasher: inout Hasher) {
+		hasher.combine(ObjectIdentifier(self))
+	}
+	
 	static var resolutions = [
 		ParsecResolution(width: 0, height: 0, desc: "Host Resolution"),
-		ParsecResolution(width: 3480, height: 2160, desc: "Client Resolution"),
+		ParsecResolution(width: 3480, height: 2160, desc: "Client Resolution"), // will be modified during connection
 		ParsecResolution(width: 3480, height: 2160, desc: "3840x2160 (16:9)"),
 		ParsecResolution(width: 3480, height: 1600, desc: "3840x1600 (21:9)"),
 		ParsecResolution(width: 3440, height: 1440, desc: "3440x1440 (21:9)"),
@@ -129,10 +143,6 @@ class CParsec
 	static func setFrame(_ width:CGFloat, _ height:CGFloat, _ scale:CGFloat )
 	{
 		parsecImpl.setFrame(width, height, scale)
-		// set client resolution
-		ParsecResolution.resolutions[1].width = Int(width * scale)
-		ParsecResolution.resolutions[1].height = Int(height * scale)
-		
 	}
 
 	static func renderGLFrame(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.

@@ -6,8 +6,16 @@ This project is still a major WIP, so apologies for the currently lackluster doc
 
 Before building, make sure you have the Parsec SDK framework symlinked or copied to the `Frameworks` folder. Builds were tested on Xcode Version 12.5.
 
-## On-Screen Keyboard
-When streaming, you can tap with 3 fingers to bring up on-screen keyboard.
+## Touch Control
+You can set the touch mode you want to use in settings. Touchpad mode and direct touch mode are supported.
+
+When streaming, you can tap with 3 fingers to bring up the on-screen keyboard.
+
+## Mouse & keyboard
+USB mouse & keyboard are supported. 
+
+## Game Controllers
+When streaming, press any trigger button in your controller and parsec will recognize it. Make sure to configure the host properly (install virtual USB drive etc.) before using game controllers.
 
 ## Lag / Low Bitrate Issue
 If you encounter lags from nowhere or your bitrate hardly goes over 10 Mbps, download Steam Link and do a network test. If you see constant lag spike in the graph, then it's a problem with Apple and there's little we can do to solve this problem. See [here](https://github.com/moonlight-stream/moonlight-ios/issues/627) for more disscussion. 

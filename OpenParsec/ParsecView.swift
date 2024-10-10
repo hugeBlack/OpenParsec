@@ -249,6 +249,14 @@ struct ParsecView:View
 		CParsec.applyConfig()
 		CParsec.setMuted(muted)
 		
+		// set client resolution
+		let screenSize: CGSize = self.parsecViewController.view.frame.size
+		let scaleFactor = UIScreen.main.nativeScale
+		ParsecResolution.resolutions[1].width = Int(screenSize.width * scaleFactor)
+		ParsecResolution.resolutions[1].height = Int(screenSize.height * scaleFactor)
+		
+		changeResolution(res: SettingsHandler.resolution)
+		
 		hideOverlay = SettingsHandler.noOverlay
 	}
 	

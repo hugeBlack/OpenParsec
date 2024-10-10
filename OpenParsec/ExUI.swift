@@ -85,12 +85,12 @@ struct CatItem<Content:View>:View
  *
  * Used to depict a single choice with a given label and value.
  */
-struct Choice<Enum:Hashable>
+struct Choice<T: Hashable>
 {
 	var label:String
-	var value:Enum
+	var value:T
 	
-	init(_ label:String, _ value:Enum)
+	init(_ label:String, _ value:T)
 	{
 		self.label = label;
 		self.value = value;

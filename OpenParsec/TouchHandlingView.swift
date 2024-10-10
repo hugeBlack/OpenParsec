@@ -44,13 +44,20 @@ class TouchController
 
 	func onTap(typeOfTap:Int, location:CGPoint)
 	{
-		let x = Int32(location.x)
-		let y = Int32(location.y)
-
-		// Send the mouse input to the host
 		let parsecTap = ParsecMouseButton(rawValue:UInt32(typeOfTap))
-		CParsec.sendMouseMessage(parsecTap, x, y, true)
-		CParsec.sendMouseMessage(parsecTap, x, y, false)
+		if SettingsHandler.cursorMode == .direct {
+			let x = Int32(location.x)
+			let y = Int32(location.y)
+
+			// Send the mouse input to the host
+
+			CParsec.sendMouseMessage(parsecTap, x, y, true)
+			CParsec.sendMouseMessage(parsecTap, x, y, false)
+		} else {
+			CParsec.sendMouseClickMessage(parsecTap, true)
+			CParsec.sendMouseClickMessage(parsecTap, false)
+		}
+
 	}
 
 	public func viewDidLoad()
