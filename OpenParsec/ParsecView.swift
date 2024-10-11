@@ -255,7 +255,7 @@ struct ParsecView:View
 		ParsecResolution.resolutions[1].width = Int(screenSize.width * scaleFactor)
 		ParsecResolution.resolutions[1].height = Int(screenSize.height * scaleFactor)
 		
-		changeResolution(res: SettingsHandler.resolution)
+		getHostUserData()
 		
 		hideOverlay = SettingsHandler.noOverlay
 	}
@@ -309,32 +309,21 @@ struct ParsecView:View
 		}
 	}
 	
-	func updateHostVideoConfig() {
-		var videoConfig = ParsecUserDataVideoConfig()
-		videoConfig.video[0].resolutionX = DataManager.model.resolutionX
-		videoConfig.video[0].resolutionY = DataManager.model.resolutionY
-		videoConfig.video[0].encoderMaxBitrate = DataManager.model.bitrate
-		videoConfig.video[0].fullFPS = DataManager.model.constantFps
-		let encoder = JSONEncoder()
-		let data = try! encoder.encode(videoConfig)
-		CParsec.sendUserData(type: .setVideoConfig, message: data)
-	}
-	
 	func changeResolution(res: ParsecResolution) {
 		DataManager.model.resolutionX = res.width
 		DataManager.model.resolutionY = res.height
-		updateHostVideoConfig()
+		CParsec.updateHostVideoConfig()
 	}
 
 	func changeBitRate(bitrate: Int) {
 		DataManager.model.bitrate = bitrate
-		updateHostVideoConfig()
+		CParsec.updateHostVideoConfig()
 	}
 	
 	func toggleConstantFps() {
 		DataManager.model.constantFps.toggle()
 		constantFps = DataManager.model.constantFps
-		updateHostVideoConfig()
+		CParsec.updateHostVideoConfig()
 	}
 	
 	func getHostUserData() {

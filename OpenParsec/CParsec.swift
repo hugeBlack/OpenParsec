@@ -84,6 +84,7 @@ protocol ParsecService {
 	func sendGameControllerUnplugMessage(controllerId: UInt32)
 	func sendWheelMsg(x: Int32, y: Int32)
 	func sendUserData(type: ParsecUserDataType, message: Data)
+	func updateHostVideoConfig()
 }
 
 class CParsec
@@ -158,6 +159,10 @@ class CParsec
 	static func applyConfig()
 	{
 		parsecImpl.applyConfig()
+	}
+	
+	static func updateHostVideoConfig() {
+		parsecImpl.updateHostVideoConfig()
 	}
 
 	static func sendMouseMessage(_ button:ParsecMouseButton, _ x:Int32, _ y:Int32, _ pressed:Bool)
