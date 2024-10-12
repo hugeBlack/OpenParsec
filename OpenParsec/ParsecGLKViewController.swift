@@ -33,8 +33,6 @@ class ParsecGLKViewController : ParsecPlayground {
 	var glkRenderer: ParsecGLKRenderer!
 	let updateImage:() -> Void
 	
-	var gamePadController: GamepadController!
-	
 	let viewController: UIViewController
 	
 	required init(viewController: UIViewController, updateImage: @escaping () -> Void) {

@@ -260,9 +260,18 @@ class KeyBoardButton : UIButton {
 }
 
 // MARK: - Virtual Keyboard
-extension ParsecViewController : UIKeyInput {
+extension ParsecViewController : UIKeyInput, UITextInputTraits {
 	var hasText: Bool {
 		return true
+	}
+	
+	var keyboardType: UIKeyboardType {
+		get {
+			return .asciiCapable
+		}
+		set {
+			
+		}
 	}
 	
 	override var canBecomeFirstResponder: Bool {

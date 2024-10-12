@@ -25,13 +25,6 @@ struct KeyBoardKeyEvent {
 	var isPressBegin: Bool
 }
 
-struct RGBA {
-	let R:UInt8
-	let G:UInt8
-	let B:UInt8
-	let A:UInt8
-}
-
 class ParsecSDKBridge: ParsecService
 {
 	var hostWidth: Float = 1920
@@ -229,34 +222,16 @@ class ParsecSDKBridge: ParsecService
 			mouseInfo.cursorHotX = Int(event.cursor.hotX)
 			mouseInfo.cursorHotY = Int(event.cursor.hotY)
 			
-			
-			var colors = [RGBA]()
-			let count = size << 2
-			for i in 0..<count {
-				
-				// Bind the memory at the calculated offset to the struct type
-				let boundPointer = pointer!.bindMemory(to: RGBA.self, capacity: 1)
-				
-				// Access the struct at the current offset
-				let currentStruct = boundPointer.advanced(by: Int(i)).pointee
-				
-				// Append the struct to the array
-				colors.append(currentStruct)
-			}
-			ParsecFree(pointer)
-			
-			
-			let _: Int = colors.count
 			let elmentLength: Int = 4
 			let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
 			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
 			let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
-			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: &colors, length: Int(size)))
+			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: pointer, length: Int(size)))
 			let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
 			if cgimage != nil {
 				mouseInfo.cursorImg = cgimage
 			}
-			
+			ParsecFree(pointer)
 		}
 	}
 	
@@ -398,7 +373,7 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func sendVirtualKeyboardInput(text: String, isOn: Bool) {
-		let (keyCode, useShift) = getKeyCodeByText(text: text)
+		let (keyCode, _) = getKeyCodeByText(text: text)
 		
 		guard let keyCode else {
 			return
@@ -421,30 +396,6 @@ class ParsecSDKBridge: ParsecService
 		if event.input == nil {
 			return
 		}
-//		var key =
-		
-//		print("code =  \(event.input?.keyCode)")
-//		key = event.input?.characters.uppercased() ?? " "
-//		
-//		if key == " " {
-//			key = "SPACE"
-//		}
-
-//		switch sender.modifierFlags.rawValue
-//		{
-//			case 131072:
-//				key = "SHIFT"
-//				break
-//			case 262144:
-//				key = "CONTROL"
-//				break
-//
-//			default:
-//				break
-//		}
-//
-//		print("Keyboard Message: \(key)")
-//		print("KeyboardViewController keyboard modifier info \(sender.modifierFlags.rawValue)")
 		
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
