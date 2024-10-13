@@ -26,7 +26,8 @@ class ParsecViewController :UIViewController {
 	
 	var lastLongPressPoint : CGPoint = CGPoint()
 	
-	var keyboardAccessoriesView : UIToolbar?
+	var keyboardAccessoriesView : UIView?
+	var keyboardHeight : CGFloat = 0.0
 	
 	override var prefersPointerLocked: Bool {
 		return true
@@ -106,6 +107,19 @@ class ParsecViewController :UIViewController {
 		longPressGestureRecognizer.numberOfTouchesRequired = 1
 		view.addGestureRecognizer(longPressGestureRecognizer)
 		
+		NotificationCenter.default.addObserver(
+			self,
+			selector: #selector(keyboardWillShow),
+			name: UIResponder.keyboardWillShowNotification,
+			object: nil
+		)
+		
+		NotificationCenter.default.addObserver(
+			self,
+			selector: #selector(keyboardWillHide),
+			name: UIResponder.keyboardWillHideNotification,
+			object: nil
+		)
 		
 	}
 	
@@ -123,6 +137,8 @@ class ParsecViewController :UIViewController {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
 			parent.setChildViewControllerForPointerLock(nil)
 		}
+		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
 	}
 	
 	
@@ -140,6 +156,17 @@ class ParsecViewController :UIViewController {
 			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: false) )
 		}
 		
+	}
+	
+	@objc func keyboardWillShow(_ notification: Notification) {
+		if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
+			let keyboardRectangle = keyboardFrame.cgRectValue
+			keyboardHeight = keyboardRectangle.height
+		}
+	}
+	
+	@objc func keyboardWillHide(_ notification: Notification) {
+		view.frame.origin.y = 0
 	}
 	
 }
@@ -292,8 +319,9 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		if let keyboardAccessoriesView {
 			return keyboardAccessoriesView
 		}
+		let containerView = UIStackView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 94))
 		
-		let customToolbarView = UIToolbar(frame: CGRect(x: 0, y: 0, width: self.view.bounds.size.width, height: 44))
+		let customToolbarView = UIToolbar(frame: CGRect(x: 0, y: 50, width: self.view.bounds.size.width, height: 44))
 
 		let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneTapped))
 		let windowsBarButton = createKeyboardButton(displayText: "⌘", keyText: "LGUI", isToggleable: true)
@@ -328,8 +356,25 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 									upButton, downButton, leftButton, rightButton,
 									flexibleSpace, doneButton
 								   ], animated: false)
-		keyboardAccessoriesView = customToolbarView
-		return customToolbarView
+		
+		// Create a draggable handle button
+		let handleButton = UIButton(type: .system)
+		handleButton.setTitle("↑↓", for: .normal)
+		handleButton.frame.size = CGSize(width: 40, height: 40)
+		handleButton.backgroundColor = UIColor.systemGray.withAlphaComponent(0.5)
+		handleButton.center = containerView.convert(containerView.center, to: containerView.superview)
+		handleButton.frame.origin.y = 0
+		
+		let panGestureRecognizer = UIPanGestureRecognizer(target:self, action:#selector(self.handleDragGesture(_:)))
+		panGestureRecognizer.maximumNumberOfTouches = 1
+		handleButton.addGestureRecognizer(panGestureRecognizer)
+		
+		handleButton.layer.cornerRadius = 20
+		containerView.addSubview(handleButton)
+		containerView.addSubview(customToolbarView)
+		
+		keyboardAccessoriesView = containerView
+		return containerView
 	}
 	
 	func createKeyboardButton(displayText: String, keyText: String, isToggleable: Bool) -> UIBarButtonItem {
@@ -391,6 +436,12 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 			CParsec.sendVirtualKeyboardInput(text: keyText)
 		}
 		
+	}
+	
+	@objc func handleDragGesture(_ gestureRecognizer:UIPanGestureRecognizer) {
+		let v = view.frame.origin.y + gestureRecognizer.velocity(in: nil).y / 50.0
+		let newY = ParsecSDKBridge.clamp(v, minValue: -keyboardHeight, maxValue: 0)
+		view.frame.origin.y = newY
 	}
 
 	@objc func doneTapped() {
