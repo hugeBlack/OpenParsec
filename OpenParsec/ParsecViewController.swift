@@ -89,22 +89,25 @@ class ParsecViewController :UIViewController {
 		// Add tap gesture recognizer for single-finger touch
 		let singleFingerTapGestureRecognizer = UITapGestureRecognizer(target:self, action:#selector(handleSingleFingerTap(_:)))
 		singleFingerTapGestureRecognizer.numberOfTouchesRequired = 1
-		singleFingerTapGestureRecognizer.allowedTouchTypes = [0]
+		singleFingerTapGestureRecognizer.allowedTouchTypes = [0, 2]
 		view.addGestureRecognizer(singleFingerTapGestureRecognizer)
 
 		// Add tap gesture recognizer for two-finger touch
 		let twoFingerTapGestureRecognizer = UITapGestureRecognizer(target:self, action:#selector(handleTwoFingerTap(_:)))
 		twoFingerTapGestureRecognizer.numberOfTouchesRequired = 2
+		twoFingerTapGestureRecognizer.allowedTouchTypes = [0]
 		view.addGestureRecognizer(twoFingerTapGestureRecognizer)
 		//		view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
 		//		view.backgroundColor = UIColor(red: 0x66, green: 0xcc, blue: 0xff, alpha: 1.0)
 		
 		let threeFingerTapGestureRecognizer = UITapGestureRecognizer(target:self, action:#selector(handleThreeFinderTap(_:)))
 		threeFingerTapGestureRecognizer.numberOfTouchesRequired = 3
+		threeFingerTapGestureRecognizer.allowedTouchTypes = [0]
 		view.addGestureRecognizer(threeFingerTapGestureRecognizer)
 		
 		let longPressGestureRecognizer = UILongPressGestureRecognizer(target:self, action:#selector(handleLongPress(_:)))
 		longPressGestureRecognizer.numberOfTouchesRequired = 1
+		longPressGestureRecognizer.allowedTouchTypes = [0, 2]
 		view.addGestureRecognizer(longPressGestureRecognizer)
 		
 		NotificationCenter.default.addObserver(

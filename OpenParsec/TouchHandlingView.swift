@@ -1,18 +1,6 @@
 import ParsecSDK
 import UIKit
 
-extension Unicode.Scalar:Strideable
-{
-	public func distance(to other:Unicode.Scalar) -> Int
-	{
-		return Int(other.value - self.value)
-	}
-
-	public func advanced(by n:Int) -> Unicode.Scalar
-	{
-		return Unicode.Scalar(self.value + UInt32(n))!
-	}
-}
 
 class TouchController
 {
@@ -25,7 +13,6 @@ class TouchController
 	{
 		let x = Int32(location.x)
 		let y = Int32(location.y)
-
 
 		// Send the mouse input to the host
 		let parsecTap = ParsecMouseButton(rawValue:UInt32(typeOfTap))
