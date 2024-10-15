@@ -6,8 +6,9 @@ struct SettingsHandler
 	public static var resolution : ParsecResolution = ParsecResolution.resolutions[1]
 	public static var decoder:DecoderPref = .h264
 	public static var cursorMode:CursorMode = .touchpad
-	//public static var cursorScale:Float = 1
+	public static var cursorScale:Float = 0.5
 	public static var noOverlay:Bool = false
+	public static var hideStatusBar:Bool = true
 	
 	public static func load()
 	{
@@ -17,10 +18,12 @@ struct SettingsHandler
 			{ decoder = DecoderPref(rawValue:UserDefaults.standard.integer(forKey:"decoder"))! }
 		if UserDefaults.standard.exists(forKey:"cursorMode")
 			{ cursorMode = CursorMode(rawValue:UserDefaults.standard.integer(forKey:"cursorMode"))! }
-		//if UserDefaults.standard.exists(forKey:"cursorScale")
-		//	{ cursorScale = UserDefaults.standard.float(forKey:"cursorScale") }
+		if UserDefaults.standard.exists(forKey:"cursorScale")
+			{ cursorScale = UserDefaults.standard.float(forKey:"cursorScale") }
 		if UserDefaults.standard.exists(forKey:"noOverlay")
 			{ noOverlay = UserDefaults.standard.bool(forKey:"noOverlay") }
+		if UserDefaults.standard.exists(forKey:"hideStatusBar")
+		{ hideStatusBar = UserDefaults.standard.bool(forKey:"hideStatusBar") }
 		
 		if UserDefaults.standard.exists(forKey:"resolution") {
 			for res in ParsecResolution.resolutions {
@@ -37,9 +40,10 @@ struct SettingsHandler
 		//UserDefaults.standard.set(renderer.rawValue, forKey:"renderer")
 		UserDefaults.standard.set(decoder.rawValue, forKey:"decoder")
 		UserDefaults.standard.set(cursorMode.rawValue, forKey:"cursorMode")
-		//UserDefaults.standard.set(cursorScale, forKey:"cursorScale")
+		UserDefaults.standard.set(cursorScale, forKey:"cursorScale")
 		UserDefaults.standard.set(noOverlay, forKey:"noOverlay")
 		UserDefaults.standard.set(resolution.desc, forKey:"resolution")
+		UserDefaults.standard.set(hideStatusBar, forKey: "hideStatusBar")
 	}
 }
 

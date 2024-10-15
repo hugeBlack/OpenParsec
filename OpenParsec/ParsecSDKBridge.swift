@@ -126,6 +126,8 @@ class ParsecSDKBridge: ParsecService
 		
 		clientWidth = Float(width)
 		clientHeight = Float(height)
+		mouseInfo.mouseX = Int32(width / 2)
+		mouseInfo.mouseY = Int32(height / 2)
 	}
 	
 	func renderGLFrame(timeout:UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.

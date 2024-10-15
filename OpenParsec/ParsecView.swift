@@ -234,7 +234,7 @@ struct ParsecView:View
 			}
 			.zIndex(2)
 		}
-		.statusBar(hidden:true)
+		.statusBarHidden(SettingsHandler.hideStatusBar)
 		.alert(isPresented:$showDCAlert)
 		{
 			Alert(title:Text(DCAlertText), dismissButton:.default(Text("Close"), action:disconnect))

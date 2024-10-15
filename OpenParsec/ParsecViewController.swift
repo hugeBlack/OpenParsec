@@ -53,10 +53,10 @@ class ParsecViewController :UIViewController {
 				lastImg = CParsec.mouseInfo.cursorImg!
 			}
 
-			u?.frame = CGRect(x: Int(CParsec.mouseInfo.mouseX) - CParsec.mouseInfo.cursorHotX / 2,
-							  y: Int(CParsec.mouseInfo.mouseY) - CParsec.mouseInfo.cursorHotY / 2,
-							  width: CParsec.mouseInfo.cursorWidth / 2,
-							  height: CParsec.mouseInfo.cursorHeight / 2)
+			u?.frame = CGRect(x: Int(CParsec.mouseInfo.mouseX) - Int(Float(CParsec.mouseInfo.cursorHotX) * SettingsHandler.cursorScale),
+							  y: Int(CParsec.mouseInfo.mouseY) - Int(Float(CParsec.mouseInfo.cursorHotY) * SettingsHandler.cursorScale),
+							  width: Int(Float(CParsec.mouseInfo.cursorWidth) * SettingsHandler.cursorScale),
+							  height: Int(Float(CParsec.mouseInfo.cursorHeight) * SettingsHandler.cursorScale))
 			
 		} else {
 			u?.image = nil
@@ -161,7 +161,7 @@ class ParsecViewController :UIViewController {
 	@objc func keyboardWillShow(_ notification: Notification) {
 		if let keyboardFrame: NSValue = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
 			let keyboardRectangle = keyboardFrame.cgRectValue
-			keyboardHeight = keyboardRectangle.height
+			keyboardHeight = keyboardRectangle.height - 50 // minus handle button height
 		}
 	}
 	
@@ -177,11 +177,11 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 	{
 		//		print("number = \(gestureRecognizer.numberOfTouches) status = \(gestureRecognizer.state.rawValue)")
 		if gestureRecognizer.numberOfTouches == 2 {
-			let translation = gestureRecognizer.translation(in: gestureRecognizer.view)
+			let velocity = gestureRecognizer.velocity(in: gestureRecognizer.view)
 			
-			if abs( gestureRecognizer.velocity(in: gestureRecognizer.view).y) > 2 && abs(translation.y) > 10 {
+			if abs(velocity.y) > 2 {
 				// Run your function when the user uses two fingers and swipes upwards
-				CParsec.sendWheelMsg(x: 0, y: Int32(translation.y / 2))
+				CParsec.sendWheelMsg(x: 0, y: Int32(velocity.y / 20))
 				return
 			}
 			if SettingsHandler.cursorMode == .direct {

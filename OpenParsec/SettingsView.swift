@@ -8,8 +8,9 @@ struct SettingsView:View
 	@State var decoder:DecoderPref = SettingsHandler.decoder
 	@State var cursorMode:CursorMode = SettingsHandler.cursorMode
 	@State var resolution : ParsecResolution = SettingsHandler.resolution
-	//@State var cursorScale:Float = SettingsHandler.cursorScale
+	@State var cursorScale:Float = SettingsHandler.cursorScale
 	@State var noOverlay:Bool = SettingsHandler.noOverlay
+	@State var hideStatusBar:Bool = SettingsHandler.hideStatusBar
 	
 	let resolutionChoices : [Choice<ParsecResolution>]
 
@@ -81,10 +82,12 @@ struct SettingsView:View
 									Choice("Direct", CursorMode.direct)
 								])
                             }
-//                            CatItem("Cursor Scale")
-//                            {
-//                                Slider(value: $cursorScale, in:0.1...4, step:0.1)
-//                            }
+                            CatItem("Cursor Scale")
+                            {
+                                Slider(value: $cursorScale, in:0.1...4, step:0.1)
+									.frame(width: 200)
+								Text(String(format: "%.1f", cursorScale))
+                            }
                         }
                         CatTitle("Graphics")
                         CatList()
@@ -119,7 +122,12 @@ struct SettingsView:View
                                 Toggle("", isOn:$noOverlay)
                                     .frame(width:80)
                             }
-                        }
+							CatItem("Hide Status Bar")
+							{
+								Toggle("", isOn:$hideStatusBar)
+									.frame(width:80)
+							}
+						}
 						Text("More options coming soon.")
 							.multilineTextAlignment(.center)
 							.opacity(0.5)
@@ -143,9 +151,9 @@ struct SettingsView:View
 		SettingsHandler.decoder = decoder
 		SettingsHandler.resolution = resolution
 		SettingsHandler.cursorMode = cursorMode
-		//SettingsHandler.cursorScale = cursorScale
+		SettingsHandler.cursorScale = cursorScale
 		SettingsHandler.noOverlay = noOverlay
-		
+		SettingsHandler.hideStatusBar = hideStatusBar
 		SettingsHandler.save()
 		
 		visible = false
