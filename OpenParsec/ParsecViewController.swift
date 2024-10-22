@@ -325,8 +325,18 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		let containerView = UIStackView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 94))
 		
 		let customToolbarView = UIToolbar(frame: CGRect(x: 0, y: 50, width: self.view.bounds.size.width, height: 44))
+		
+		let scrollView = UIScrollView()
+		scrollView.showsHorizontalScrollIndicator = false
+		scrollView.translatesAutoresizingMaskIntoConstraints = false
+		
+		let buttonStackView = UIStackView()
+		buttonStackView.axis = .horizontal
+		buttonStackView.distribution = .equalSpacing
+		buttonStackView.alignment = .center
+		buttonStackView.spacing = 8
+		buttonStackView.translatesAutoresizingMaskIntoConstraints = false
 
-		let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneTapped))
 		let windowsBarButton = createKeyboardButton(displayText: "⌘", keyText: "LGUI", isToggleable: true)
 		let tabBarButton = createKeyboardButton(displayText: "⇥", keyText: "TAB", isToggleable: false)
 		let shiftBarButton = createKeyboardButton(displayText: "⇧", keyText: "SHIFT", isToggleable: true)
@@ -351,14 +361,65 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		let leftButton = createKeyboardButton(displayText: "←", keyText: "LEFT", isToggleable: false)
 		let rightButton = createKeyboardButton(displayText: "→", keyText: "RIGHT", isToggleable: false)
 		
+
+		let buttons = [windowsBarButton, escapeBarButton, tabBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton,
+					   f1Button, f2Button, f3Button, f4Button, f5Button, f6Button, f7Button, f8Button, f9Button, f10Button, f11Button, f12Button,
+								   upButton, downButton, leftButton, rightButton
+		]
 		
-		let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+		for button in buttons {
+			buttonStackView.addArrangedSubview(button)
+		}
 		
-		customToolbarView.setItems([windowsBarButton, escapeBarButton, tabBarButton, shiftBarButton, controlBarButton, altBarButton, deleteBarButton,
-									f1Button, f2Button, f3Button, f4Button, f5Button, f6Button, f7Button, f8Button, f9Button, f10Button, f11Button, f12Button,
-									upButton, downButton, leftButton, rightButton,
-									flexibleSpace, doneButton
-								   ], animated: false)
+		scrollView.addSubview(buttonStackView)
+		
+		
+		
+		let scrollViewContainer = UIView()
+		scrollViewContainer.translatesAutoresizingMaskIntoConstraints = false
+		scrollViewContainer.addSubview(scrollView)
+
+		
+		NSLayoutConstraint.activate([
+			scrollView.leadingAnchor.constraint(equalTo: scrollViewContainer.leadingAnchor),
+			scrollView.trailingAnchor.constraint(equalTo: scrollViewContainer.trailingAnchor),
+			scrollView.topAnchor.constraint(equalTo: scrollViewContainer.topAnchor),
+			scrollView.bottomAnchor.constraint(equalTo: scrollViewContainer.bottomAnchor)
+		])
+		
+		NSLayoutConstraint.activate([
+			scrollViewContainer.heightAnchor.constraint(equalToConstant: 44),
+			scrollViewContainer.widthAnchor.constraint(greaterThanOrEqualToConstant: 100)
+		])
+
+		// 10. Set constraints for the stack view inside the scroll view
+		NSLayoutConstraint.activate([
+			buttonStackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+			buttonStackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+			buttonStackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+			buttonStackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+			buttonStackView.heightAnchor.constraint(equalTo: scrollView.heightAnchor)
+		])
+		
+		
+		let container2 = UIStackView()
+		container2.axis = .horizontal
+		container2.distribution = .fill
+		container2.alignment = .center
+		container2.addArrangedSubview(scrollViewContainer)
+		
+		let doneButton2 = UIButton()
+		doneButton2.setTitle("Done", for: .normal)
+		doneButton2.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
+		if #available(iOS 15.0, *) {
+			doneButton2.setTitleColor(.tintColor,  for: .normal)
+		}
+		container2.addArrangedSubview(doneButton2)
+
+		let scrollViewBarButton = UIBarButtonItem(customView: container2)
+		
+		customToolbarView.setItems([scrollViewBarButton], animated: false)
+		
 		
 		// Create a draggable handle button
 		let handleButton = UIButton(type: .system)
@@ -374,42 +435,33 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		
 		handleButton.layer.cornerRadius = 20
 		containerView.addSubview(handleButton)
+		
 		containerView.addSubview(customToolbarView)
 		
 		keyboardAccessoriesView = containerView
 		return containerView
 	}
 	
-	func createKeyboardButton(displayText: String, keyText: String, isToggleable: Bool) -> UIBarButtonItem {
+	func createKeyboardButton(displayText: String, keyText: String, isToggleable: Bool) -> UIButton {
 		let button = KeyBoardButton(keyText: keyText, isToggleable: isToggleable)
 		
 		// Set the image and button properties
 		button.setTitle(displayText, for: .normal)
 		button.titleLabel?.font = UIFont(name: "System", size: 10.0)
-		button.frame = CGRect(x: 0, y: 0, width: 40, height: 40)
+		button.frame = CGRect(x: 0, y: 0, width: 36, height: 36)
 		button.titleLabel?.frame = CGRect(x: 0, y: 0, width: 30, height: 30)
 		if let label = button.titleLabel {
-			NSLayoutConstraint.activate([
-				label.heightAnchor.constraint(greaterThanOrEqualToConstant: 30),
-				label.widthAnchor.constraint(greaterThanOrEqualToConstant: 30)
-			])
-			label.layer.cornerRadius = 3.0
-			label.backgroundColor = .black
 			label.textAlignment = .center
 		}
-		NSLayoutConstraint.activate([
-			button.heightAnchor.constraint(greaterThanOrEqualToConstant: 40),
-			button.widthAnchor.constraint(greaterThanOrEqualToConstant: 40)
-		])
+		button.backgroundColor = .black
+		button.layer.cornerRadius = 3.0
 		
 		button.titleLabel?.contentMode = .scaleAspectFit
 
 		// Set target and action for button
 		button.addTarget(target, action: #selector(toolbarButtonClicked(_:)), for: .touchUpInside)
-		// Create a UIBarButtonItem with the custom button
-		let barButton = UIBarButtonItem(customView: button)
 		
-		return barButton
+		return button
 	}
 	
 	@objc func toolbarButtonClicked(_ sender: KeyBoardButton) {
@@ -419,9 +471,9 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		if isToggleable {
 			isOn.toggle()
 			if isOn {
-				sender.titleLabel?.backgroundColor = .lightGray
+				sender.backgroundColor = .lightGray
 			} else {
-				sender.titleLabel?.backgroundColor = .black
+				sender.backgroundColor = .black
 			}
 		}
 
