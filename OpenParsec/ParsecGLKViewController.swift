@@ -62,7 +62,10 @@ class ParsecGLKViewController : ParsecPlayground {
 		
 	}
 	
-	
+	func updateSize(width: CGFloat, height: CGFloat) {
+		glkView.frame.size.width = width
+		glkView.frame.size.height = height
+	}
 
 	
 }

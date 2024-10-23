@@ -7,6 +7,7 @@ struct SettingsHandler
 	public static var decoder:DecoderPref = .h264
 	public static var cursorMode:CursorMode = .touchpad
 	public static var cursorScale:Float = 0.5
+	public static var mouseSensitivity : Float = 1.0
 	public static var noOverlay:Bool = false
 	public static var hideStatusBar:Bool = true
 	
@@ -20,6 +21,8 @@ struct SettingsHandler
 			{ cursorMode = CursorMode(rawValue:UserDefaults.standard.integer(forKey:"cursorMode"))! }
 		if UserDefaults.standard.exists(forKey:"cursorScale")
 			{ cursorScale = UserDefaults.standard.float(forKey:"cursorScale") }
+		if UserDefaults.standard.exists(forKey:"mouseSensitivity")
+			{ cursorScale = UserDefaults.standard.float(forKey:"mouseSensitivity") }
 		if UserDefaults.standard.exists(forKey:"noOverlay")
 			{ noOverlay = UserDefaults.standard.bool(forKey:"noOverlay") }
 		if UserDefaults.standard.exists(forKey:"hideStatusBar")
@@ -41,6 +44,7 @@ struct SettingsHandler
 		UserDefaults.standard.set(decoder.rawValue, forKey:"decoder")
 		UserDefaults.standard.set(cursorMode.rawValue, forKey:"cursorMode")
 		UserDefaults.standard.set(cursorScale, forKey:"cursorScale")
+		UserDefaults.standard.set(mouseSensitivity, forKey: "mouseSensitivity")
 		UserDefaults.standard.set(noOverlay, forKey:"noOverlay")
 		UserDefaults.standard.set(resolution.desc, forKey:"resolution")
 		UserDefaults.standard.set(hideStatusBar, forKey: "hideStatusBar")

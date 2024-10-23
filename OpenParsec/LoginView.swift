@@ -144,7 +144,7 @@ struct LoginView:View
 		.foregroundColor(Color("Foreground"))
 		.alert(isPresented:$showAlert)
 		{
-			Alert(title:Text(alertText))
+			Alert(title:Text("Login Failed"), message: Text(alertText))
 		}
 	}
 
@@ -232,6 +232,9 @@ struct LoginView:View
 								alertText = "Error: \(info)"
 								showAlert = true
 							}
+						} else {
+							alertText = info.error
+							showAlert = true
 						}
 					}
 					catch

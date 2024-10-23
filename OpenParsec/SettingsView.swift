@@ -9,6 +9,7 @@ struct SettingsView:View
 	@State var cursorMode:CursorMode = SettingsHandler.cursorMode
 	@State var resolution : ParsecResolution = SettingsHandler.resolution
 	@State var cursorScale:Float = SettingsHandler.cursorScale
+	@State var mouseSensitivity:Float = SettingsHandler.mouseSensitivity
 	@State var noOverlay:Bool = SettingsHandler.noOverlay
 	@State var hideStatusBar:Bool = SettingsHandler.hideStatusBar
 	
@@ -88,6 +89,12 @@ struct SettingsView:View
 									.frame(width: 200)
 								Text(String(format: "%.1f", cursorScale))
                             }
+							CatItem("Mouse Sensitivity")
+							{
+								Slider(value: $mouseSensitivity, in:0.1...4, step:0.1)
+									.frame(width: 200)
+								Text(String(format: "%.1f", mouseSensitivity))
+							}
                         }
                         CatTitle("Graphics")
                         CatList()
@@ -154,6 +161,7 @@ struct SettingsView:View
 		SettingsHandler.cursorScale = cursorScale
 		SettingsHandler.noOverlay = noOverlay
 		SettingsHandler.hideStatusBar = hideStatusBar
+		SettingsHandler.mouseSensitivity = mouseSensitivity
 		SettingsHandler.save()
 		
 		visible = false

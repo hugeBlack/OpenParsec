@@ -101,7 +101,7 @@ class GamepadController {
 				CParsec.sendMouseClickMessage(MOUSE_MIDDLE, pressed)
 				}
 			mouse.mouseInput?.mouseMovedHandler={(input: GCMouseInput, v: Float, v2: Float) in
-				CParsec.sendMouseDelta(Int32(v/1.25), Int32(-v2/1.25))
+				CParsec.sendMouseDelta(Int32(v/1.25 * SettingsHandler.mouseSensitivity), Int32(-v2/1.25 * SettingsHandler.mouseSensitivity))
 				}
 			mouse.mouseInput?.scroll.yAxis.valueChangedHandler = {(axis: GCControllerAxisInput, value: Float) in
 				CParsec.sendWheelMsg(x: Int32(value), y: 0)

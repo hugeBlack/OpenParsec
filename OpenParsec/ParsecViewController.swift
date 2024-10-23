@@ -14,6 +14,7 @@ protocol ParsecPlayground {
 	init(viewController: UIViewController, updateImage: @escaping () -> Void)
 	func viewDidLoad()
 	func cleanUp()
+	func updateSize(width: CGFloat, height: CGFloat)
 }
 
 
@@ -124,6 +125,19 @@ class ParsecViewController :UIViewController {
 			object: nil
 		)
 		
+		NotificationCenter.default.addObserver(self, selector: #selector(onChangeOrientation), name: UIDevice.orientationDidChangeNotification, object: nil)
+	}
+	
+	@objc func onChangeOrientation() {
+		// bounds did not change at this moment
+		let h = UIScreen.main.bounds.width
+		let w = UIScreen.main.bounds.height
+		
+		self.glkView.updateSize(width: w, height: h)
+		CParsec.setFrame(w, h, UIScreen.main.scale)
+		if let toolbar = self.keyboardAccessoriesView {
+			toolbar.frame.size.width = w
+		}
 	}
 	
 	override func viewWillAppear(_ animated: Bool) {
@@ -142,6 +156,7 @@ class ParsecViewController :UIViewController {
 		}
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+		NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
 	}
 	
 	
@@ -184,7 +199,7 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			
 			if abs(velocity.y) > 2 {
 				// Run your function when the user uses two fingers and swipes upwards
-				CParsec.sendWheelMsg(x: 0, y: Int32(velocity.y / 20))
+				CParsec.sendWheelMsg(x: 0, y: Int32(Float(velocity.y) / 20 * SettingsHandler.mouseSensitivity))
 				return
 			}
 			if SettingsHandler.cursorMode == .direct {
@@ -199,7 +214,7 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 				CParsec.sendMousePosition(Int32(position.x), Int32(position.y))
 			} else {
 				let delta = gestureRecognizer.velocity(in: gestureRecognizer.view)
-				CParsec.sendMouseDelta(Int32(delta.x / 60), Int32(delta.y / 60))
+				CParsec.sendMouseDelta(Int32(Float(delta.x) / 60 * SettingsHandler.mouseSensitivity), Int32(Float(delta.y) / 60 * SettingsHandler.mouseSensitivity))
 			}
 
 			
@@ -248,7 +263,10 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			CParsec.sendMouseClickMessage(button, false)
 		} else if gestureRecognizer.state == .changed {
 			let newLocation = gestureRecognizer.location(in: gestureRecognizer.view)
-			CParsec.sendMouseDelta(Int32(newLocation.x - lastLongPressPoint.x), Int32(newLocation.y - lastLongPressPoint.y))
+			CParsec.sendMouseDelta(
+				Int32(Float(newLocation.x - lastLongPressPoint.x) * SettingsHandler.mouseSensitivity),
+				Int32(Float(newLocation.y - lastLongPressPoint.y) * SettingsHandler.mouseSensitivity)
+			)
 			lastLongPressPoint = newLocation
 		}
 	}
@@ -325,6 +343,7 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		let containerView = UIStackView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 94))
 		
 		let customToolbarView = UIToolbar(frame: CGRect(x: 0, y: 50, width: self.view.bounds.size.width, height: 44))
+		customToolbarView.translatesAutoresizingMaskIntoConstraints = false
 		
 		let scrollView = UIScrollView()
 		scrollView.showsHorizontalScrollIndicator = false
@@ -424,10 +443,8 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		// Create a draggable handle button
 		let handleButton = UIButton(type: .system)
 		handleButton.setTitle("↑↓", for: .normal)
-		handleButton.frame.size = CGSize(width: 40, height: 40)
 		handleButton.backgroundColor = UIColor.systemGray.withAlphaComponent(0.5)
-		handleButton.center = containerView.convert(containerView.center, to: containerView.superview)
-		handleButton.frame.origin.y = 0
+		handleButton.translatesAutoresizingMaskIntoConstraints = false
 		
 		let panGestureRecognizer = UIPanGestureRecognizer(target:self, action:#selector(self.handleDragGesture(_:)))
 		panGestureRecognizer.maximumNumberOfTouches = 1
@@ -437,6 +454,19 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		containerView.addSubview(handleButton)
 		
 		containerView.addSubview(customToolbarView)
+		
+		NSLayoutConstraint.activate([
+			customToolbarView.widthAnchor.constraint(equalTo: containerView.widthAnchor),
+			customToolbarView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+			customToolbarView.heightAnchor.constraint(equalToConstant: 44)
+		])
+		
+		NSLayoutConstraint.activate([
+			handleButton.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+			handleButton.topAnchor.constraint(equalTo: containerView.topAnchor),
+			handleButton.widthAnchor.constraint(equalToConstant: 40),
+			handleButton.heightAnchor.constraint(equalToConstant: 40)
+		])
 		
 		keyboardAccessoriesView = containerView
 		return containerView
