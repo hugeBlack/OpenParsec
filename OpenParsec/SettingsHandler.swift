@@ -22,7 +22,7 @@ struct SettingsHandler
 		if UserDefaults.standard.exists(forKey:"cursorScale")
 			{ cursorScale = UserDefaults.standard.float(forKey:"cursorScale") }
 		if UserDefaults.standard.exists(forKey:"mouseSensitivity")
-			{ cursorScale = UserDefaults.standard.float(forKey:"mouseSensitivity") }
+		{ mouseSensitivity = UserDefaults.standard.float(forKey:"mouseSensitivity") }
 		if UserDefaults.standard.exists(forKey:"noOverlay")
 			{ noOverlay = UserDefaults.standard.bool(forKey:"noOverlay") }
 		if UserDefaults.standard.exists(forKey:"hideStatusBar")

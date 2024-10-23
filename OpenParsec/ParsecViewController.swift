@@ -125,19 +125,16 @@ class ParsecViewController :UIViewController {
 			object: nil
 		)
 		
-		NotificationCenter.default.addObserver(self, selector: #selector(onChangeOrientation), name: UIDevice.orientationDidChangeNotification, object: nil)
 	}
 	
-	@objc func onChangeOrientation() {
-		// bounds did not change at this moment
-		let h = UIScreen.main.bounds.width
-		let w = UIScreen.main.bounds.height
+	override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+		super.viewWillTransition(to: size, with: coordinator)
+		
+		let h = size.height
+		let w = size.width
 		
 		self.glkView.updateSize(width: w, height: h)
 		CParsec.setFrame(w, h, UIScreen.main.scale)
-		if let toolbar = self.keyboardAccessoriesView {
-			toolbar.frame.size.width = w
-		}
 	}
 	
 	override func viewWillAppear(_ animated: Bool) {
@@ -156,7 +153,6 @@ class ParsecViewController :UIViewController {
 		}
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
-		NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
 	}
 	
 	
@@ -340,7 +336,8 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		if let keyboardAccessoriesView {
 			return keyboardAccessoriesView
 		}
-		let containerView = UIStackView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 94))
+		let containerView = UIStackView()
+		containerView.translatesAutoresizingMaskIntoConstraints = false
 		
 		let customToolbarView = UIToolbar(frame: CGRect(x: 0, y: 50, width: self.view.bounds.size.width, height: 44))
 		customToolbarView.translatesAutoresizingMaskIntoConstraints = false
@@ -466,6 +463,11 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 			handleButton.topAnchor.constraint(equalTo: containerView.topAnchor),
 			handleButton.widthAnchor.constraint(equalToConstant: 40),
 			handleButton.heightAnchor.constraint(equalToConstant: 40)
+		])
+		
+		NSLayoutConstraint.activate([
+			containerView.heightAnchor.constraint(equalToConstant: 94),
+			containerView.widthAnchor.constraint(greaterThanOrEqualToConstant: 200)
 		])
 		
 		keyboardAccessoriesView = containerView
