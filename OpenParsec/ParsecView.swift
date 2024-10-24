@@ -7,7 +7,7 @@ struct ParsecStatusBar : View {
 	@State var metricInfo:String = "Loading..."
 	@Binding var showDCAlert:Bool
 	@Binding var DCAlertText:String
-	let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
 	
 	var body: some View {
 		// Overlay elements

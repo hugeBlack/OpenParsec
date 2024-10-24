@@ -296,10 +296,25 @@ class KeyBoardButton : UIButton {
 		self.keyText = keyText
 		self.isToggleable = isToggleable
 		super.init(frame: .zero)
+		addTarget(self, action: #selector(handleTouchDown), for: .touchDown)
+		addTarget(self, action: #selector(handleTouchUp), for: [.touchUpInside, .touchDragExit, .touchCancel])
+			
 	}
 	
 	required init?(coder: NSCoder) {
 		fatalError("init(coder:) has not been implemented")
+	}
+	
+	// Add a press-down animation for feedback
+	@objc private func handleTouchDown() {
+		self.alpha = 0.5
+	}
+	
+	// Restore to normal state when touch ends
+	@objc private func handleTouchUp() {
+		UIView.animate(withDuration: 0.2) {
+			self.alpha = 1.0
+		}
 	}
 }
 
@@ -336,7 +351,7 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		if let keyboardAccessoriesView {
 			return keyboardAccessoriesView
 		}
-		let containerView = UIStackView()
+		let containerView = UIStackView(frame: CGRect(x: 0, y: 0, width: CGFloat.infinity, height: 94))
 		containerView.translatesAutoresizingMaskIntoConstraints = false
 		
 		let customToolbarView = UIToolbar(frame: CGRect(x: 0, y: 50, width: self.view.bounds.size.width, height: 44))
@@ -371,7 +386,7 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		let f9Button = createKeyboardButton(displayText: "F9", keyText: "F9", isToggleable: false)
 		let f10Button = createKeyboardButton(displayText: "F10", keyText: "F10", isToggleable: false)
 		let f11Button = createKeyboardButton(displayText: "F11", keyText: "F11", isToggleable: false)
-		let f12Button = createKeyboardButton(displayText: "F12", keyText: "F11", isToggleable: false)
+		let f12Button = createKeyboardButton(displayText: "F12", keyText: "F12", isToggleable: false)
 		let upButton = createKeyboardButton(displayText: "↑", keyText: "UP", isToggleable: false)
 		let downButton = createKeyboardButton(displayText: "↓", keyText: "DOWN", isToggleable: false)
 		let leftButton = createKeyboardButton(displayText: "←", keyText: "LEFT", isToggleable: false)
