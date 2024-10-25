@@ -97,35 +97,10 @@ struct ParsecView:View
 	{
 		ZStack()
 		{
-
-			
-			// Input handlers
-//			TouchHandlingView(handleTouch:onTouch, handleTap:onTap)
-//				.zIndex(2)
-
-//            UIViewControllerWrapper(GamepadViewController())
-//			    .zIndex(1)
-//			
-//			// Stream view controller
-//			//switch SettingsHandler.renderer
-//			//{
-//				//case .opengl:
-//			UIViewControllerWrapper(ParsecGLKViewController(onBeforeRender:poll))
-////			ParsecGLKViewController(onBeforeRender:poll)
-//						.zIndex(0)
-//						.edgesIgnoringSafeArea(.all)
-				//case .metal:
-				//	Text("Metal is a work in progress, check back soon!")
-				//		.background(Color.black)
-				//		.foregroundColor(.white)
-					/*ParsecMetalViewController(onBeforeRender:poll)
-						.zIndex(0)
-						.edgesIgnoringSafeArea(.all)*/
-			//}
-			
 			
 			UIViewControllerWrapper(self.parsecViewController)
 				.zIndex(1)
+				.prefersPersistentSystemOverlaysHidden()
 			
 			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText)
 			
@@ -331,9 +306,15 @@ struct ParsecView:View
 		CParsec.sendUserData(type: .getVideoConfig, message: data)
 	}
 
+}
 
-//	func handleKeyCommand(sender:UIKeyCommand)
-//	{
-//		CParsec.sendKeyboardMessage(sender:sender)
-//	}
+// from https://github.com/utmapp/UTM/blob/117e3a962f2f46f7d847632d65fa7a85a2bb0cfa/Platform/iOS/VMWindowView.swift#L314
+private extension View {
+	func prefersPersistentSystemOverlaysHidden() -> some View {
+		if #available(iOS 16, *) {
+			return self.persistentSystemOverlays(.hidden)
+		} else {
+			return self
+		}
+	}
 }

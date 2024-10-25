@@ -34,6 +34,10 @@ class ParsecViewController :UIViewController {
 		return true
 	}
 	
+	override var prefersHomeIndicatorAutoHidden : Bool {
+		return true
+	}
+	
 	init() {
 		super.init(nibName: nil, bundle: nil)
 		
@@ -137,12 +141,12 @@ class ParsecViewController :UIViewController {
 		CParsec.setFrame(w, h, UIScreen.main.scale)
 	}
 	
-	override func viewWillAppear(_ animated: Bool) {
+	override func viewDidAppear(_ animated: Bool) {
+		super.viewDidAppear(animated)
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(self)
 			parent.setChildViewControllerForPointerLock(self)
 		}
-		setNeedsUpdateOfPrefersPointerLocked()
 	}
 	
 	override func viewWillDisappear(_ animated: Bool) {
