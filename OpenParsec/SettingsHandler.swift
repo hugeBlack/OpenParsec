@@ -10,6 +10,7 @@ struct SettingsHandler
 	public static var mouseSensitivity : Float = 1.0
 	public static var noOverlay:Bool = false
 	public static var hideStatusBar:Bool = true
+	public static var rightClickPosition:RightClickPosition = .firstFinger
 	
 	public static func load()
 	{
@@ -19,6 +20,8 @@ struct SettingsHandler
 			{ decoder = DecoderPref(rawValue:UserDefaults.standard.integer(forKey:"decoder"))! }
 		if UserDefaults.standard.exists(forKey:"cursorMode")
 			{ cursorMode = CursorMode(rawValue:UserDefaults.standard.integer(forKey:"cursorMode"))! }
+		if UserDefaults.standard.exists(forKey:"rightClickPosition")
+			{ rightClickPosition = RightClickPosition(rawValue:UserDefaults.standard.integer(forKey:"rightClickPosition"))! }
 		if UserDefaults.standard.exists(forKey:"cursorScale")
 			{ cursorScale = UserDefaults.standard.float(forKey:"cursorScale") }
 		if UserDefaults.standard.exists(forKey:"mouseSensitivity")
@@ -43,6 +46,7 @@ struct SettingsHandler
 		//UserDefaults.standard.set(renderer.rawValue, forKey:"renderer")
 		UserDefaults.standard.set(decoder.rawValue, forKey:"decoder")
 		UserDefaults.standard.set(cursorMode.rawValue, forKey:"cursorMode")
+		UserDefaults.standard.set(rightClickPosition.rawValue, forKey:"rightClickPosition")
 		UserDefaults.standard.set(cursorScale, forKey:"cursorScale")
 		UserDefaults.standard.set(mouseSensitivity, forKey: "mouseSensitivity")
 		UserDefaults.standard.set(noOverlay, forKey:"noOverlay")

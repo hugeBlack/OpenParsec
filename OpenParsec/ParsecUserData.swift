@@ -19,6 +19,12 @@ struct ParsecUserDataVideoConfig : Codable {
 	]
 }
 
+struct ParsecDisplayConfig : Codable, Hashable {
+	var name : String = ""
+	var adapterName : String = ""
+	var id : String = ""
+}
+
 enum ParsecUserDataType : UInt32 {
 	case getVideoConfig = 9
 	case getAdapterInfo = 10

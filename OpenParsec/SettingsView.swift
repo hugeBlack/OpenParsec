@@ -7,6 +7,7 @@ struct SettingsView:View
 	//@State var renderer:RendererType = SettingsHandler.renderer
 	@State var decoder:DecoderPref = SettingsHandler.decoder
 	@State var cursorMode:CursorMode = SettingsHandler.cursorMode
+	@State var rightClickPosition:RightClickPosition = SettingsHandler.rightClickPosition
 	@State var resolution : ParsecResolution = SettingsHandler.resolution
 	@State var cursorScale:Float = SettingsHandler.cursorScale
 	@State var mouseSensitivity:Float = SettingsHandler.mouseSensitivity
@@ -83,6 +84,15 @@ struct SettingsView:View
 									Choice("Direct", CursorMode.direct)
 								])
                             }
+							CatItem("Right Click Position")
+							{
+								MultiPicker(selection:$rightClickPosition, options:
+								[
+									Choice("First Finger", RightClickPosition.firstFinger),
+									Choice("Middle", RightClickPosition.middle),
+									Choice("Second Finger", RightClickPosition.secondFinger)
+								])
+							}
                             CatItem("Cursor Scale")
                             {
                                 Slider(value: $cursorScale, in:0.1...4, step:0.1)
@@ -145,6 +155,7 @@ struct SettingsView:View
 				.background(Rectangle().fill(Color("BackgroundGray")))
 				.cornerRadius(8)
 				.padding()
+				.animation(.none)
 			}
 		}
         .preferredColorScheme(appScheme)
@@ -159,6 +170,7 @@ struct SettingsView:View
 		SettingsHandler.resolution = resolution
 		SettingsHandler.cursorMode = cursorMode
 		SettingsHandler.cursorScale = cursorScale
+		SettingsHandler.rightClickPosition = rightClickPosition
 		SettingsHandler.noOverlay = noOverlay
 		SettingsHandler.hideStatusBar = hideStatusBar
 		SettingsHandler.mouseSensitivity = mouseSensitivity

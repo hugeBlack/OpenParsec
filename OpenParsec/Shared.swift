@@ -74,6 +74,8 @@ class SharedModel: ObservableObject {
 	@Published var resolutionY = 0
 	@Published var bitrate = 0
 	@Published var constantFps = false
+	@Published var output = "none"
+	@Published var displayConfigs : [ParsecDisplayConfig] = []
 	
 }
 

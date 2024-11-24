@@ -141,14 +141,14 @@ struct ParsecView:View
 							Button(action:disableOverlay)
 							{
 								Text("Hide Overlay")
-									.padding(12)
+									.padding(8)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
 							Button(action:toggleMute)
 							{
 								Text("Sound: \(muted ? "OFF" : "ON")")
-									.padding(12)
+									.padding(8)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
@@ -160,7 +160,7 @@ struct ParsecView:View
 								}
 							} label: {
 								Text("Resolution")
-									.padding(12)
+									.padding(8)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
@@ -172,14 +172,32 @@ struct ParsecView:View
 								}
 							} label: {
 								Text("Bitrate")
-									.padding(12)
+									.padding(8)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
+							if (DataManager.model.displayConfigs.count > 1) {
+								Menu() {
+									Button("Auto") {
+										changeDisplay(displayId: "none")
+									}
+									ForEach(DataManager.model.displayConfigs, id: \.self) { config in
+										Button("\(config.name) \(config.adapterName)") {
+											changeDisplay(displayId: config.id)
+										}
+									}
+								} label: {
+									Text("Switch Display")
+										.padding(8)
+										.frame(maxWidth:.infinity)
+										.multilineTextAlignment(.center)
+								}
+							}
+
 							Button(action:toggleConstantFps)
 							{
 								Text("Constant FPS: \(constantFps ? "ON" : "OFF")")
-									.padding(12)
+									.padding(8)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
@@ -191,7 +209,7 @@ struct ParsecView:View
 							{
 								Text("Disconnect")
 									.foregroundColor(.red)
-									.padding(12)
+									.padding(8)
 									.frame(maxWidth:.infinity)
 									.multilineTextAlignment(.center)
 							}
@@ -301,9 +319,15 @@ struct ParsecView:View
 		CParsec.updateHostVideoConfig()
 	}
 	
+	func changeDisplay(displayId: String) {
+		DataManager.model.output = displayId
+		CParsec.updateHostVideoConfig()
+	}
+	
 	func getHostUserData() {
 		let data = "".data(using: .utf8)!
 		CParsec.sendUserData(type: .getVideoConfig, message: data)
+		CParsec.sendUserData(type: .getAdapterInfo, message: data)
 	}
 
 }

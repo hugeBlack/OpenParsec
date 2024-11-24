@@ -242,7 +242,18 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 	
 	@objc func handleTwoFingerTap(_ gestureRecognizer:UITapGestureRecognizer)
 	{
-		let location = gestureRecognizer.location(in: gestureRecognizer.view)
+		let location : CGPoint;
+		switch SettingsHandler.rightClickPosition {
+		case .firstFinger:
+			location = gestureRecognizer.location(ofTouch: 0, in: gestureRecognizer.view)
+			break;
+		case .secondFinger:
+			location = gestureRecognizer.location(ofTouch: 1, in: gestureRecognizer.view)
+			break
+		default:
+			location = gestureRecognizer.location(in: gestureRecognizer.view)
+		}
+
 		touchController.onTap(typeOfTap: 3, location: location)
 	}
 	

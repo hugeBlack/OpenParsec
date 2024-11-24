@@ -20,6 +20,13 @@ enum CursorMode:Int
     case direct
 }
 
+enum RightClickPosition:Int
+{
+	case firstFinger
+	case middle
+	case secondFinger
+}
+
 struct KeyBoardKeyEvent {
 	var input: UIKey?
 	var isPressBegin: Bool
@@ -171,7 +178,6 @@ class ParsecSDKBridge: ParsecService
 		let pointer = ParsecGetBuffer(_parsec, event.key)
 		switch event.id {
 		case 11:
-			
 			do {
 				let decoder = JSONDecoder()
 				let config = try decoder.decode(ParsecUserDataVideoConfig.self, from: Data(bytesNoCopy: pointer!, count: strlen(pointer!), deallocator: .none))
@@ -189,6 +195,14 @@ class ParsecSDKBridge: ParsecService
 					}
 				}
 				
+			} catch {
+				print("error while parsing user data: \(error.localizedDescription)")
+			}
+		case 12:
+			do {
+				let decoder = JSONDecoder()
+				let config = try decoder.decode(Array<ParsecDisplayConfig>.self, from: Data(bytesNoCopy: pointer!, count: strlen(pointer!), deallocator: .none))
+				DataManager.model.displayConfigs = config
 			} catch {
 				print("error while parsing user data: \(error.localizedDescription)")
 			}
@@ -488,6 +502,7 @@ class ParsecSDKBridge: ParsecService
 		videoConfig.video[0].resolutionY = DataManager.model.resolutionY
 		videoConfig.video[0].encoderMaxBitrate = DataManager.model.bitrate
 		videoConfig.video[0].fullFPS = DataManager.model.constantFps
+		videoConfig.video[0].output = DataManager.model.output
 		let encoder = JSONEncoder()
 		let data = try! encoder.encode(videoConfig)
 		CParsec.sendUserData(type: .setVideoConfig, message: data)
