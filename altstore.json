@@ -1,0 +1,31 @@
+{
+    "name": "OpenParsec",
+    "subtitle": "Open Parsec client for iOS/iPadOS",
+    "description": "An open-source Parsec client for iOS/iPadOS. This repo implements mouse & keyboard & touch screen support.",
+    "iconURL": "https://raw.githubusercontent.com/hugeBlack/OpenParsec/main/OpenParsec/Assets.xcassets/IconTransparent.imageset/icon_transparent.png",
+    "headerURL": "https://raw.githubusercontent.com/hugeBlack/OpenParsec/main/OpenParsec/Assets.xcassets/LogoShadow.imageset/logo_shadow.png",
+    "website": "https://github.com/hugeBlack/OpenParsec",
+    "apps": [
+        {
+            "beta": true,
+            "name": "OpenParsec",
+            "bundleIdentifier": "com.aigch.OpenParsec1",
+            "developerName": "hugeBlack",
+            "subtitle": "Open Parsec client for iOS/iPadOS",
+            "localizedDescription": "An open-source Parsec client for iOS/iPadOS. This repo implements mouse & keyboard & touch screen support.",
+            "iconURL": "https://raw.githubusercontent.com/hugeBlack/OpenParsec/main/OpenParsec/Assets.xcassets/IconTransparent.imageset/icon_transparent.png",
+            "tintColor": "#BB01F0",
+            "screenshotURLs": [],
+            "versions": [
+                {
+                  "version": "nightly",
+                  "date": "2024-11-24",
+                  "downloadURL": "https://github.com/hugeBlack/OpenParsec/releases/download/nightly/OpenParsec.ipa",
+                  "size": 1800157,
+                }
+              ],
+            "appPermissions": {}
+        }
+    ],
+    "news": []
+  }
