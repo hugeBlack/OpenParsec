@@ -379,13 +379,17 @@ class ParsecSDKBridge: ParsecService
 		}
 		keyboardMessagePress.keyboard.code = keyCode
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
-		keyboardMessagePress.keyboard.pressed = false
-		if !isVirtualShiftOn && useShift {
-			keyboardMessagePress.keyboard.code = ParsecKeycode(rawValue: 225)
-			ParsecClientSendMessage(_parsec, &keyboardMessagePress)
-			keyboardMessagePress.keyboard.code = keyCode
+		
+		// add release delay in case some games ignore instant key release
+		DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
+			keyboardMessagePress.keyboard.pressed = false
+			if !self.isVirtualShiftOn && useShift {
+				keyboardMessagePress.keyboard.code = ParsecKeycode(rawValue: 225)
+				ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
+				keyboardMessagePress.keyboard.code = keyCode
+			}
+			ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
 		}
-		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
 	
 	func sendVirtualKeyboardInput(text: String, isOn: Bool) {

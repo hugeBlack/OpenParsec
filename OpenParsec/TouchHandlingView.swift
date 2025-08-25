@@ -37,12 +37,17 @@ class TouchController
 			let y = Int32(location.y)
 
 			// Send the mouse input to the host
-
+			// add release delay in case some games ignore instant key release
 			CParsec.sendMouseMessage(parsecTap, x, y, true)
-			CParsec.sendMouseMessage(parsecTap, x, y, false)
+			DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
+				CParsec.sendMouseMessage(parsecTap, x, y, false)
+			}
+
 		} else {
 			CParsec.sendMouseClickMessage(parsecTap, true)
-			CParsec.sendMouseClickMessage(parsecTap, false)
+			DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
+				CParsec.sendMouseClickMessage(parsecTap, false)
+			}
 		}
 
 	}
