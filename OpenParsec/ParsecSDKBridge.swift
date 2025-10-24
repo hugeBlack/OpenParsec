@@ -68,11 +68,22 @@ class ParsecSDKBridge: ParsecService
 		
 		audio_init(&_audio)
 		
-		ParsecInit(ParsecSDKBridge.PARSEC_VER, nil, nil, &_parsec)
-		
-		
 		self._audioPtr = UnsafeRawPointer(_audio)
 		
+		do {
+			let reservedCfg = ["ssHost": "kessel-ws.parsec.app"]
+			let json = JSONEncoder()
+			try json.encode(reservedCfg).withUnsafeBytes { (jsonStrBPtr: UnsafeRawBufferPointer) in
+				guard let jsonStrPtr = jsonStrBPtr.baseAddress else {
+					return
+				}
+				ParsecInit(ParsecSDKBridge.PARSEC_VER, nil, jsonStrPtr, &_parsec)
+			}
+
+		} catch {
+			print("error: \(error)")
+		}
+
 	}
 	
 	deinit
