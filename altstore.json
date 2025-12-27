@@ -18,7 +18,7 @@
             "screenshotURLs": [],
             "versions": [
                 {
-                  "version": "nightly",
+                  "version": "1.0",
                   "date": "2024-11-24",
                   "downloadURL": "https://github.com/hugeBlack/OpenParsec/releases/download/nightly/OpenParsec.ipa",
                   "size": 1800157
