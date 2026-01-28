@@ -1,9 +1,16 @@
 import UIKit
 import ParsecSDK
+import OSLog
+
 
 class KeyCodeTranslators {
 	static func uiKeyCodeToInt(key: UIKeyboardHIDUsage) -> Int {
+
+
+		os_log("UIKitKey:\(key.rawValue)")
+
 		switch key {
+
 		case .keyboardErrorRollOver:
 			return 1
 		case .keyboardPOSTFail:
@@ -364,6 +371,8 @@ class KeyCodeTranslators {
 			return 147
 		case .keyboardZenkakuHankakuKanji:
 			return 148
+
+
 		default:
 			return 0
 		}
@@ -371,6 +380,7 @@ class KeyCodeTranslators {
 
 	static func parsecKeyCodeTranslator(_ str: String) -> ParsecKeycode?
 	{
+		os_log("KeyParsec:\(str)")
 		switch str
 		{
 			case "A": return ParsecKeycode(4)
@@ -495,6 +505,7 @@ class KeyCodeTranslators {
 			case "AUDIOPLAY": return ParsecKeycode(261)
 			case "AUDIOMUTE": return ParsecKeycode(262)
 			case "MEDIASELECT": return ParsecKeycode(263)
+
 
 			default: return nil
 		}

@@ -472,6 +472,7 @@ class ParsecSDKBridge: ParsecService
 		var keyCode : ParsecKeycode?
 		var useShift = false
 
+
 		if text.count == 1 {
 			let char = Character(text)
 			if char.isLetter || char.isNumber {
@@ -496,7 +497,11 @@ class ParsecSDKBridge: ParsecService
 		} else {
 			keyCode = KeyCodeTranslators.parsecKeyCodeTranslator(text)
 		}
-		
+
+		if let key = keyCode {
+			os_log("KeyCode:\(key.rawValue)-\(text)")
+		}
+
 		return (keyCode, useShift)
 	}
 	
@@ -507,6 +512,7 @@ class ParsecSDKBridge: ParsecService
 			return
 		}
 
+		os_log("KeyCode:\(keyCode.rawValue)-\(text)")
 
 		if !isVirtualShiftOn && useShift {
 			var shiftDown = ParsecMessage()
@@ -576,15 +582,21 @@ class ParsecSDKBridge: ParsecService
 
 	func sendKeyboardMessage(event:KeyBoardKeyEvent)
 	{
+
 		if event.input == nil {
 			return
 		}
-		
+
+		os_log("")
+
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
+
 		keyboardMessagePress.keyboard.pressed = event.isPressBegin
+
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
+
 	}
 	
 	func sendGameControllerButtonMessage(controllerId: UInt32, _ button:ParsecGamepadButton, pressed: Bool)

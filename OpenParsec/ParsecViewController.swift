@@ -22,6 +22,8 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 
 	var panLockedByKeyboard = false
 
+
+
 	func createRenderer(type: RendererType) -> ParsecRenderer {
 		switch type {
 		case .metal:
@@ -349,6 +351,7 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
+
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(self)
 			parent.setChildViewControllerForPointerLock(self)
@@ -408,25 +411,52 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 	
 	
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		
+
+		var handled = false
+
+
 		for press in presses {
-			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: true) )
+			if let key = press.key {
+
+				CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: key, isPressBegin: true) )
+				handled = true
+
+			}
 		}
-		
+
+		if !handled {
+			super.pressesBegan(presses, with: event) // 傳給下一個 responder
+		}
+
+
 	}
 	
 	override func pressesEnded (_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		
+
+		var handled = false
+
 		for press in presses {
-			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: false) )
+
+			if let key = press.key {
+
+				CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: key, isPressBegin: false) )
+				handled = true
+
+			}
 		}
-		
+
+		if !handled {
+			super.pressesEnded(presses, with: event) // 傳給下一個 responder
+		}
+
+
 	}
 	
 	@objc func keyboardWillShow(notification: NSNotification) {
 		if let keyboardFrame = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
             let height = keyboardFrame.height
 			keyboardHeight = height
+
             keyboardVisible = true
 
 			panLockedByKeyboard = true
@@ -716,7 +746,7 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 	
 	var keyboardType: UIKeyboardType {
 		get {
-			return .asciiCapable
+			return .default
 		}
 		set {
 			
@@ -728,6 +758,7 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 	}
 
 	func insertText(_ text: String) {
+		os_log("Text:",text)
 
 		CParsec.sendVirtualKeyboardInput(text: text)
 	}
@@ -742,17 +773,21 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 
 	func populateFullKeyboardAccessory(in containerView: UIView) {
 
-		// 已經生成過就跳過
-		if containerView.viewWithTag(999) != nil { return }
+		// 找到原本的 toolbarBackground（Done 按鈕所在）
+		guard let toolbarBackground = containerView.subviews.first(where: { $0.subviews.contains(where: { $0 is UIButton }) }) else { return }
 
-		let toolbarBackground = UIView(frame: CGRect(x: 0, y: 50, width: containerView.bounds.width, height: 44))
-		toolbarBackground.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
-		toolbarBackground.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.9)
-		toolbarBackground.tag = 999  // 標記，避免重複生成
+
+		// 已經生成過就跳過
+		if toolbarBackground.viewWithTag(999) != nil { return }
 
 		let scrollView = UIScrollView(frame: CGRect(x: 8, y: 0, width: toolbarBackground.bounds.width - 80, height: 44))
+
 		scrollView.autoresizingMask = [.flexibleWidth]
 		scrollView.showsHorizontalScrollIndicator = false
+
+		toolbarBackground.addSubview(scrollView)
+		scrollView.tag = 999 // 標記，避免重複生成
+
 
 		let buttonStackView = UIStackView()
 		buttonStackView.axis = .horizontal
@@ -760,6 +795,24 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		buttonStackView.alignment = .center
 		buttonStackView.spacing = 8
 		buttonStackView.translatesAutoresizingMaskIntoConstraints = false
+
+		scrollView.addSubview(buttonStackView)
+
+
+		NSLayoutConstraint.activate([
+			scrollView.leadingAnchor.constraint(equalTo: toolbarBackground.leadingAnchor, constant: 8),
+			scrollView.trailingAnchor.constraint(equalTo: toolbarBackground.trailingAnchor, constant: -80), // 留空間給 Done
+			scrollView.topAnchor.constraint(equalTo: toolbarBackground.topAnchor),
+			scrollView.bottomAnchor.constraint(equalTo: toolbarBackground.bottomAnchor),
+
+
+			buttonStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+			buttonStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+			buttonStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+			buttonStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+			buttonStackView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
+		])
+
 
 		// ====== 按鈕生成 ======
 		let buttons = [
@@ -777,18 +830,6 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 			buttonStackView.addArrangedSubview(button)
 		}
 
-		scrollView.addSubview(buttonStackView)
-
-		NSLayoutConstraint.activate([
-			buttonStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-			buttonStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-			buttonStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-			buttonStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-			buttonStackView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
-		])
-
-		toolbarBackground.addSubview(scrollView)
-		containerView.addSubview(toolbarBackground)
 	}
 	
 	override var inputAccessoryView: UIView? {
@@ -814,6 +855,7 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
 
 		toolbarBackground.addSubview(doneButton)
+
 		containerView.addSubview(toolbarBackground)
 
 		keyboardAccessoriesView = containerView
