@@ -6,17 +6,19 @@ import GameController
 
 struct TestView : View {
 	var controller:ContentView?
-	
+	var KeyBoardTest:KeyboardTestController
+
 
 	init(_ controller:ContentView?)
 	{
+		self.KeyBoardTest = KeyboardTestController()
 		self.controller = controller
 	}
 	
 	var body: some View
 	{
 			
-			UIViewControllerWrapper(KeyboardTestController())
+			UIViewControllerWrapper(KeyBoardTest)
 			.ignoresSafeArea(.all, edges: .all)
 	}
 }

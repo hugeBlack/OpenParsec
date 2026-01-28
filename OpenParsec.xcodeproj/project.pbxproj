@@ -451,7 +451,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Frameworks",
-					"$(PROJECT_DIR)/Frameworks/ParsecSDK.framework/sdk/ios",
+					Frameworks,
 				);
 				INFOPLIST_FILE = OpenParsec/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14;
@@ -461,7 +461,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Frameworks/ParsecSDK.framework/sdk/ios/ParsecSDK.framework",
 					"$(PROJECT_DIR)/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec.coffee;
@@ -491,7 +490,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/Frameworks",
-					"$(PROJECT_DIR)/Frameworks/ParsecSDK.framework/sdk/ios",
+					Frameworks,
 				);
 				INFOPLIST_FILE = OpenParsec/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14;
@@ -501,7 +500,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Frameworks/ParsecSDK.framework/sdk/ios/ParsecSDK.framework",
 					"$(PROJECT_DIR)/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec.coffee;

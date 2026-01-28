@@ -6,6 +6,7 @@ import OSLog
 
 import Metal
 
+
 enum RendererType: Int
 {
 	case opengl
@@ -226,7 +227,7 @@ class ParsecSDKBridge: ParsecService
 		timeout: UInt32 = 16
 	) -> ParsecStatus {
 
-		let cq = Unmanaged.passUnretained(queue).toOpaque()
+		//let cq = Unmanaged.passUnretained(queue).toOpaque()
 
 		var texPtr: UnsafeMutableRawPointer? = Unmanaged.passUnretained(texture).toOpaque()
 
@@ -470,6 +471,7 @@ class ParsecSDKBridge: ParsecService
 	func getKeyCodeByText(text: String) -> (ParsecKeycode?, Bool) {
 		var keyCode : ParsecKeycode?
 		var useShift = false
+
 		if text.count == 1 {
 			let char = Character(text)
 			if char.isLetter || char.isNumber {
@@ -477,6 +479,7 @@ class ParsecSDKBridge: ParsecService
 				if char.isUppercase {
 					useShift = true
 				}
+
 			} else if char.isNewline {
 				keyCode = ParsecKeycode(40)
 			} else if char.isWhitespace{
@@ -499,32 +502,57 @@ class ParsecSDKBridge: ParsecService
 	
 	func sendVirtualKeyboardInput(text: String) {
 		let (keyCode, useShift) = getKeyCodeByText(text: text)
-		
+
 		guard let keyCode else {
 			return
 		}
+
+
+		if !isVirtualShiftOn && useShift {
+			var shiftDown = ParsecMessage()
+			shiftDown.type = MESSAGE_KEYBOARD
+			shiftDown.keyboard.code = ParsecKeycode(rawValue: 225)
+			shiftDown.keyboard.pressed = true
+			ParsecClientSendMessage(_parsec, &shiftDown)
+		}
+
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.pressed = true
-		if !isVirtualShiftOn && useShift {
-			keyboardMessagePress.keyboard.code = ParsecKeycode(rawValue: 225)
-			ParsecClientSendMessage(_parsec, &keyboardMessagePress)
-		}
 		keyboardMessagePress.keyboard.code = keyCode
-		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
-		
+
+		let res = ParsecClientSendMessage(_parsec, &keyboardMessagePress)
+
+		os_log("Key res->\(res.rawValue)")
+
+
 		// add release delay in case some games ignore instant key release
-		DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
-			keyboardMessagePress.keyboard.pressed = false
-			if !self.isVirtualShiftOn && useShift {
-				keyboardMessagePress.keyboard.code = ParsecKeycode(rawValue: 225)
-				ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
-				keyboardMessagePress.keyboard.code = keyCode
+		DispatchQueue.global().asyncAfter(deadline: .now() + 0.05) {
+
+			// 主鍵 release
+			var keyUp = ParsecMessage()
+			keyUp.type = MESSAGE_KEYBOARD
+			keyUp.keyboard.code = keyCode
+			keyUp.keyboard.pressed = false
+			ParsecClientSendMessage(self._parsec, &keyUp)
+
+			// Shift release
+			if useShift && !self.isVirtualShiftOn {
+				var shiftUp = ParsecMessage()
+				shiftUp.type = MESSAGE_KEYBOARD
+				shiftUp.keyboard.code = ParsecKeycode(rawValue: 225)
+				shiftUp.keyboard.pressed = false
+				ParsecClientSendMessage(self._parsec, &shiftUp)
 			}
-			ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
+
+
+			os_log("Key Release")
+
 		}
+
 	}
-	
+
+
 	func sendVirtualKeyboardInput(text: String, isOn: Bool) {
 		let (keyCode, _) = getKeyCodeByText(text: text)
 		
@@ -535,7 +563,9 @@ class ParsecSDKBridge: ParsecService
 		if keyCode.rawValue == 225 {
 			isVirtualShiftOn = isOn
 		}
-		
+
+
+
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.pressed = isOn

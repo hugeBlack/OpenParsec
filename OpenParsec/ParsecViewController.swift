@@ -728,6 +728,7 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 	}
 
 	func insertText(_ text: String) {
+
 		CParsec.sendVirtualKeyboardInput(text: text)
 	}
 

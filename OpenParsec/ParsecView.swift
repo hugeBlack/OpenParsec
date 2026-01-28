@@ -9,6 +9,7 @@ struct ParsecStatusBar : View {
 	@State var metricInfo: String = "Loading..."
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
+
 	@State var parsecViewController: ParsecViewController?
 	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
 
