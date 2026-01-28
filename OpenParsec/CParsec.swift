@@ -149,6 +149,8 @@ protocol ParsecService {
 	func getStatus() -> ParsecStatus
 	func getStatusEx(_ pcs: inout ParsecClientStatus) -> ParsecStatus
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat)
+
+	func clearGL()
 	func renderGLFrame(timeout: UInt32)
 
 	// Metal 
@@ -172,6 +174,8 @@ protocol ParsecService {
 	func sendUserData(type: ParsecUserDataType, message: Data)
 	func updateHostVideoConfig()
 }
+
+import OSLog
 
 class CParsec
 {
@@ -198,6 +202,10 @@ class CParsec
 
 	static func initialize()
 	{
+		guard parsecImpl == nil else {
+			os_log("已初始化ParsecSDK")
+			return }
+
 		parsecImpl = ParsecSDKBridge()
 	}
 
@@ -208,12 +216,19 @@ class CParsec
 
 	static func connect(_ peerID: String) -> ParsecStatus
 	{
-		parsecImpl.connect(peerID)
+
+		return parsecImpl.connect(peerID)
+
 	}
 
 	static func disconnect()
 	{
-		parsecImpl.disconnect()
+		return parsecImpl.disconnect()
+	}
+
+	static func clearGL(){
+		return parsecImpl.clearGL()
+
 	}
 
 	static func getOutput(maxCount: Int) -> [ParsecDecoder]

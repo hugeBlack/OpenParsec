@@ -3,6 +3,7 @@ import ParsecSDK
 import Foundation
 
 import OSLog
+import Combine
 
 struct ParsecStatusBar : View {
 	@Binding var showMenu : Bool
@@ -11,7 +12,8 @@ struct ParsecStatusBar : View {
 	@Binding var DCAlertText: String
 
 	@State var parsecViewController: ParsecViewController?
-	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
+
+	@State private var timerCancellable: AnyCancellable?
 
 	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
 		_showMenu = showMenu
@@ -38,16 +40,28 @@ struct ParsecStatusBar : View {
 			.frame(maxHeight: .infinity, alignment: .top)
 			.zIndex(1)
 			.edgesIgnoringSafeArea(.all)
-
+			.onAppear {
+				timerCancellable = Timer
+					.publish(every: 0.2, on: .main, in: .common)
+					.autoconnect()
+					.sink { _ in
+						poll()
+					}
+			}
+			.onDisappear {
+				timerCancellable?.cancel()
+				timerCancellable = nil
+			}
+			
 		}
 		EmptyView()
-			.onReceive(timer) { p in
-				poll()
-			}
+
+
 	}
 	
 	func poll()
 	{
+
 		if showDCAlert
 		{
 			return // no need to poll if we aren't connected anymore

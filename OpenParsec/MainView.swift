@@ -583,12 +583,11 @@ struct MainView: View
 	func connectTo(_ who:IdentifiableHostInfo)
 	{
 		CParsec.initialize()
+
 		connectingToName = who.hostname
 		withAnimation { isConnecting = true }
 
 		var status = CParsec.connect(who.id)
-
-
 
 		// 初始化 ParsecRenderCenter (如果尚未初始化)
 		ParsecRenderCenter.shared.start()

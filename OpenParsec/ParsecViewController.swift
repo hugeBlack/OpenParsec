@@ -48,7 +48,12 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		contentView.insertSubview(renderView, at: 0)
 
 	}
-	
+
+	func shutdownRenderer() {
+		renderer?.cleanUp()
+		renderer = nil
+	}
+
 
 
 	var gamePadController: GamepadController!
@@ -407,6 +412,9 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		}
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+
+
+
 	}
 	
 	

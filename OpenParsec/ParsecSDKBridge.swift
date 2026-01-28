@@ -44,9 +44,6 @@ class ParsecSDKBridge: ParsecService
 	var hostHeight: Float = 1080
 
 
-
-
-
 	static let PARSEC_VER: UInt32 = UInt32((PARSEC_VER_MAJOR << 16) | PARSEC_VER_MINOR)
 	
 	private var _parsec: OpaquePointer!
@@ -104,7 +101,14 @@ class ParsecSDKBridge: ParsecService
 		ParsecDestroy(_parsec)
 		audio_destroy(&_audio)
 	}
-	
+
+	func destroy() {
+		ParsecDestroy(_parsec)
+		print("清理Parsec")
+
+	}
+
+
 	func connect(_ peerID: String) -> ParsecStatus {
 
 		var parsecClientCfg = ParsecClientConfig()
@@ -136,31 +140,34 @@ class ParsecSDKBridge: ParsecService
 		//parsecClientCfg.secret = ""
 		parsecClientCfg.pngCursor = false
 
-		self.startBackgroundTask()
-
 
 		let status = ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
 
 
 
+		self.startBackgroundTask()
 
 		return status
 	}
 
-	func destroy() {
-		ParsecDestroy(_parsec)
-		print("清理Parsec")
 
-	}
-	
+
 	func disconnect() {
-		
-		audio_clear(&_audio)
-		ParsecClientDisconnect(_parsec)
+
+		mouseInfo.cursorImg = nil
+		getFirstCursor = false
 
 		stopBackgroundTask()
+
+		audio_clear(&_audio)
+
+		ParsecClientDisconnect(_parsec)
+
+
 	}
-	
+
+
+
 	func getStatus() -> ParsecStatus {
 		
 		return ParsecClientGetStatus(_parsec, nil)
@@ -211,7 +218,13 @@ class ParsecSDKBridge: ParsecService
 		
 		ParsecClientGLRenderFrame(_parsec, UInt8(DEFAULT_STREAM), nil, nil, timeout)
 	}
-	
+
+	func clearGL(){
+		os_log("ClearGL")
+		ParsecClientGLDestroy(_parsec,UInt8(DEFAULT_STREAM))
+
+	}
+
 	/*static func renderMetalFrame(_ queue:inout MTLCommandQueue, _ texturePtr: UnsafeMutablePointer<UnsafeMutableRawPointer?>, timeout: UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 	 {
 	 ParsecClientMetalRenderFrame(_parsec, UInt8(DEFAULT_STREAM), &queue, texturePtr, nil, nil, timeout)
@@ -344,46 +357,54 @@ class ParsecSDKBridge: ParsecService
 		ParsecFree(pointer)
 		
 	}
+
 	
+
 	func handleCursorEvent(event: ParsecClientCursorEvent) {
-		let prevHidden = mouseInfo.cursorHidden
+
+		//let prevHidden = mouseInfo.cursorHidden
 		mouseInfo.cursorHidden = event.cursor.hidden
 		mouseInfo.mousePositionRelative = event.cursor.relative
-		
-		if event.cursor.imageUpdate || !getFirstCursor{
-			getFirstCursor = true
-			let imgKey = event.key
-			let pointer = ParsecGetBuffer(_parsec, imgKey)
-			if pointer == nil{
-				return
-			}
-			let size = event.cursor.size
-			let width = event.cursor.width
-			let height = event.cursor.height
-			mouseInfo.cursorWidth = Int(width)
-			mouseInfo.cursorHeight = Int(height)
-			
-			if prevHidden && !event.cursor.hidden {
-				mouseInfo.mouseX = Int32(event.cursor.positionX)
-				mouseInfo.mouseY = Int32(event.cursor.positionY)
-			}
-			
-			mouseInfo.cursorHotX = Int(event.cursor.hotX)
-			mouseInfo.cursorHotY = Int(event.cursor.hotY)
-			
-			let elmentLength: Int = 4
-			let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
-			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-			let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
-			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: pointer, length: Int(size)))
-			let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
-			if cgimage != nil {
-				mouseInfo.cursorImg = cgimage
-			}
+
+		guard event.cursor.imageUpdate || !getFirstCursor else {
+			return
+		}
+		getFirstCursor = true
+
+		guard let pointer = ParsecGetBuffer(_parsec, event.key) else {
+			return
+		}
+
+		defer {
 			ParsecFree(pointer)
 		}
+
+		let size = Int(event.cursor.size)
+		let width = Int(event.cursor.width)
+		let height = Int(event.cursor.height)
+
+		let data = Data(bytes: pointer, count: size)   // ✅ Swift 管理
+
+		let provider = CGDataProvider(data: data as CFData)!
+
+		let cgimage = CGImage(
+			width: width,
+			height: height,
+			bitsPerComponent: 8,
+			bitsPerPixel: 32,
+			bytesPerRow: width * 4,
+			space: CGColorSpaceCreateDeviceRGB(),
+			bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+			provider: provider,
+			decode: nil,
+			shouldInterpolate: true,
+			intent: .defaultIntent
+		)
+
+		if let cgimage {
+			mouseInfo.cursorImg = cgimage   // 舊的會被 ARC 釋放
+		}
 	}
-	
 	func setMuted(_ muted: Bool) {
 		audio_mute(muted, _audioPtr)
 	}
@@ -647,11 +668,15 @@ class ParsecSDKBridge: ParsecService
 	
 	func startBackgroundTask() {
 
+		guard audioWorkItem == nil, eventWorkItem == nil else {
+			return
+		}
 
 		// audio
 		audioWorkItem = DispatchWorkItem { [weak self] in
 			guard let self else { return }
 			while !(self.audioWorkItem?.isCancelled ?? true) {
+				//os_log("WorkAudio")
 				self.pollAudio()
 				Thread.sleep(forTimeInterval: 0.01) // 適度 yield CPU
 			}
@@ -660,6 +685,7 @@ class ParsecSDKBridge: ParsecService
 		eventWorkItem = DispatchWorkItem { [weak self] in
 			guard let self else { return }
 			while !(self.eventWorkItem?.isCancelled ?? true) {
+				//os_log("WorkEvent")
 				self.pollEvent()
 				Thread.sleep(forTimeInterval: 0.01)
 			}
@@ -673,13 +699,40 @@ class ParsecSDKBridge: ParsecService
 	}
 
 	func stopBackgroundTask() {
+
+		guard let audioWorkItem = audioWorkItem, let eventWorkItem = eventWorkItem else {
+			return
+		}
+
 		// 安全停止
-		audioWorkItem?.cancel()
-		eventWorkItem?.cancel()
+		audioWorkItem.cancel()
+		eventWorkItem.cancel()
+
+		// 用 DispatchGroup 等待
+		let group = DispatchGroup()
+
+		group.enter()
+		DispatchQueue.global().async {
+			while !audioWorkItem.isCancelled {
+				Thread.sleep(forTimeInterval: 0.01)
+			}
+			group.leave()
+		}
+
+		group.enter()
+		DispatchQueue.global().async {
+			while !eventWorkItem.isCancelled {
+				Thread.sleep(forTimeInterval: 0.01)
+			}
+			group.leave()
+		}
+
+		// 阻塞等待完成
+		group.wait()
 
 		// 可選：釋放引用
-		audioWorkItem = nil
-		eventWorkItem = nil
+		self.audioWorkItem = nil
+		self.eventWorkItem = nil
 	}
 
 

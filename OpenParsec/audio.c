@@ -42,8 +42,7 @@ struct audio {
 
 static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBufferRef buffer)
 {
-    
-		
+
 	struct audio *ctx = (struct audio *) opaque;
 
 	if (!ctx || ctx->isStopping) return;
@@ -226,6 +225,7 @@ void audio_destroy(struct audio **ctx_out)
 
     // 2️⃣ 停掉 queue（同步等待 callback 完成）
     if (ctx->q) {
+		AudioQueueFlush(ctx->q);
         AudioQueueStop(ctx->q, true);
 
         // 3️⃣ 釋放所有 AudioQueueBuffer
@@ -255,7 +255,8 @@ void audio_destroy(struct audio **ctx_out)
     *ctx_out = NULL;
 
     isStart = false;
-    silence_inqueue = silence_outqueue = 0;
+	silence_inqueue = 0;
+	silence_outqueue = 0;
 }
 
 void audio_clear(struct audio **ctx_out)
@@ -267,8 +268,10 @@ void audio_clear(struct audio **ctx_out)
     
 	//RecycleChain *rcTraverse = NULL;
     struct audio *ctx = *ctx_out;
-    if (ctx->q)
-        AudioQueueStop(ctx->q, true);
+	if (ctx->q) {
+		AudioQueueFlush(ctx->q);
+		AudioQueueStop(ctx->q, true);
+	}
 	else return;
     
 	//rcTraverse = ctx->rcm.rc;

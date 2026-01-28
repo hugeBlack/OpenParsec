@@ -131,6 +131,8 @@ class ParsecGLKViewController : ParsecPlayground{
 		glkView.removeFromSuperview()
 		self.glkView = nil
 
+		CParsec.clearGL()
+		
 		print("🧹 GLK cleanUp done")
 	}
 

@@ -33,9 +33,9 @@ extension ParsecGLKViewController: ParsecRenderController {
 final class ParsecRenderCenter {
 	static let shared = ParsecRenderCenter()
 
-	weak var renderController: ParsecRenderController? // FPS檢測
+	var renderController: ParsecRenderController? // FPS檢測
 
-	weak var viewController: ParsecViewController? // Metal/OpenGL
+	var viewController: ParsecViewController? // Metal/OpenGL
 
 
 	var rendererType: RendererType = SettingsHandler.renderer
@@ -127,10 +127,11 @@ final class ParsecRenderCenter {
 	}
 
 	func shutdown() {
+
 		CParsec.disconnect()
 
-		viewController?.renderer?.cleanUp()
-		viewController = nil
+		viewController?.shutdownRenderer()
+
 		renderController = nil
 
 		isInitialized = false
