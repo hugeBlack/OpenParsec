@@ -1,7 +1,0 @@
-framework module ParsecSDK {
-	umbrella header "parsec.h"
-
-	export *
-	module * { export * }
-}
-
