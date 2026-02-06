@@ -44,7 +44,7 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 
 		let renderView = renderer!.renderView
 		renderView.frame = contentView.bounds
-		renderView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
 		contentView.insertSubview(renderView, at: 0)
 
 	}
@@ -211,14 +211,14 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		super.viewDidLayoutSubviews()
 
 
-		print("Debug:\(contentView.bounds.size)")
-
-		if let renderer = renderer {
-			renderer.updateSize(
-				width: contentView.bounds.width,
-				height: contentView.bounds.height
-			)
-		}
+//		print("Debug:\(contentView.bounds.size)")
+//
+//		if let renderer = renderer {
+//			renderer.updateSize(
+//				width: contentView.bounds.width,
+//				height: contentView.bounds.height
+//			)
+//		}
 
 
 	}
@@ -236,7 +236,9 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		scrollView.delegate = self
 		scrollView.minimumZoomScale = 1.0
 		scrollView.maximumZoomScale = 5.0
+
 		scrollView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
 		scrollView.panGestureRecognizer.minimumNumberOfTouches = 2
 		/*
 		 We set minimumNumberOfTouches to 2 for the scroll view's pan gesture
@@ -410,6 +412,7 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
 			parent.setChildViewControllerForPointerLock(nil)
 		}
+		
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
 
@@ -788,10 +791,12 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		// 已經生成過就跳過
 		if toolbarBackground.viewWithTag(999) != nil { return }
 
-		let scrollView = UIScrollView(frame: CGRect(x: 8, y: 0, width: toolbarBackground.bounds.width - 80, height: 44))
+		let scrollView = UIScrollView()
 
-		scrollView.autoresizingMask = [.flexibleWidth]
+		scrollView.translatesAutoresizingMaskIntoConstraints = false
 		scrollView.showsHorizontalScrollIndicator = false
+		scrollView.alwaysBounceHorizontal = true
+		scrollView.contentInsetAdjustmentBehavior = .never
 
 		toolbarBackground.addSubview(scrollView)
 		scrollView.tag = 999 // 標記，避免重複生成
@@ -815,7 +820,11 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 
 
 			buttonStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-			buttonStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+
+			buttonStackView.trailingAnchor
+				.constraint(greaterThanOrEqualTo:
+					scrollView.contentLayoutGuide.trailingAnchor),
+
 			buttonStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
 			buttonStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
 			buttonStackView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
@@ -824,8 +833,9 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 
 		// ====== 按鈕生成 ======
 		let buttons = [
-			("⇧", "SHIFT", true), ("⌘", "LGUI", true), ("⇥", "TAB", false),
-			("⎋", "UIKeyInputEscape", false), ("⌃", "CONTROL", true), ("⌥", "LALT", true),
+			("Ctrl", "CONTROL", true),("⇧", "SHIFT", true),("⇥", "TAB", false),
+			("⌘", "LGUI", true),
+			("⎋", "UIKeyInputEscape", false), ("⌥", "LALT", true),
 			("Del", "DELETE", false), ("F1","F1",false), ("F2","F2",false), ("F3","F3",false),
 			("F4","F4",false), ("F5","F5",false), ("F6","F6",false), ("F7","F7",false),
 			("F8","F8",false), ("F9","F9",false), ("F10","F10",false), ("F11","F11",false),
@@ -847,12 +857,12 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		}
 
 		// ====== 1️⃣ 首次輕量版本 ======
-		let containerView = UIView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 94))
+		let containerView = UIView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 44))
 		containerView.autoresizingMask = [.flexibleWidth]
 		containerView.backgroundColor = .clear
 
 		// 簡單 toolbar，只放 Done 按鈕
-		let toolbarBackground = UIView(frame: CGRect(x: 0, y: 50, width: containerView.bounds.width, height: 44))
+		let toolbarBackground = UIView(frame: CGRect(x: 0, y: 0, width: containerView.bounds.width, height: 44))
 		toolbarBackground.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
 		toolbarBackground.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.9)
 
@@ -878,93 +888,6 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 	}
 
 
-	 var OldinputAccessoryView: UIView? {
-
-		if let keyboardAccessoriesView {
-			return keyboardAccessoriesView
-		}
-
-		print("準備KeyBoard")
-
-        // Refactored to UIView with autoresizing mask for better landscape support
-        // Using frame-based layout for the container to avoid constraint conflicts with keyboard
-		let containerView = UIView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 94))
-        containerView.autoresizingMask = [.flexibleWidth]
-        containerView.backgroundColor = .clear
-
-		// Use a simple UIView instead of UIToolbar to avoid constraint conflicts
-		let toolbarBackground = UIView(frame: CGRect(x: 0, y: 50, width: containerView.bounds.width, height: 44))
-		toolbarBackground.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
-		toolbarBackground.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.9)
-
-		let scrollView = UIScrollView(frame: CGRect(x: 8, y: 0, width: toolbarBackground.bounds.width - 80, height: 44))
-		scrollView.autoresizingMask = [.flexibleWidth]
-		scrollView.showsHorizontalScrollIndicator = false
-
-		let buttonStackView = UIStackView()
-		buttonStackView.axis = .horizontal
-		buttonStackView.distribution = .equalSpacing
-		buttonStackView.alignment = .center
-		buttonStackView.spacing = 8
-		buttonStackView.translatesAutoresizingMaskIntoConstraints = false
-
-		let shiftBarButton = createKeyboardButton(displayText: "⇧", keyText: "SHIFT", isToggleable: true)
-		let windowsBarButton = createKeyboardButton(displayText: "⌘", keyText: "LGUI", isToggleable: true)
-		let tabBarButton = createKeyboardButton(displayText: "⇥", keyText: "TAB", isToggleable: false)
-		let escapeBarButton = createKeyboardButton(displayText: "⎋", keyText: "UIKeyInputEscape", isToggleable: false)
-		let controlBarButton = createKeyboardButton(displayText: "⌃", keyText: "CONTROL", isToggleable: true)
-		let altBarButton = createKeyboardButton(displayText: "⌥", keyText: "LALT", isToggleable: true)
-		let deleteBarButton = createKeyboardButton(displayText: "Del", keyText: "DELETE", isToggleable: false)
-		let f1Button = createKeyboardButton(displayText: "F1", keyText: "F1", isToggleable: false)
-		let f2Button = createKeyboardButton(displayText: "F2", keyText: "F2", isToggleable: false)
-		let f3Button = createKeyboardButton(displayText: "F3", keyText: "F3", isToggleable: false)
-		let f4Button = createKeyboardButton(displayText: "F4", keyText: "F4", isToggleable: false)
-		let f5Button = createKeyboardButton(displayText: "F5", keyText: "F5", isToggleable: false)
-		let f6Button = createKeyboardButton(displayText: "F6", keyText: "F6", isToggleable: false)
-		let f7Button = createKeyboardButton(displayText: "F7", keyText: "F7", isToggleable: false)
-		let f8Button = createKeyboardButton(displayText: "F8", keyText: "F8", isToggleable: false)
-		let f9Button = createKeyboardButton(displayText: "F9", keyText: "F9", isToggleable: false)
-		let f10Button = createKeyboardButton(displayText: "F10", keyText: "F10", isToggleable: false)
-		let f11Button = createKeyboardButton(displayText: "F11", keyText: "F11", isToggleable: false)
-		let f12Button = createKeyboardButton(displayText: "F12", keyText: "F12", isToggleable: false)
-		let upButton = createKeyboardButton(displayText: "↑", keyText: "UP", isToggleable: false)
-		let downButton = createKeyboardButton(displayText: "↓", keyText: "DOWN", isToggleable: false)
-		let leftButton = createKeyboardButton(displayText: "←", keyText: "LEFT", isToggleable: false)
-		let rightButton = createKeyboardButton(displayText: "→", keyText: "RIGHT", isToggleable: false)
-
-		let buttons = [tabBarButton, shiftBarButton, controlBarButton, altBarButton, windowsBarButton, escapeBarButton, f1Button, f2Button, f3Button, f4Button, f5Button, f6Button, f7Button, f8Button, f9Button, f10Button, f11Button, f12Button, deleteBarButton, upButton, downButton, leftButton, rightButton]
-
-		for button in buttons {
-			buttonStackView.addArrangedSubview(button)
-		}
-
-		scrollView.addSubview(buttonStackView)
-
-		// Set constraints for the stack view inside the scroll view
-		NSLayoutConstraint.activate([
-			buttonStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-			buttonStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-			buttonStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-			buttonStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-			buttonStackView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor)
-		])
-
-		// Done button with frame-based layout
-		let doneButton = UIButton(type: .system)
-		doneButton.frame = CGRect(x: toolbarBackground.bounds.width - 70, y: 0, width: 60, height: 44)
-		doneButton.autoresizingMask = [.flexibleLeftMargin]
-		doneButton.setTitle("Done", for: .normal)
-		doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
-
-		toolbarBackground.addSubview(scrollView)
-		toolbarBackground.addSubview(doneButton)
-
-		containerView.addSubview(toolbarBackground)
-
-		keyboardAccessoriesView = containerView
-		return containerView
-	}
-	
 	func createKeyboardButton(displayText: String, keyText: String, isToggleable: Bool) -> UIButton {
 		let button = KeyboardButton(keyText: keyText, isToggleable: isToggleable)
 		

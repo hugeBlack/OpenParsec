@@ -1,6 +1,8 @@
 import UIKit
 import GameController
 import ParsecSDK
+import OSLog
+
 
 class GamepadController {
     
@@ -15,9 +17,25 @@ class GamepadController {
 	init(viewController: UIViewController ) {
 		self.viewController = viewController
 	}
-    
+
+	deinit {
+		os_log("GameController deinit! removeObserver")
+		
+		NotificationCenter.default.removeObserver(self, name: NSNotification.Name.GCControllerDidConnect, object: nil)
+		NotificationCenter.default.removeObserver(self, name:NSNotification.Name.GCControllerDidDisconnect , object: nil)
+
+		NotificationCenter.default.removeObserver(self, name:NSNotification.Name.GCMouseDidConnect , object: nil)
+
+		NotificationCenter.default.removeObserver(self, name:NSNotification.Name.GCMouseDidDisconnect , object: nil)
+
+
+
+	}
     public func viewDidLoad() {
-        
+
+
+
+
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(self.didConnectController),
                                                name: NSNotification.Name.GCControllerDidConnect,
@@ -35,7 +53,8 @@ class GamepadController {
 											   selector: #selector(self.didMouseDisconnectController),
 											   name: NSNotification.Name.GCMouseDidDisconnect,
 											   object: nil)
-	    
+		
+
         GCController.startWirelessControllerDiscovery {}
 		self.registerControllerHandler()
 		self.registerMouseHandler()
