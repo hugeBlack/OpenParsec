@@ -23,6 +23,8 @@ struct SettingsView:View
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
 	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
+	@AppStorage("decoder444") var decoder444: Bool = true // Enable for stutter issues on some devices
+
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
 	
 	let resolutionChoices: [Choice<ParsecResolution>]
@@ -156,6 +158,11 @@ struct SettingsView:View
 							CatItem("Decoder Compatibility")
 							{
 								Toggle("", isOn:$decoderCompatibility)
+									.frame(width:80)
+							}
+							CatItem("Decoder 444")
+							{
+								Toggle("", isOn:$decoder444)
 									.frame(width:80)
 							}
                         }

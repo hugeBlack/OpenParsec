@@ -66,8 +66,6 @@ final class ParsecRenderCenter {
 	func applyIfPossible() {
 		guard rendererReady, clientReady else { return }
 
-		CParsec.applyConfig()
-		
 		if pendingResolutionUpdate {
 
 			CParsec.updateHostVideoConfig()
@@ -173,7 +171,6 @@ final class ParsecRenderCenter {
 	func initCParsec(muted: Bool) {
 
 			os_log("初始化客戶端")
-			CParsec.applyConfig()
 			CParsec.setMuted(muted)
 			getHostUserData()
 

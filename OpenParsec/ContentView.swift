@@ -16,8 +16,7 @@ struct ContentView:View
 
 	var body: some View
 	{
-		ZStack()
-		{
+		ZStack {
 			switch curView
 			{
 				case .login:

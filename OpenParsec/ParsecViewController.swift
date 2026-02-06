@@ -246,6 +246,9 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		 (for moving the mouse).
 		 Standard 2-finger pan will scroll the view.
 		 */
+		scrollView.bounces = false
+		scrollView.alwaysBounceVertical = false
+
 		view.addSubview(scrollView)
 
 		// ContentView
@@ -833,7 +836,8 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 
 		// ====== 按鈕生成 ======
 		let buttons = [
-			("Ctrl", "CONTROL", true),("⇧", "SHIFT", true),("⇥", "TAB", false),
+			("Ctrl", "CONTROL", true),("⇧", "SHIFT", true),
+			("⇧R", "RSHIFT", false),("⇥", "TAB", false),
 			("⌘", "LGUI", true),
 			("⎋", "UIKeyInputEscape", false), ("⌥", "LALT", true),
 			("Del", "DELETE", false), ("F1","F1",false), ("F2","F2",false), ("F3","F3",false),

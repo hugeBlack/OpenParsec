@@ -338,13 +338,11 @@ struct ParsecView: View
 
 	var body: some View
 	{
-		ZStack()
-		{
-			
+		ZStack {
+
 			UIViewControllerWrapper(self.parsecViewController)
 				.zIndex(0)
-				.prefersPersistentSystemOverlaysHidden()
-			
+
 			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
 				.zIndex(1)
 
@@ -375,6 +373,7 @@ struct ParsecView: View
 				Spacer()
 			}
 			.zIndex(2)
+
 		}
 		.statusBarHidden(SettingsHandler.hideStatusBar)
 		.alert(isPresented:$showDCAlert)

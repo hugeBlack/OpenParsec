@@ -116,10 +116,7 @@ class ParsecSDKBridge: ParsecService
 		parsecClientCfg.video.0.resolutionX = 0
 		parsecClientCfg.video.0.resolutionY = 0
 		parsecClientCfg.video.0.decoderCompatibility = SettingsHandler.decoderCompatibility
-
-
-		parsecClientCfg.video.0.decoder444 = false
-		
+		parsecClientCfg.video.0.decoder444 = SettingsHandler.decoder444
 		parsecClientCfg.video.0.decoderH265 = SettingsHandler.decoder == .h265
 
 		print(
@@ -418,6 +415,7 @@ class ParsecSDKBridge: ParsecService
 		parsecClientCfg.video.0.resolutionY = 0
 		parsecClientCfg.video.0.decoderCompatibility = SettingsHandler.decoderCompatibility
 		parsecClientCfg.video.0.decoderH265 = SettingsHandler.decoder == .h265
+		parsecClientCfg.video.0.decoder444 = SettingsHandler.decoder444
 
 		//可能是多餘的流
 //		parsecClientCfg.video.1.decoderIndex = 1
