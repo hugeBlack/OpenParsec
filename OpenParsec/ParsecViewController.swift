@@ -23,7 +23,6 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 	var panLockedByKeyboard = false
 
 
-
 	func createRenderer(type: RendererType) -> ParsecRenderer {
 		switch type {
 		case .metal:
@@ -126,16 +125,22 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 				lastImg = currentImg!
 			}
 
-            // Using tracked values for bounds
-			u?.frame = CGRect(x: Int(currentMouseX) - Int(Double(CParsec.mouseInfo.cursorHotX) * SettingsHandler.cursorScale),
+			// Using tracked values for bounds
+			let newFrame = CGRect(x: Int(currentMouseX) - Int(Double(CParsec.mouseInfo.cursorHotX) * SettingsHandler.cursorScale),
 							  y: Int(currentMouseY) - Int(Double(CParsec.mouseInfo.cursorHotY) * SettingsHandler.cursorScale),
 							  width: Int(Double(CParsec.mouseInfo.cursorWidth) * SettingsHandler.cursorScale),
 							  height: Int(Double(CParsec.mouseInfo.cursorHeight) * SettingsHandler.cursorScale))
-            
+
+			if u?.frame != newFrame {
+				u?.frame = newFrame
+			}
+
 			// Check bounds and pan if needed
 			// Only pan if we are zoomed in OR if the keyboard is visible (to allow scrolling up)
 
-			if (!panLockedByKeyboard && scrollView.zoomScale > 1.0 )  || (keyboardVisible && scrollView.contentInset.bottom > 0) {
+			if (!panLockedByKeyboard && scrollView.zoomScale > 1.0  && zoomEnabled)  || (
+				keyboardVisible && scrollView.contentInset.bottom > 0
+			) {
 				let margin: CGFloat = 50.0
                 
                 // Convert cursor frame to screen coordinates (relative to the ViewController's view)
@@ -196,7 +201,9 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
                     // but 'true' is smoother visually. User asked for "image moves as mouse moves".
                     // Given high frequency, false is safer, or manual interpolation.
                     // Actually, standard UIScrollView behavior is usually direct setContentOffset.
-                    scrollView.setContentOffset(CGPoint(x: targetOffsetX, y: targetOffsetY), animated: false)
+
+					scrollView.setContentOffset(CGPoint(x: targetOffsetX, y: targetOffsetY), animated: false)
+
                 }
 			}
 			
@@ -211,8 +218,9 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		super.viewDidLayoutSubviews()
 
 
-//		print("Debug:\(contentView.bounds.size)")
-//
+
+		//print("Debug:\(contentView.bounds.size)")
+
 //		if let renderer = renderer {
 //			renderer.updateSize(
 //				width: contentView.bounds.width,
@@ -225,6 +233,12 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 
 
 
+
+	func scrollViewDidScroll(_ scrollView: UIScrollView) {
+		if !zoomEnabled && !keyboardVisible {
+			scrollView.contentOffset = .zero
+		}
+	}
 	override func viewDidLoad() {
 
 		super.viewDidLoad()
@@ -240,6 +254,7 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		scrollView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
 		scrollView.panGestureRecognizer.minimumNumberOfTouches = 2
+
 		/*
 		 We set minimumNumberOfTouches to 2 for the scroll view's pan gesture
 		 so that 1-finger drags are passed through to our custom gesture recognizers
@@ -253,9 +268,10 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 
 		// ContentView
 		contentView = UIView(frame: view.bounds)
-		scrollView.addSubview(contentView)
-		scrollView.contentSize = view.bounds.size
 
+		scrollView.addSubview(contentView)
+
+		scrollView.contentSize = view.bounds.size
 
 		let RenderType = SettingsHandler.renderer
 
@@ -269,6 +285,7 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 
 		// 告訴 RenderCenter：我就是那個 VC
 		ParsecRenderCenter.shared.attach(viewController: self)
+
 
 
 		touchController.viewDidLoad()
@@ -475,6 +492,7 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 
 			panLockedByKeyboard = true
 
+
             // Allow scrolling past current bottom to see hidden content
 			scrollView.contentInset = UIEdgeInsets(
 				top: 0,
@@ -505,12 +523,17 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 		keyboardHeight = 0.0
         keyboardVisible = false
 
-		panLockedByKeyboard = true
-
+		panLockedByKeyboard = false
 
         // Restore inset
-        scrollView.contentInset.bottom = 0
-        
+		// Allow scrolling past current bottom to see hidden content
+		scrollView.contentInset = UIEdgeInsets(
+			top: 0,
+			left: 0,
+			bottom: 0,
+			right: 0
+		)
+
         // Transform cleanup (just in case)
         view.transform = .identity
         
@@ -520,7 +543,10 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 			let newOffsetY = max(0, scrollView.contentOffset.y - ((notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue.height ?? 0.0))
              // Or maybe just clamp to valid range without forcing a subtract?
              // User said "bajar la altura", implying a reverse scroll.
-             scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: newOffsetY), animated: true)
+
+
+			scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: newOffsetY), animated: true)
+
         }
 		onKeyboardVisibilityChanged?(false)
 	}
@@ -531,6 +557,7 @@ class ParsecViewController :UIViewController, UIScrollViewDelegate {
 extension ParsecViewController : UIGestureRecognizerDelegate {
 
 	func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+
 		return true
 	}
 

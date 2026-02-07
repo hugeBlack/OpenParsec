@@ -341,7 +341,7 @@ struct ParsecView: View
 		ZStack {
 
 			UIViewControllerWrapper(self.parsecViewController)
-				.zIndex(0)
+				
 
 			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
 				.zIndex(1)
