@@ -175,7 +175,7 @@ struct SettingsView:View
 									.frame(width:80)
 							}
 						}
-						Text("More options coming soon.")
+						Text(getVersionInfo())
 							.multilineTextAlignment(.center)
 							.opacity(0.5)
 							.padding()
@@ -197,6 +197,10 @@ struct SettingsView:View
 	{
 		//SettingsHandler.renderer = renderer
 		visible = false
+	}
+	
+	func getVersionInfo() -> String {
+		return "Version \(Bundle.main.infoDictionary!["CFBundleShortVersionString"] ?? "Unknown versino")-\(Bundle.main.infoDictionary!["GitCommitInfo"] ?? "Unknown commit")"
 	}
 }
 

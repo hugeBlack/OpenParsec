@@ -193,6 +193,7 @@
 				27E61A8B292965FC00FF6563 /* Frameworks */,
 				27E61A8C292965FC00FF6563 /* Resources */,
 				27B8D569292DC81500A324AD /* Embed Frameworks */,
+				1752A0D92F6DAB8800BAA4E7 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -252,6 +253,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		1752A0D92F6DAB8800BAA4E7 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nINFO_PLIST=\"${TARGET_BUILD_DIR}\"/\"${INFOPLIST_PATH}\"\n\n# Get current Git branch and commit hash\nCONFIG_BRANCH=$(git rev-parse --abbrev-ref HEAD)\nCONFIG_COMMIT=$(git log -1 --format=%h)\n\n# Combine values into a version info string\nLCVersionInfo=\"$CONFIGURATION ($CONFIG_BRANCH/$CONFIG_COMMIT)\"\n\n/usr/libexec/PlistBuddy -c \"Add :GitCommitInfo string $LCVersionInfo\" \"${INFO_PLIST}\"\ncp -n -r \"$SRCROOT\"/Resources/*.lproj \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\necho 1\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		27E61A8A292965FC00FF6563 /* Sources */ = {
