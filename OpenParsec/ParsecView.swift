@@ -328,7 +328,6 @@ struct ParsecView: View
 
 		if SettingsHandler.saveSessionSettings {
 			DataManager.model.constantFps = constantFps
-			DataManager.model.output = SettingsHandler.savedDisplayOutput
 		}
 
 		let screenSize: CGSize = self.parsecViewController.view.frame.size
@@ -447,7 +446,6 @@ struct ParsecView: View
 		DispatchQueue.main.async {
 			DataManager.model.output = displayId
 			CParsec.updateHostVideoConfig()
-			if SettingsHandler.saveSessionSettings { SettingsHandler.savedDisplayOutput = displayId }
 		}
 	}
 	
