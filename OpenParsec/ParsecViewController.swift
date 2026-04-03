@@ -291,7 +291,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		if keyboardVisible {
 			becomeFirstResponder()
 		}
-		scrollView.pinchGestureRecognizer?.isEnabled = false
+		scrollView.pinchGestureRecognizer?.isEnabled = zoomEnabled
 	}
 	
 	override func viewWillDisappear(_ animated: Bool) {

@@ -123,11 +123,14 @@ struct ParsecView: View
 	init(_ controller:ContentView?)
 	{
 		self.controller = controller
-		// parsecViewController logic moved to ParsecSession
-        
+
+		let save = SettingsHandler.saveSessionSettings
+		_muted = State(initialValue: save ? SettingsHandler.savedMuted : false)
+		_zoomEnabled = State(initialValue: save ? SettingsHandler.savedZoomEnabled : false)
+		_constantFps = State(initialValue: save ? SettingsHandler.savedConstantFps : false)
 		_resolutions = State(initialValue: ParsecResolution.resolutions)
 		_bitrates = State(initialValue: ParsecResolution.bitrates)
-	
+
     }
     
     // We need to set up the callback somewhere safer than init.
@@ -321,8 +324,13 @@ struct ParsecView: View
 	{
 		CParsec.applyConfig()
 		CParsec.setMuted(muted)
+		parsecViewController.setZoomEnabled(zoomEnabled)
 
-		// set client resolution
+		if SettingsHandler.saveSessionSettings {
+			DataManager.model.constantFps = constantFps
+			DataManager.model.output = SettingsHandler.savedDisplayOutput
+		}
+
 		let screenSize: CGSize = self.parsecViewController.view.frame.size
 		let scaleFactor = UIScreen.main.nativeScale
 		ParsecResolution.updateClientResolution(width: Int(screenSize.width * scaleFactor), height: Int(screenSize.height * scaleFactor))
@@ -331,7 +339,6 @@ struct ParsecView: View
 
 		hideOverlay = SettingsHandler.noOverlay
 
-        // Setup callback to update local state
         parsecViewController.onKeyboardVisibilityChanged = { visible in
             showKeyboard = visible
         }
@@ -350,6 +357,7 @@ struct ParsecView: View
 	{
 		muted.toggle()
 		CParsec.setMuted(muted)
+		if SettingsHandler.saveSessionSettings { SettingsHandler.savedMuted = muted }
 	}
 	
 	/*func genDisplaySheet() -> ActionSheet
@@ -416,6 +424,7 @@ struct ParsecView: View
 			DataManager.model.constantFps.toggle()
 			constantFps = DataManager.model.constantFps
 			CParsec.updateHostVideoConfig()
+			if SettingsHandler.saveSessionSettings { SettingsHandler.savedConstantFps = constantFps }
 		}
 	}
 
@@ -430,6 +439,7 @@ struct ParsecView: View
 		DispatchQueue.main.async {
 			zoomEnabled.toggle()
 			parsecViewController.setZoomEnabled(zoomEnabled)
+			if SettingsHandler.saveSessionSettings { SettingsHandler.savedZoomEnabled = zoomEnabled }
 		}
 	}
 	
@@ -437,6 +447,7 @@ struct ParsecView: View
 		DispatchQueue.main.async {
 			DataManager.model.output = displayId
 			CParsec.updateHostVideoConfig()
+			if SettingsHandler.saveSessionSettings { SettingsHandler.savedDisplayOutput = displayId }
 		}
 	}
 	

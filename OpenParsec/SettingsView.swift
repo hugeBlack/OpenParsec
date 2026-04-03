@@ -17,6 +17,7 @@ struct SettingsView:View
 	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
+	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
 	
 	let resolutionChoices: [Choice<ParsecResolution>]
 
@@ -166,6 +167,11 @@ struct SettingsView:View
 							CatItem("Show Keyboard Button")
 							{
 								Toggle("", isOn:$showKeyboardButton)
+									.frame(width:80)
+							}
+							CatItem("Save Session Settings")
+							{
+								Toggle("", isOn:$saveSessionSettings)
 									.frame(width:80)
 							}
 						}
