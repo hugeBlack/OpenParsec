@@ -1,6 +1,7 @@
 import SwiftUI
 import ParsecSDK
 import Foundation
+import AVFoundation
 
 struct ParsecStatusBar : View {
 	@Binding var showMenu : Bool
@@ -8,6 +9,7 @@ struct ParsecStatusBar : View {
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
 	@State var parsecViewController: ParsecViewController?
+	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
 
 	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
@@ -55,21 +57,35 @@ struct ParsecStatusBar : View {
 		
 		if status != PARSEC_OK
 		{
+			if ParsecBackgroundManager.shared.isMarkedForReconnect {
+				return
+			}
+
+			// PiP: connection died (screen lock killed GPU). Kill connection+audio once,
+			// subsequent polls exit via isMarkedForReconnect above.
+			var pipActive = false
+			if #available(iOS 15.0, *) {
+				pipActive = PictureInPictureManager.shared.isPiPActive
+			}
+			if pipActive {
+				CParsec.disconnect()
+				try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+				ParsecBackgroundManager.shared.connectionDidEnd()
+				ParsecBackgroundManager.shared.markForReconnect()
+				wasDisconnected = true
+				return
+			}
+
+			wasDisconnected = true
 			DCAlertText = "Disconnected (code \(status.rawValue))"
 			showDCAlert = true
 			return
 		}
-
-		// FIXME: This may cause memory leak?
 		
 		if showMenu
 		{
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
 			metricInfo = "Decode \(String(format:"%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format:"%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format:"%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format:"%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
-		}
-
-		if let pc = parsecViewController {
-			// Logic handled in ParsecViewController.scrollView
 		}
 	}
 }
@@ -90,7 +106,7 @@ struct ParsecView: View
 	
 	@State var showDCAlert: Bool = false
 	@State var DCAlertText: String = "Disconnected (reason unknown)"
-    @State var metricInfo: String = "Loading..."
+	@State var metricInfo: String = "Loading..."
 	
 	@State var hideOverlay: Bool = false
 	@State var showMenu: Bool = false
@@ -99,7 +115,7 @@ struct ParsecView: View
 	@State var zoomEnabled: Bool = false
 
 	@State var muted: Bool = false
-    @State var preferH265: Bool = true
+	@State var preferH265: Bool = true
 	@State var constantFps = false
 	
 	@State var resolutions: [ParsecResolution]
@@ -116,11 +132,11 @@ struct ParsecView: View
     var parsecViewController: ParsecViewController {
         return session.controller
     }
-	
-	
+
+
 	//@State var showDisplays: Bool = false
 	
-	init(_ controller:ContentView?)
+	init(_ controller: ContentView?)
 	{
 		self.controller = controller
 
@@ -132,7 +148,7 @@ struct ParsecView: View
 		_bitrates = State(initialValue: ParsecResolution.bitrates)
 
     }
-    
+	    
     // We need to set up the callback somewhere safer than init.
     // 'onAppear' is a good place, or inside the init of ParsecSession if possible (but it doesn't have access to binding).
     // Let's use onAppear/post.
@@ -288,7 +304,7 @@ struct ParsecView: View
 								.fill(Color("Foreground"))
 								.opacity(0.25)
 								.frame(height:1)
-							Button(action:disconnect)
+							Button(action: { disconnect()})
 							{
 								Text("Disconnect")
 									.foregroundColor(.red)
@@ -313,15 +329,63 @@ struct ParsecView: View
 		.statusBarHidden(SettingsHandler.hideStatusBar)
 		.alert(isPresented:$showDCAlert)
 		{
-			Alert(title: Text(DCAlertText), dismissButton:.default(Text("Close"), action:disconnect))
+			Alert(title: Text(DCAlertText), dismissButton:.default(Text("Close"), action:{disconnect()}))
 		}
 		.onAppear(perform:post)
+		.onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ParsecBackgroundDisconnect"))) { _ in
+			if #available(iOS 15.0, *) {
+				if PictureInPictureManager.shared.isPiPActive {
+					return
+				}
+			}
+			disconnect(isBackgroundDisconnect: true)
+		}
 		.edgesIgnoringSafeArea(.all)
 
 	}
 	
 	func post()
 	{
+		ParsecBackgroundManager.shared.onShouldDisconnect = {
+			NotificationCenter.default.post(name: NSNotification.Name("ParsecBackgroundDisconnect"), object: nil)
+		}
+		if #available(iOS 15.0, *) {
+			PictureInPictureManager.shared.onPiPStopped = { [self] in
+				if UIApplication.shared.applicationState != .active {
+					// Synchronous — DispatchQueue.main.async may never execute if iOS suspends the app
+					CParsec.disconnect()
+					try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+					ParsecBackgroundManager.shared.markForReconnect()
+					DispatchQueue.main.async {
+						self.disconnect(isBackgroundDisconnect: true)
+					}
+				} else {
+					if ParsecBackgroundManager.shared.isReconnecting {
+						return
+					}
+					// Check actual Parsec status — timers don't reliably fire in background
+					var pcs = ParsecClientStatus()
+					let currentStatus = CParsec.getStatusEx(&pcs)
+					if currentStatus != PARSEC_OK || ParsecBackgroundManager.shared.isMarkedForReconnect {
+						CParsec.disconnect()
+						try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+						ParsecBackgroundManager.shared.markForReconnect()
+						DispatchQueue.main.async {
+							self.disconnect(isBackgroundDisconnect: true)
+						}
+					}
+				}
+			}
+			PictureInPictureManager.shared.onPiPStartFailed = { [self] in
+				if UIApplication.shared.applicationState != .active {
+					ParsecBackgroundManager.shared.markForReconnect()
+					DispatchQueue.main.async {
+						self.disconnect(isBackgroundDisconnect: true)
+					}
+				}
+			}
+		}
+
 		CParsec.applyConfig()
 		CParsec.setMuted(muted)
 		parsecViewController.setZoomEnabled(zoomEnabled)
@@ -358,8 +422,8 @@ struct ParsecView: View
 		CParsec.setMuted(muted)
 		if SettingsHandler.saveSessionSettings { SettingsHandler.savedMuted = muted }
 	}
-	
-	/*func genDisplaySheet() -> ActionSheet
+
+		/*func genDisplaySheet() -> ActionSheet
 	{
 		let len:Int = 16
 		var outputs = [ParsecOutput?](repeating:nil, count:len)
@@ -383,12 +447,20 @@ struct ParsecView: View
 		}
 		return ActionSheet(title: Text("Select a Display:"), buttons:buttons + [Alert.Button.cancel()])
 	}*/
-	
-	func disconnect()
+
+	func disconnect(isBackgroundDisconnect: Bool = false)
 	{
+		if !isBackgroundDisconnect {
+			ParsecBackgroundManager.shared.disableAutoReconnect()
+		}
+
+		if #available(iOS 15.0, *) {
+			PictureInPictureManager.shared.teardown()
+		}
+
 		CParsec.disconnect()
 		self.parsecViewController.glkView.cleanUp()
-		
+
 		parsecViewController.scrollView.zoomScale = 1.0
 		parsecViewController.scrollView.contentOffset = .zero
 
@@ -399,9 +471,7 @@ struct ParsecView: View
 	}
 	
 	func changeResolution(res: ParsecResolution) {
-        // Save to SettingsHandler for persistence
         SettingsHandler.resolution = res
-
 		DispatchQueue.main.async {
 			DataManager.model.resolutionX = res.width
 			DataManager.model.resolutionY = res.height
@@ -467,3 +537,5 @@ private extension View {
 		}
 	}
 }
+
+

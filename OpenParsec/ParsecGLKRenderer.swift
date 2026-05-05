@@ -48,6 +48,15 @@ class ParsecGLKRenderer:NSObject, GLKViewDelegate, GLKViewControllerDelegate
 
 		CParsec.renderGLFrame(timeout: timeout)
 
+		if #available(iOS 15.0, *) {
+			PictureInPictureManager.shared.captureFrame(
+				viewWidth: GLsizei(view.drawableWidth),
+				viewHeight: GLsizei(view.drawableHeight),
+				streamWidth: GLsizei(CParsec.hostWidth),
+				streamHeight: GLsizei(CParsec.hostHeight)
+			)
+		}
+
 		updateImage()
 
 //		glFinish()

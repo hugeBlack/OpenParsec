@@ -196,9 +196,16 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 			// Assumption: glkView.viewDidLoad() adds a subview.
 		}
 
+		if #available(iOS 15.0, *) {
+			if let parsecGLK = glkView as? ParsecGLKViewController,
+			   let eaglContext = parsecGLK.eaglContext {
+				PictureInPictureManager.shared.setup(sourceView: view, glContext: eaglContext, glkViewController: parsecGLK.glkViewController)
+			}
+		}
+
 		touchController.viewDidLoad()
 		gamePadController.viewDidLoad()
-		
+
 		u = UIImageView(frame: CGRect(x: 0,y: 0,width: 100, height: 100))
 		contentView.addSubview(u!) // Add Cursor to ContentView
 		

@@ -113,8 +113,14 @@ class ParsecSDKBridge: ParsecService
 		parsecClientCfg.pngCursor = false
 
 		self.startBackgroundTask()
+		
+		let status = ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
+		
+		if status == PARSEC_OK || status == PARSEC_CONNECTING {
+			ParsecBackgroundManager.shared.connectionDidStart(peerId: peerID)
+		}
 
-		return ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
+		return status
 	}
 	
 	func disconnect() {
@@ -122,6 +128,8 @@ class ParsecSDKBridge: ParsecService
 		audio_clear(&_audio)
 		ParsecClientDisconnect(_parsec)
 		backgroundTaskRunning = false
+		
+		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
 	
 	func getStatus() -> ParsecStatus {
