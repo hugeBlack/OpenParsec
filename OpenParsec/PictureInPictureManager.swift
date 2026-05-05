@@ -74,6 +74,7 @@ class PictureInPictureManager: NSObject {
 			playbackDelegate: self
 		)
 		let controller = AVPictureInPictureController(contentSource: contentSource)
+		controller.setValue(1, forKey: "controlsStyle")
 		controller.delegate = self
 		controller.canStartPictureInPictureAutomaticallyFromInline = false
 		self.pipController = controller

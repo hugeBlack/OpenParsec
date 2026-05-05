@@ -138,11 +138,11 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func getStatusEx(_ pcs:inout ParsecClientStatus) -> ParsecStatus {
-		
+		let ans = ParsecClientGetStatus(_parsec, &pcs)
 		self.hostHeight = Float(pcs.decoder.0.height)
 		self.hostWidth = Float(pcs.decoder.0.width)
-		return ParsecClientGetStatus(_parsec, &pcs)
-		
+
+		return ans;
 	}
 	
 	func setFrame(_ width:CGFloat, _ height:CGFloat, _ scale: CGFloat) {
