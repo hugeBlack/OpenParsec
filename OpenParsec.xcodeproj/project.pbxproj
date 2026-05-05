@@ -469,7 +469,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
@@ -500,7 +500,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aigch.OpenParsec;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "OpenParsec/OpenParsec-Bridging-Header.h";
