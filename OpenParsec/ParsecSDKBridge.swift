@@ -437,11 +437,20 @@ class ParsecSDKBridge: ParsecService
 		if event.input == nil {
 			return
 		}
-		
+
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
 		keyboardMessagePress.keyboard.pressed = event.isPressBegin
+		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
+	}
+
+	func sendKeyboardMessage(keyCode: UInt32, pressed: Bool)
+	{
+		var keyboardMessagePress = ParsecMessage()
+		keyboardMessagePress.type = MESSAGE_KEYBOARD
+		keyboardMessagePress.keyboard.code = ParsecKeycode(keyCode)
+		keyboardMessagePress.keyboard.pressed = pressed
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
 	
