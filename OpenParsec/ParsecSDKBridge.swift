@@ -53,7 +53,8 @@ class ParsecSDKBridge: ParsecService
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
 	public var pngCursor: Bool = false
-	var backgroundTaskRunning = true
+	private var audioWork: DispatchWorkItem?
+	private var eventWork: DispatchWorkItem?
 	var didSetResolution = false
 	
 	public var mouseInfo = MouseInfo()
@@ -124,11 +125,12 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func disconnect() {
-		
+
+		audioWork?.cancel()
+		eventWork?.cancel()
 		audio_clear(&_audio)
 		ParsecClientDisconnect(_parsec)
-		backgroundTaskRunning = false
-		
+
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
 	
@@ -490,28 +492,25 @@ class ParsecSDKBridge: ParsecService
 		pmsg.mouseWheel.y = y
 		ParsecClientSendMessage(_parsec, &pmsg)
 	}
-	
-	func startBackgroundTask(){
-	
-		
-		let item1 = DispatchWorkItem {
-			while self.backgroundTaskRunning {
+
+	func startBackgroundTask() {
+
+		let audio = DispatchWorkItem { [weak self] in
+			while let self = self, !(self.audioWork?.isCancelled ?? true) {
 				self.pollAudio()
 			}
-			
 		}
 
-		let item2 = DispatchWorkItem {
-			while self.backgroundTaskRunning {
+		let event = DispatchWorkItem { [weak self] in
+			while let self = self, !(self.eventWork?.isCancelled ?? true) {
 				self.pollEvent()
-	
-				
 			}
-			
 		}
-		let mainQueue = DispatchQueue.global()
-		mainQueue.async(execute: item1)
-		mainQueue.async(execute: item2)
+
+		audioWork = audio
+		eventWork = event
+		DispatchQueue.global().async(execute: audio)
+		DispatchQueue.global().async(execute: event)
 	}
 	
 	func sendUserData(type: ParsecUserDataType, message: Data) {
