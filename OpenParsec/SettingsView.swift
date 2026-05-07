@@ -1,10 +1,9 @@
 import SwiftUI
 
-struct SettingsView:View
-{
+struct SettingsView: View {
 	@Binding var visible: Bool
 
-	//@State var renderer:RendererType = SettingsHandler.renderer
+	// @State var renderer:RendererType = SettingsHandler.renderer
 	@AppStorage("resolution") var resolution: ParsecResolution = .client
 	@AppStorage("bitrate") var bitrate: Int = 0
 	@AppStorage("decoder") var decoder: DecoderPref = .h264
@@ -18,7 +17,7 @@ struct SettingsView:View
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
-	
+
 	let resolutionChoices: [Choice<ParsecResolution>]
 
 	init(visible: Binding<Bool>) {
@@ -29,91 +28,75 @@ struct SettingsView:View
 		}
 		resolutionChoices = tmp
 	}
-	
-	var body: some View
-	{
-		ZStack()
-		{
-			if (visible)
-			{
+
+	var body: some View {
+		ZStack {
+			if visible {
 				// Background
 				Rectangle()
-					.fill(Color.init(red:0, green:0, blue:0, opacity:0.67))
+					.fill(Color.init(red: 0, green: 0, blue: 0, opacity: 0.67))
 					.edgesIgnoringSafeArea(.all)
 			}
 		}
-		.animation(.linear(duration:0.24))
+		.animation(.linear(duration: 0.24))
 
-		ZStack()
-		{
-			if (visible)
-			{
+		ZStack {
+			if visible {
 				// Main controls
-				VStack()
-				{
+				VStack {
 					// Navigation controls
-					ZStack()
-					{
+					ZStack {
 						Rectangle()
 							.fill(Color("BackgroundTab"))
-							.frame(height:52)
-							.shadow(color:Color("Shading"), radius:4, y:6)
-						ZStack()
-						{
-							HStack()
-							{
-								Button(action: saveAndExit, label:{ Image(systemName:"xmark").scaleEffect(x:-1) })
+							.frame(height: 52)
+							.shadow(color: Color("Shading"), radius: 4, y: 6)
+						ZStack {
+							HStack {
+								Button(action: saveAndExit, label: { Image(systemName: "xmark").scaleEffect(x: -1) })
 								 .padding()
 								Spacer()
 							}
 							Text("Settings")
 								.multilineTextAlignment(.center)
 								.foregroundColor(Color("Foreground"))
-								.font(.system(size:20, weight:.medium))
+								.font(.system(size: 20, weight: .medium))
 							Spacer()
 						}
 						.foregroundColor(Color("AccentColor"))
 					}
 					.zIndex(1)
 
-					ScrollView()
-					{
+					ScrollView {
                         CatTitle("Interactivity")
-                        CatList()
-                        {
-                            CatItem("Mouse Movement")
-                            {
-                                MultiPicker(selection:$cursorMode, options:
+                        CatList {
+                            CatItem("Mouse Movement") {
+                                MultiPicker(selection: $cursorMode, options:
 								[
 									Choice("Touchpad", CursorMode.touchpad),
 									Choice("Direct", CursorMode.direct)
 								])
                             }
-							CatItem("Right Click Position")
-							{
-								MultiPicker(selection:$rightClickPosition, options:
+							CatItem("Right Click Position") {
+								MultiPicker(selection: $rightClickPosition, options:
 								[
 									Choice("First Finger", RightClickPosition.firstFinger),
 									Choice("Middle", RightClickPosition.middle),
 									Choice("Second Finger", RightClickPosition.secondFinger)
 								])
 							}
-                            CatItem("Cursor Scale")
-                            {
-                                Slider(value: $cursorScale, in:0.1...4, step:0.1)
+                            CatItem("Cursor Scale") {
+                                Slider(value: $cursorScale, in: 0.1...4, step: 0.1)
 									.frame(width: 200)
 								Text(String(format: "%.1f", cursorScale))
                             }
-							CatItem("Mouse Sensitivity")
-							{
-								Slider(value: $mouseSensitivity, in:0.1...4, step:0.1)
+							CatItem("Mouse Sensitivity") {
+								Slider(value: $mouseSensitivity, in: 0.1...4, step: 0.1)
 									.frame(width: 200)
 								Text(String(format: "%.1f", mouseSensitivity))
 							}
                         }
                         CatTitle("Graphics")
-                        CatList()
-                        {
+                        CatList {
                             /*CatItem("Renderer")
                             {
 								SegmentPicker(selection:$renderer, options:
@@ -123,20 +106,17 @@ struct SettingsView:View
 								])
                                 .frame(width:165)
                             }*/
-							CatItem("Default Resolution")
-							{
-								MultiPicker(selection: $resolution, options:resolutionChoices)
+							CatItem("Default Resolution") {
+								MultiPicker(selection: $resolution, options: resolutionChoices)
 							}
-                            CatItem("Decoder")
-                            {
+                            CatItem("Decoder") {
 								MultiPicker(selection: $decoder, options:
 								[
 									Choice("H.264", DecoderPref.h264),
 									Choice("Prefer H.265", DecoderPref.h265)
 								])
                             }
-							CatItem("Frame Rate")
-							{
+							CatItem("Frame Rate") {
 								MultiPicker(selection: $preferredFramesPerSecond, options:
 								[
 									Choice("Auto (Device Max)", 0),
@@ -145,34 +125,28 @@ struct SettingsView:View
 									Choice("30 FPS", 30)
 								])
 							}
-							CatItem("Decoder Compatibility")
-							{
-								Toggle("", isOn:$decoderCompatibility)
-									.frame(width:80)
+							CatItem("Decoder Compatibility") {
+								Toggle("", isOn: $decoderCompatibility)
+									.frame(width: 80)
 							}
                         }
                         CatTitle("Misc")
-                        CatList()
-                        {
-                            CatItem("Never Show Overlay")
-                            {
-                                Toggle("", isOn:$noOverlay)
-                                    .frame(width:80)
+                        CatList {
+                            CatItem("Never Show Overlay") {
+                                Toggle("", isOn: $noOverlay)
+                                    .frame(width: 80)
                             }
-							CatItem("Hide Status Bar")
-							{
-								Toggle("", isOn:$hideStatusBar)
-									.frame(width:80)
+							CatItem("Hide Status Bar") {
+								Toggle("", isOn: $hideStatusBar)
+									.frame(width: 80)
 							}
-							CatItem("Show Keyboard Button")
-							{
-								Toggle("", isOn:$showKeyboardButton)
-									.frame(width:80)
+							CatItem("Show Keyboard Button") {
+								Toggle("", isOn: $showKeyboardButton)
+									.frame(width: 80)
 							}
-							CatItem("Save Session Settings")
-							{
-								Toggle("", isOn:$saveSessionSettings)
-									.frame(width:80)
+							CatItem("Save Session Settings") {
+								Toggle("", isOn: $saveSessionSettings)
+									.frame(width: 80)
 							}
 						}
 						Text(getVersionInfo())
@@ -189,27 +163,24 @@ struct SettingsView:View
 			}
 		}
         .preferredColorScheme(appScheme)
-		.scaleEffect(visible ? 1 : 0, anchor:.zero)
-		.animation(.easeInOut(duration:0.24))
+		.scaleEffect(visible ? 1 : 0, anchor: .zero)
+		.animation(.easeInOut(duration: 0.24))
 	}
-	
-	func saveAndExit()
-	{
-		//SettingsHandler.renderer = renderer
+
+	func saveAndExit() {
+		// SettingsHandler.renderer = renderer
 		visible = false
 	}
-	
+
 	func getVersionInfo() -> String {
 		return "Version \(Bundle.main.infoDictionary!["CFBundleShortVersionString"] ?? "Unknown versino")-\(Bundle.main.infoDictionary!["GitCommitInfo"] ?? "Unknown commit")"
 	}
 }
 
-struct SettingsView_Previews:PreviewProvider
-{
+struct SettingsView_Previews: PreviewProvider {
 	@State static var value: Bool = true
 
-	static var previews: some View
-	{
-		SettingsView(visible:$value)
+	static var previews: some View {
+		SettingsView(visible: $value)
 	}
 }

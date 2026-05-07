@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 struct SettingsHandler {
-	//public static var renderer:RendererType = .opengl
+	// public static var renderer:RendererType = .opengl
 	@AppStorage("resolution") public static var resolution: ParsecResolution = .client
 	@AppStorage("bitrate") public static var bitrate: Int = 0
 	@AppStorage("decoder") public static var decoder: DecoderPref = .h264

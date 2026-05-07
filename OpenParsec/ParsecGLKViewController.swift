@@ -1,8 +1,8 @@
-//import SwiftUI
-//import GLKit
+// import SwiftUI
+// import GLKit
 //
-//struct ParsecGLKViewController: UIViewControllerRepresentable
-//{
+// struct ParsecGLKViewController: UIViewControllerRepresentable
+// {
 //	let glkView = GLKView()
 //	let glkViewController = GLKViewController()
 //	let onBeforeRender:() -> Void
@@ -21,20 +21,20 @@
 //	}
 //
 //	func updateUIViewController(_ uiViewController:GLKViewController, context: UIViewControllerRepresentableContext<ParsecGLKViewController>) { }
-//}
+// }
 
 import UIKit
 import GLKit
 
-class ParsecGLKViewController : ParsecPlayground {
+class ParsecGLKViewController: ParsecPlayground {
 
 	var glkView: GLKView!
 	let glkViewController = GLKViewController()
 	var glkRenderer: ParsecGLKRenderer!
-	let updateImage:() -> Void
-	
+	let updateImage: () -> Void
+
 	let viewController: UIViewController
-	
+
 	required init(viewController: UIViewController, updateImage: @escaping () -> Void) {
 		self.viewController = viewController
 		self.updateImage = updateImage
@@ -45,7 +45,6 @@ class ParsecGLKViewController : ParsecPlayground {
 		glkRenderer = ParsecGLKRenderer(glkView, glkViewController, updateImage)
 		self.viewController.view.addSubview(glkView)
 		setupGLKViewController()
-		
 
 	}
 
@@ -66,7 +65,7 @@ class ParsecGLKViewController : ParsecPlayground {
 		self.viewController.view.addSubview(glkViewController.view)
 		self.glkViewController.didMove(toParent: self.viewController)
 	}
-	
+
 	var eaglContext: EAGLContext? {
 		return glkView?.context
 	}
@@ -74,11 +73,10 @@ class ParsecGLKViewController : ParsecPlayground {
 	func cleanUp() {
 
 	}
-	
+
 	func updateSize(width: CGFloat, height: CGFloat) {
 		glkView.frame.size.width = width
 		glkView.frame.size.height = height
 	}
 
-	
 }

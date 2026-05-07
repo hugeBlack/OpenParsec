@@ -1,24 +1,21 @@
 import ParsecSDK
 import UIKit
 
-
-class TouchController
-{
+class TouchController {
 	let viewController: UIViewController
 
 	init(viewController: UIViewController) {
 		self.viewController = viewController
 	}
-	
-	func onTouch(typeOfTap:Int, location:CGPoint, state: UIGestureRecognizer.State) {
+
+	func onTouch(typeOfTap: Int, location: CGPoint, state: UIGestureRecognizer.State) {
 
 		let x = Int32(location.x)
 		let y = Int32(location.y)
 
 		// Send the mouse input to the host
 		let parsecTap = ParsecMouseButton(rawValue: UInt32(typeOfTap))
-		switch state
-		{
+		switch state {
 			case .began:
 				CParsec.sendMouseMessage(parsecTap, x, y, true)
 			case .changed:
@@ -30,7 +27,7 @@ class TouchController
 		}
 	}
 
-	func onTap(typeOfTap:Int, location:CGPoint) {
+	func onTap(typeOfTap: Int, location: CGPoint) {
 
 		let parsecTap = ParsecMouseButton(rawValue: UInt32(typeOfTap))
 

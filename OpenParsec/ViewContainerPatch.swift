@@ -1,7 +1,6 @@
 import Foundation
 import UIKit
 
-
 // from UTM's https://github.com/utmapp/UTM/blob/b03486b8825d5a0e8b9f93162a49a4c98ebab6a1/Platform/iOS/UTMPatches.swift#L33
 final class UTMViewControllerPatches {
 	static private var isPatched: Bool = false
@@ -30,11 +29,11 @@ fileprivate extension NSObject {
 /// We need to set these when the VM starts running since there is no way to do it from SwiftUI right now
 extension UIViewController {
 	private static var _childForHomeIndicatorAutoHiddenStorage: [UIViewController: UIViewController] = [:]
-	
+
 	@objc private dynamic var _childForHomeIndicatorAutoHidden: UIViewController? {
 		Self._childForHomeIndicatorAutoHiddenStorage[self]
 	}
-	
+
 	@objc dynamic func setChildForHomeIndicatorAutoHidden(_ value: UIViewController?) {
 		if let value = value {
 			Self._childForHomeIndicatorAutoHiddenStorage[self] = value
@@ -43,13 +42,13 @@ extension UIViewController {
 		}
 		setNeedsUpdateOfHomeIndicatorAutoHidden()
 	}
-	
+
 	private static var _childViewControllerForPointerLockStorage: [UIViewController: UIViewController] = [:]
-	
+
 	@objc private dynamic var _childViewControllerForPointerLock: UIViewController? {
 		Self._childViewControllerForPointerLockStorage[self]
 	}
-	
+
 	@objc dynamic func setChildViewControllerForPointerLock(_ value: UIViewController?) {
 		if let value = value {
 			Self._childViewControllerForPointerLockStorage[self] = value
@@ -58,7 +57,7 @@ extension UIViewController {
 		}
 		setNeedsUpdateOfPrefersPointerLocked()
 	}
-	
+
 	/// SwiftUI currently does not provide a way to set the View Conrtoller's home indicator or pointer lock
 	fileprivate static func patchViewController() {
 		patch(#selector(getter: Self.childForHomeIndicatorAutoHidden),

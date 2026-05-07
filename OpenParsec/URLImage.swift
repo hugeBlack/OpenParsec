@@ -1,35 +1,26 @@
 import SwiftUI
 
-struct URLImage<Placeholder:View, RemoteImage:View>:View
-{
+struct URLImage<Placeholder: View, RemoteImage: View>: View {
 	let url: URL?
-	let output:(Image) -> RemoteImage
-	let placeholder:() -> Placeholder
+	let output: (Image) -> RemoteImage
+	let placeholder: () -> Placeholder
 
-	@State private var _remoteData: UIImage? = nil
+	@State private var _remoteData: UIImage?
 
-	var body: some View
-	{
-		if let img = _remoteData
-		{
-			output(Image(uiImage:img))
-		}
-		else
-		{
+	var body: some View {
+		if let img = _remoteData {
+			output(Image(uiImage: img))
+		} else {
 			placeholder()
-				.onAppear
-				{
+				.onAppear {
 					if let url = url {
 						var request = URLRequest(url: url)
 						request.httpMethod = "GET"
-						request.setValue("image/jpeg", forHTTPHeaderField:"Content-Type")
+						request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
 
-						let task = URLSession.shared.dataTask(with:request)
-						{ (data, response, error) in
-							DispatchQueue.main.async
-							{
-								if let data = data, let uiImage = UIImage(data:data)
-								{
+						let task = URLSession.shared.dataTask(with: request) { (data, _, _) in
+							DispatchQueue.main.async {
+								if let data = data, let uiImage = UIImage(data: data) {
 									_remoteData = uiImage
 								}
 							}

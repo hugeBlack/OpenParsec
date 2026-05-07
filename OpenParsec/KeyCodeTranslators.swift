@@ -369,10 +369,8 @@ class KeyCodeTranslators {
 		}
 	}
 
-	static func parsecKeyCodeTranslator(_ str: String) -> ParsecKeycode?
-	{
-		switch str
-		{
+	static func parsecKeyCodeTranslator(_ str: String) -> ParsecKeycode? {
+		switch str {
 			case "A": return ParsecKeycode(4)
 			case "B": return ParsecKeycode(5)
 			case "C": return ParsecKeycode(6)
@@ -499,11 +497,11 @@ class KeyCodeTranslators {
 			default: return nil
 		}
 	}
-	
+
 	static func getParsecKeycode(for key: String) -> (ParsecKeycode: Int, keyMod: Bool) {
 		var keyMod = false
 		var parsecKeycode: Int = 0
-		
+
 		switch key {
 			// Non-shifted characters
 		case "-", "－":  // U+FF0D fullwidth hyphen-minus
@@ -528,7 +526,7 @@ class KeyCodeTranslators {
 			parsecKeycode = 55
 		case "/", "／":  // U+FF0F fullwidth solidus
 			parsecKeycode = 56
-			
+
 			// Shifted characters
 		case "_", "＿":  // U+FF3F fullwidth low line
 			parsecKeycode = 45
@@ -593,12 +591,12 @@ class KeyCodeTranslators {
 		case ")", "）":  // U+FF09 fullwidth right parenthesis
 			parsecKeycode = 39
 			keyMod = true
-			
+
 		default:
 			parsecKeycode = -1 // Unknown key
 		}
-		
+
 		return (parsecKeycode, keyMod)
 	}
-	
+
 }
