@@ -10,7 +10,7 @@ struct SettingsHandler {
 	@AppStorage("cursorScale") public static var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") public static var mouseSensitivity: Double = 1.0
 	@AppStorage("noOverlay") public static var noOverlay: Bool = false
-	@AppStorage("cursorScale") public static var hideStatusBar: Bool = true
+	@AppStorage("hideStatusBar") public static var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger
 	@AppStorage("preferredFramesPerSecond") public static var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") public static var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
