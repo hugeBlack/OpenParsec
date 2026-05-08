@@ -167,7 +167,7 @@ struct LoginView: View {
 			DispatchQueue.main.async {
 				isLoading = false
 				if let data = data {
-					let statusCode: Int = (response as! HTTPURLResponse).statusCode
+					guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 					let decoder = JSONDecoder()
 
 					print("Login Information:")
@@ -185,7 +185,7 @@ struct LoginView: View {
 							c.setView(.main)
 						}
 					} else if statusCode >= 400 { // 4XX client errors
-						let info: ErrorInfo = try! decoder.decode(ErrorInfo.self, from: data)
+						guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 						do {
 							let json = try JSONSerialization.jsonObject(with: data, options: [])

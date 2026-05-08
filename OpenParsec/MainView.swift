@@ -387,11 +387,11 @@ struct MainView: View {
 			let task = URLSession.shared.dataTask(with: request) { (data, response, _) in
 				DispatchQueue.main.async {
 					if let data = data {
-						let statusCode: Int = (response as! HTTPURLResponse).statusCode
+						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
-							let info: HostInfoList =  try! decoder.decode(HostInfoList.self, from: data)
+							guard let info: HostInfoList = try? decoder.decode(HostInfoList.self, from: data) else { return }
 							hosts.removeAll()
 							if let datas = info.data {
 								datas.forEach { h in
@@ -410,7 +410,7 @@ struct MainView: View {
 							formatter.dateFormat = "M/d/yyyy h:mm a"
 							refreshTime = "Last refreshed at \(formatter.string(from: Date()))"
 						} else if statusCode == 403 { // 403 Forbidden
-							let info: ErrorInfo = try! decoder.decode(ErrorInfo.self, from: data)
+							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 							baseAlertText = "Error gathering hosts: \(info.error)"
 							showBaseAlert = true
@@ -442,14 +442,14 @@ struct MainView: View {
 			let task = URLSession.shared.dataTask(with: request) { (data, response, _) in
 				DispatchQueue.main.async {
 					if let data = data {
-						let statusCode: Int = (response as! HTTPURLResponse).statusCode
+						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
-							let data: SelfInfoData =  try! decoder.decode(SelfInfo.self, from: data).data
-							userInfo = IdentifiableUserInfo(id: data.id, username: data.name)
+							guard let selfInfo = try? decoder.decode(SelfInfo.self, from: data) else { return }
+							userInfo = IdentifiableUserInfo(id: selfInfo.data.id, username: selfInfo.data.name)
 						} else {
-							let info: ErrorInfo = try! decoder.decode(ErrorInfo.self, from: data)
+							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 							baseAlertText = "Error gathering user info: \(info.error)"
 							showBaseAlert = true
@@ -479,14 +479,14 @@ struct MainView: View {
 			let task = URLSession.shared.dataTask(with: request) { (data, response, _) in
 				DispatchQueue.main.async {
 					if let data = data {
-						let statusCode: Int = (response as! HTTPURLResponse).statusCode
+						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 						let decoder = JSONDecoder()
 
 						print("/friendships: \(statusCode)")
 						print(String(data: data, encoding: .utf8)!)
 
 						if statusCode == 200 { // 200 OK
-							let info: FriendInfoList =  try! decoder.decode(FriendInfoList.self, from: data)
+							guard let info: FriendInfoList = try? decoder.decode(FriendInfoList.self, from: data) else { return }
 							friends.removeAll()
 							if let datas = info.data {
 								datas.forEach { f in
@@ -501,7 +501,7 @@ struct MainView: View {
 
 							friendCountStr = "\(friends.count) \(grammar)"
 						} else {
-							let info: ErrorInfo = try! decoder.decode(ErrorInfo.self, from: data)
+							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 							baseAlertText = "Error gathering friends: \(info.error)"
 							showBaseAlert = true
@@ -548,7 +548,7 @@ struct MainView: View {
 
 		CParsec.disconnect()
 
-		pollTimer!.invalidate()
+		pollTimer?.invalidate()
 	}
 
 	func logout() {
