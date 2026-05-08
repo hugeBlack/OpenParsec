@@ -131,7 +131,13 @@ class ParsecSDKBridge: ParsecService
 		
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
-	
+
+	func sendReleaseMessage() {
+		var msg = ParsecMessage()
+		msg.type = MESSAGE_RELEASE
+		ParsecClientSendMessage(_parsec, &msg)
+	}
+
 	func getStatus() -> ParsecStatus {
 		
 		return ParsecClientGetStatus(_parsec, nil)
