@@ -40,7 +40,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	func sceneDidEnterBackground(_ scene: UIScene) {
 		var pipAttempted = false
 		if #available(iOS 15.0, *) {
-			if ParsecBackgroundManager.shared.hasActiveConnection {
+			if ParsecBackgroundManager.shared.hasActiveConnection && SettingsHandler.enablePiP {
 				PictureInPictureManager.shared.startPiP()
 				pipAttempted = PictureInPictureManager.shared.isPiPActive || PictureInPictureManager.shared.isStarting
 			}
