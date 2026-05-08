@@ -49,38 +49,38 @@ class GamepadController {
 
 			delegate?.inputManager(self, didConnect: controller)
 
-			controller.extendedGamepad?.dpad.left.pressedChangedHandler =      { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_LEFT, pressed) }
-			controller.extendedGamepad?.dpad.right.pressedChangedHandler =     { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_RIGHT, pressed) }
-			controller.extendedGamepad?.dpad.up.pressedChangedHandler =        { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_UP, pressed) }
-			controller.extendedGamepad?.dpad.down.pressedChangedHandler =      { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_DOWN, pressed) }
+			controller.extendedGamepad?.dpad.left.pressedChangedHandler =      { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_LEFT, pressed) }
+			controller.extendedGamepad?.dpad.right.pressedChangedHandler =     { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_RIGHT, pressed) }
+			controller.extendedGamepad?.dpad.up.pressedChangedHandler =        { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_UP, pressed) }
+			controller.extendedGamepad?.dpad.down.pressedChangedHandler =      { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_DPAD_DOWN, pressed) }
 
 			// buttonA is labeled "X" (blue) on PS4 controller
-			controller.extendedGamepad?.buttonA.pressedChangedHandler =        { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_A, pressed) }
+			controller.extendedGamepad?.buttonA.pressedChangedHandler =        { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_A, pressed) }
 			// buttonB is labeled "circle" (red) on PS4 controller
-			controller.extendedGamepad?.buttonB.pressedChangedHandler =        { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_B, pressed) }
+			controller.extendedGamepad?.buttonB.pressedChangedHandler =        { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_B, pressed) }
 			// buttonX is labeled "square" (pink) on PS4 controller
-			controller.extendedGamepad?.buttonX.pressedChangedHandler =        { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_X, pressed) }
+			controller.extendedGamepad?.buttonX.pressedChangedHandler =        { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_X, pressed) }
 			// buttonY is labeled "triangle" (green) on PS4 controller
-			controller.extendedGamepad?.buttonY.pressedChangedHandler =        { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_Y, pressed) }
+			controller.extendedGamepad?.buttonY.pressedChangedHandler =        { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_Y, pressed) }
 
 			// buttonOptions is labeled "SHARE" on PS4 controller
-			controller.extendedGamepad?.buttonOptions?.pressedChangedHandler = { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_BACK, pressed) }
+			controller.extendedGamepad?.buttonOptions?.pressedChangedHandler = { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_BACK, pressed) }
 			// buttonMenu is labeled "OPTIONS" on PS4 controller
-			controller.extendedGamepad?.buttonMenu.pressedChangedHandler =     { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_START, pressed) }
+			controller.extendedGamepad?.buttonMenu.pressedChangedHandler =     { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_START, pressed) }
 
-			controller.extendedGamepad?.leftShoulder.pressedChangedHandler =   { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_LSHOULDER, pressed) }
-			controller.extendedGamepad?.rightShoulder.pressedChangedHandler =  { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_RSHOULDER, pressed) }
+			controller.extendedGamepad?.leftShoulder.pressedChangedHandler =   { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_LSHOULDER, pressed) }
+			controller.extendedGamepad?.rightShoulder.pressedChangedHandler =  { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_RSHOULDER, pressed) }
 
 			// controller.extendedGamepad?.leftTrigger.PressedChangedHandler =    { (button, value, pressed) in self.triggerButtonChangedHandler(GAMEPAD_AXIS_TRIGGERL, pressed) }
-			controller.extendedGamepad?.leftTrigger.valueChangedHandler =      { (_, value, pressed) in self.triggerChangedHandler(GAMEPAD_AXIS_TRIGGERL, value, pressed) }
+			controller.extendedGamepad?.leftTrigger.valueChangedHandler =      { [weak self] (_, value, pressed) in self?.triggerChangedHandler(GAMEPAD_AXIS_TRIGGERL, value, pressed) }
 			// controller.extendedGamepad?.rightTrigger.pressedChangedHandler =   { (button, value, pressed) in self.triggerButtonChangedHandler(GAMEPAD_AXIS_TRIGGERR, pressed) }
-			controller.extendedGamepad?.rightTrigger.valueChangedHandler =     { (_, value, pressed) in self.triggerChangedHandler(GAMEPAD_AXIS_TRIGGERR, value, pressed) }
+			controller.extendedGamepad?.rightTrigger.valueChangedHandler =     { [weak self] (_, value, pressed) in self?.triggerChangedHandler(GAMEPAD_AXIS_TRIGGERR, value, pressed) }
 
-			controller.extendedGamepad?.leftThumbstick.valueChangedHandler =   { (_, xvalue, yvalue) in self.thumbLstickChangedHandler(xvalue, yvalue) }
-			controller.extendedGamepad?.rightThumbstick.valueChangedHandler =  { (_, xvalue, yvalue) in self.thumbRstickChangedHandler(xvalue, yvalue) }
+			controller.extendedGamepad?.leftThumbstick.valueChangedHandler =   { [weak self] (_, xvalue, yvalue) in self?.thumbLstickChangedHandler(xvalue, yvalue) }
+			controller.extendedGamepad?.rightThumbstick.valueChangedHandler =  { [weak self] (_, xvalue, yvalue) in self?.thumbRstickChangedHandler(xvalue, yvalue) }
 
-			controller.extendedGamepad?.leftThumbstickButton?.pressedChangedHandler =  { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_LSTICK, pressed) }
-			controller.extendedGamepad?.rightThumbstickButton?.pressedChangedHandler = { (_, _, pressed) in self.buttonChangedHandler(GAMEPAD_BUTTON_RSTICK, pressed) }
+			controller.extendedGamepad?.leftThumbstickButton?.pressedChangedHandler =  { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_LSTICK, pressed) }
+			controller.extendedGamepad?.rightThumbstickButton?.pressedChangedHandler = { [weak self] (_, _, pressed) in self?.buttonChangedHandler(GAMEPAD_BUTTON_RSTICK, pressed) }
 		}
 
 	}
