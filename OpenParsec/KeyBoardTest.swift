@@ -51,14 +51,7 @@ class KeyboardTestController: UIViewController {
 	@objc override func viewDidLoad() {
 
 		let panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-
-		let startTime = CFAbsoluteTimeGetCurrent()
-		let endTime = CFAbsoluteTimeGetCurrent()
-
-		print("代码执行时长：\((endTime - startTime)*1000) 毫秒")
 		setNeedsUpdateOfPrefersPointerLocked()
-
-		// Add the gesture recognizer to your view
 		view.addGestureRecognizer(panGesture)
 
 	}
