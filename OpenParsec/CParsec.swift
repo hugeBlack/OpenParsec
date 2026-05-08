@@ -158,6 +158,7 @@ protocol ParsecService {
 	func sendGameControllerUnplugMessage(controllerId: UInt32)
 	func sendWheelMsg(x: Int32, y: Int32)
 	func sendUserData(type: ParsecUserDataType, message: Data)
+	func sendReleaseMessage()
 	func updateHostVideoConfig()
 }
 
@@ -277,6 +278,10 @@ class CParsec {
 
 	static func sendUserData(type: ParsecUserDataType, message: Data) {
 		parsecImpl.sendUserData(type: type, message: message)
+	}
+
+	static func sendReleaseMessage() {
+		parsecImpl.sendReleaseMessage()
 	}
 
 	static func getImpl() -> ParsecService {

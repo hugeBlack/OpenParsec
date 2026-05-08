@@ -427,6 +427,7 @@ struct ParsecView: View {
 			PictureInPictureManager.shared.teardown()
 		}
 
+		CParsec.sendReleaseMessage()
 		CParsec.disconnect()
 		self.parsecViewController.glkView.cleanUp()
 
