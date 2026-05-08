@@ -349,13 +349,9 @@ struct ParsecView: View
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.onPiPStopped = { [self] in
 				if UIApplication.shared.applicationState != .active {
-					// Synchronous — DispatchQueue.main.async may never execute if iOS suspends the app
-					CParsec.disconnect()
-					try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-					ParsecBackgroundManager.shared.markForReconnect()
-					DispatchQueue.main.async {
-						self.disconnect(isBackgroundDisconnect: true)
-					}
+					CParsec.sendReleaseMessage()
+					CParsec.pause()
+					ParsecBackgroundManager.shared.isPaused = true
 				} else {
 					if ParsecBackgroundManager.shared.isReconnecting {
 						return
@@ -373,12 +369,11 @@ struct ParsecView: View
 					}
 				}
 			}
-			PictureInPictureManager.shared.onPiPStartFailed = { [self] in
+			PictureInPictureManager.shared.onPiPStartFailed = {
 				if UIApplication.shared.applicationState != .active {
-					ParsecBackgroundManager.shared.markForReconnect()
-					DispatchQueue.main.async {
-						self.disconnect(isBackgroundDisconnect: true)
-					}
+					CParsec.sendReleaseMessage()
+					CParsec.pause()
+					ParsecBackgroundManager.shared.isPaused = true
 				}
 			}
 		}
