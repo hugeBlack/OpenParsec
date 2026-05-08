@@ -19,7 +19,7 @@ struct SettingsView:View
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
 	@AppStorage("alwaysShowStatus") var alwaysShowStatus: Bool = false
-	@AppStorage("enablePiP") var enablePiP: Bool = true
+	@AppStorage("enablePiP") var enablePiP: Bool = false
 
 	let resolutionChoices: [Choice<ParsecResolution>]
 
