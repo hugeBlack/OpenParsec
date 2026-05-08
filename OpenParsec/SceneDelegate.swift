@@ -26,6 +26,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.stopPiP()
 		}
+		if ParsecBackgroundManager.shared.isPaused {
+			CParsec.resume()
+			ParsecBackgroundManager.shared.isPaused = false
+		}
 		ParsecBackgroundManager.shared.sceneDidBecomeActive()
 	}
 
@@ -50,7 +54,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate
 		}
 
 		if !pipAttempted && ParsecBackgroundManager.shared.hasActiveConnection {
-			ParsecBackgroundManager.shared.onShouldDisconnect?()
+			CParsec.sendReleaseMessage()
+			CParsec.pause()
+			ParsecBackgroundManager.shared.isPaused = true
 		}
 
 		ParsecBackgroundManager.shared.sceneDidEnterBackground()

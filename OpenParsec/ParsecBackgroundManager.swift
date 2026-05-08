@@ -8,6 +8,7 @@ class ParsecBackgroundManager {
 	private var lastPeerId: String?
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
+	var isPaused = false
 
 	var onShouldReconnect: ((String) -> Void)?
 	var onShouldDisconnect: (() -> Void)?
