@@ -159,6 +159,8 @@ protocol ParsecService {
 	func sendWheelMsg(x: Int32, y: Int32)
 	func sendUserData(type: ParsecUserDataType, message: Data)
 	func sendReleaseMessage()
+	func pause(video: Bool, audio: Bool) -> ParsecStatus
+	func resume() -> ParsecStatus
 	func updateHostVideoConfig()
 }
 
@@ -297,6 +299,14 @@ class CParsec
 
 	static func sendReleaseMessage() {
 		parsecImpl.sendReleaseMessage()
+	}
+
+	static func pause(video: Bool = true, audio: Bool = true) -> ParsecStatus {
+		return parsecImpl.pause(video: video, audio: audio)
+	}
+
+	static func resume() -> ParsecStatus {
+		return parsecImpl.resume()
 	}
 
 	static func getImpl() -> ParsecService {

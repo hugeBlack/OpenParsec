@@ -138,6 +138,14 @@ class ParsecSDKBridge: ParsecService
 		ParsecClientSendMessage(_parsec, &msg)
 	}
 
+	func pause(video: Bool = true, audio: Bool = true) -> ParsecStatus {
+		return ParsecClientPause(_parsec, video, audio)
+	}
+
+	func resume() -> ParsecStatus {
+		return ParsecClientPause(_parsec, false, false)
+	}
+
 	func getStatus() -> ParsecStatus {
 		
 		return ParsecClientGetStatus(_parsec, nil)
