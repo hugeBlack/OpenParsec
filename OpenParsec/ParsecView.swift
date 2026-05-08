@@ -417,6 +417,7 @@ struct ParsecView: View
 	{
 		muted.toggle()
 		CParsec.setMuted(muted)
+		muted ? CParsec.pause(video: false, audio: true) : CParsec.resume()
 		if SettingsHandler.saveSessionSettings { SettingsHandler.savedMuted = muted }
 	}
 
