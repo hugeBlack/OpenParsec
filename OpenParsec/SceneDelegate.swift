@@ -16,6 +16,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	}
 
 	func sceneDidDisconnect(_ scene: UIScene) {
+		if ParsecBackgroundManager.shared.hasActiveConnection {
+			CParsec.sendReleaseMessage()
+			CParsec.disconnect()
+		}
 	}
 
 	func sceneDidBecomeActive(_ scene: UIScene) {
@@ -30,7 +34,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	}
 
 	func sceneWillResignActive(_ scene: UIScene) {
-		// Do NOT start PiP here — fires for app switcher gesture too. PiP starts in sceneDidEnterBackground.
+		if ParsecBackgroundManager.shared.hasActiveConnection {
+			CParsec.sendReleaseMessage()
+		}
 		ParsecBackgroundManager.shared.sceneWillResignActive()
 	}
 
