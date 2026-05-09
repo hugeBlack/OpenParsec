@@ -124,11 +124,11 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func disconnect() {
-		
-		audio_clear(&_audio)
+
 		ParsecClientDisconnect(_parsec)
+		audio_clear(&_audio)
 		backgroundTaskRunning = false
-		
+
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
 
