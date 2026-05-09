@@ -122,8 +122,8 @@ class ParsecSDKBridge: ParsecService {
 
 		audioWork?.cancel()
 		eventWork?.cancel()
-		audio_clear(&_audio)
 		ParsecClientDisconnect(_parsec)
+		audio_clear(&_audio)
 
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}

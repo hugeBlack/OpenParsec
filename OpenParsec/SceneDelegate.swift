@@ -27,8 +27,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 			PictureInPictureManager.shared.stopPiP()
 		}
 		if ParsecBackgroundManager.shared.isPaused {
+			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 			CParsec.resume()
-			ParsecBackgroundManager.shared.isPaused = false
+			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+				ParsecBackgroundManager.shared.isPaused = false
+			}
 		}
 		ParsecBackgroundManager.shared.sceneDidBecomeActive()
 	}
@@ -53,6 +56,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		}
 
 		if !pipAttempted && ParsecBackgroundManager.shared.hasActiveConnection {
+			ParsecBackgroundManager.shared.glkViewController?.isPaused = true
 			CParsec.sendReleaseMessage()
 			CParsec.pause()
 			ParsecBackgroundManager.shared.isPaused = true

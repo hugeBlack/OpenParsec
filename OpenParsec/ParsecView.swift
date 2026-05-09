@@ -44,8 +44,8 @@ struct ParsecStatusBar: View {
 	}
 
 	func poll() {
-		if showDCAlert {
-			return // no need to poll if we aren't connected anymore
+		if showDCAlert || ParsecBackgroundManager.shared.isPaused {
+			return
 		}
 
 		var pcs = ParsecClientStatus()
