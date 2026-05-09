@@ -15,6 +15,8 @@ struct SettingsHandler {
 	@AppStorage("preferredFramesPerSecond") public static var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") public static var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
 	@AppStorage("showKeyboardButton") public static var showKeyboardButton: Bool = true
+	@AppStorage("alwaysShowStatus") public static var alwaysShowStatus: Bool = false
+	@AppStorage("enablePiP") public static var enablePiP: Bool = false
 
 	@AppStorage("saveSessionSettings") public static var saveSessionSettings: Bool = true
 	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false

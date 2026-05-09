@@ -19,6 +19,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate
 	}
 
 	func sceneDidDisconnect(_ scene: UIScene) {
+		if ParsecBackgroundManager.shared.hasActiveConnection {
+			CParsec.sendReleaseMessage()
+			CParsec.disconnect()
+		}
 	}
 
 	func sceneDidBecomeActive(_ scene: UIScene)
@@ -26,12 +30,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.stopPiP()
 		}
+		if ParsecBackgroundManager.shared.isPaused {
+			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			CParsec.resume()
+			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+				ParsecBackgroundManager.shared.isPaused = false
+			}
+		}
 		ParsecBackgroundManager.shared.sceneDidBecomeActive()
 	}
 
-	func sceneWillResignActive(_ scene: UIScene)
-	{
-		// Do NOT start PiP here — fires for app switcher gesture too. PiP starts in sceneDidEnterBackground.
+	func sceneWillResignActive(_ scene: UIScene) {
+		if ParsecBackgroundManager.shared.hasActiveConnection {
+			CParsec.sendReleaseMessage()
+		}
 		ParsecBackgroundManager.shared.sceneWillResignActive()
 	}
 
@@ -43,14 +55,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate
 	{
 		var pipAttempted = false
 		if #available(iOS 15.0, *) {
-			if ParsecBackgroundManager.shared.hasActiveConnection {
+			if ParsecBackgroundManager.shared.hasActiveConnection && SettingsHandler.enablePiP {
 				PictureInPictureManager.shared.startPiP()
 				pipAttempted = PictureInPictureManager.shared.isPiPActive || PictureInPictureManager.shared.isStarting
 			}
 		}
 
 		if !pipAttempted && ParsecBackgroundManager.shared.hasActiveConnection {
-			ParsecBackgroundManager.shared.onShouldDisconnect?()
+			ParsecBackgroundManager.shared.glkViewController?.isPaused = true
+			CParsec.sendReleaseMessage()
+			CParsec.pause()
+			ParsecBackgroundManager.shared.isPaused = true
 		}
 
 		ParsecBackgroundManager.shared.sceneDidEnterBackground()

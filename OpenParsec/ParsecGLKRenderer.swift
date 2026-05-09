@@ -30,8 +30,8 @@ class ParsecGLKRenderer:NSObject, GLKViewDelegate, GLKViewControllerDelegate
 		glkViewController.delegate = nil
 	}
 
-	func glkView(_ view:GLKView, drawIn rect:CGRect)
-	{
+	func glkView(_ view: GLKView, drawIn rect: CGRect) {
+		if glkViewController.isPaused { return }
 		let deltaWidth: CGFloat = view.frame.size.width - lastWidth
 		if deltaWidth > 0.1 || deltaWidth < -0.1
 		{

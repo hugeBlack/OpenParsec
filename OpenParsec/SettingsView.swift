@@ -18,7 +18,9 @@ struct SettingsView:View
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
-	
+	@AppStorage("alwaysShowStatus") var alwaysShowStatus: Bool = false
+	@AppStorage("enablePiP") var enablePiP: Bool = false
+
 	let resolutionChoices: [Choice<ParsecResolution>]
 
 	init(visible: Binding<Bool>) {
@@ -169,10 +171,17 @@ struct SettingsView:View
 								Toggle("", isOn:$showKeyboardButton)
 									.frame(width:80)
 							}
-							CatItem("Save Session Settings")
-							{
-								Toggle("", isOn:$saveSessionSettings)
-									.frame(width:80)
+							CatItem("Always Show Status") {
+								Toggle("", isOn: $alwaysShowStatus)
+									.frame(width: 80)
+							}
+							CatItem("Picture in Picture") {
+								Toggle("", isOn: $enablePiP)
+									.frame(width: 80)
+							}
+							CatItem("Save Session Settings") {
+								Toggle("", isOn: $saveSessionSettings)
+									.frame(width: 80)
 							}
 						}
 						Text(getVersionInfo())

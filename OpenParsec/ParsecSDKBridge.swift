@@ -124,14 +124,28 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func disconnect() {
-		
-		audio_clear(&_audio)
+
 		ParsecClientDisconnect(_parsec)
+		audio_clear(&_audio)
 		backgroundTaskRunning = false
-		
+
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
-	
+
+	func sendReleaseMessage() {
+		var msg = ParsecMessage()
+		msg.type = MESSAGE_RELEASE
+		ParsecClientSendMessage(_parsec, &msg)
+	}
+
+	func pause(video: Bool = true, audio: Bool = true) -> ParsecStatus {
+		return ParsecClientPause(_parsec, video, audio)
+	}
+
+	func resume() -> ParsecStatus {
+		return ParsecClientPause(_parsec, false, false)
+	}
+
 	func getStatus() -> ParsecStatus {
 		
 		return ParsecClientGetStatus(_parsec, nil)
