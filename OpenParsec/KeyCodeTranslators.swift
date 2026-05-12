@@ -518,9 +518,9 @@ class KeyCodeTranslators {
 			parsecKeycode = 49
 		case ";", "；":  // U+FF1B fullwidth semicolon
 			parsecKeycode = 51
-		case "'":
+		case "'", "＇":
 			parsecKeycode = 52
-		case "`":
+		case "`", "｀":
 			parsecKeycode = 53
 		case ",", "，":  // U+FF0C fullwidth comma
 			parsecKeycode = 54
@@ -548,7 +548,7 @@ class KeyCodeTranslators {
 		case ":", "：":  // U+FF1A fullwidth colon
 			parsecKeycode = 51
 			keyMod = true
-		case "\"":
+		case "\"", "＂":
 			parsecKeycode = 52
 			keyMod = true
 		case "~", "～":  // U+FF5E fullwidth tilde
