@@ -27,6 +27,13 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var accumulatedDeltaY: Float = 0.0
 	var lastPanLocation: CGPoint = .zero
 	var lastPanTranslation: CGPoint = .zero
+
+	// Trackpad / mouse-wheel scroll accumulators (separate from the touchscreen
+	// 2-finger pan path, which keeps using velocity-based wheel messages for
+	// direct-touch swipes).
+	var accumulatedScrollX: Float = 0.0
+	var accumulatedScrollY: Float = 0.0
+	var lastScrollTranslation: CGPoint = .zero
 	
 	var mouseSensitivity: Float = Float(SettingsHandler.mouseSensitivity)
 	var activatedPanFingerNumber: Int = 0
@@ -222,7 +229,25 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		// Important: Allow our pan gesture to work alongside scrollview's?
 		// No, we want 1 finger for this pan, 2 fingers for scrollview.
 		// So they are distinct by touch count.
+		// Exclude .indirectPointer (Magic Keyboard trackpad / iPad pointer) — those
+		// events are handled directly via touchesMoved below to avoid the latency
+		// of the gesture-recognizer state machine (issue #47: sticky cursor).
+		panGestureRecognizer.allowedTouchTypes = [
+			NSNumber(value: UITouch.TouchType.direct.rawValue),
+			NSNumber(value: UITouch.TouchType.pencil.rawValue)
+		]
 		view.addGestureRecognizer(panGestureRecognizer)
+
+		// Dedicated recognizer for trackpad / mouse-wheel scroll events
+		// (iPadOS 13.4+, available unconditionally at deployment target 14).
+		// maximumNumberOfTouches = 0 makes it respond ONLY to scroll-wheel events,
+		// not to fingers — so touchscreen 2-finger swipes still flow through the
+		// main pan recognizer with allowedTouchTypes = direct + pencil.
+		let trackpadScrollRecognizer = UIPanGestureRecognizer(target: self, action: #selector(self.handleTrackpadScroll(_:)))
+		trackpadScrollRecognizer.delegate = self
+		trackpadScrollRecognizer.allowedScrollTypesMask = .all
+		trackpadScrollRecognizer.maximumNumberOfTouches = 0
+		view.addGestureRecognizer(trackpadScrollRecognizer)
 
 		// Remove custom Pinch logic, ScrollView handles it.
 		// But we might want to know isPinching status?
@@ -312,12 +337,52 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	}
 	
 	
+	// Direct trackpad pointer handling (issue #47). With prefersPointerLocked = true,
+	// iPadOS delivers Magic Keyboard trackpad motion as UITouches with
+	// type == .indirectPointer. Routing those through a UIPanGestureRecognizer
+	// imposes a recognition threshold and a state-machine churn between strokes,
+	// which is what users experience as the "sticky / juddery" cursor.
+	//
+	// The main pan recognizer's allowedTouchTypes excludes .indirectPointer
+	// (see viewDidLoad), so those touches reach this override unobstructed.
+	override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesBegan(touches, with: event)
+		for touch in touches where touch.type == .indirectPointer {
+			accumulatedDeltaX = 0.0
+			accumulatedDeltaY = 0.0
+			break
+		}
+	}
+
+	override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesMoved(touches, with: event)
+		for touch in touches where touch.type == .indirectPointer {
+			if SettingsHandler.cursorMode == .direct {
+				let pos = touch.preciseLocation(in: view)
+				let adjusted = contentView.convert(pos, from: view)
+				CParsec.sendMousePosition(Int32(adjusted.x), Int32(adjusted.y))
+			} else {
+				let prev = touch.precisePreviousLocation(in: view)
+				let cur = touch.preciseLocation(in: view)
+				accumulatedDeltaX += Float(cur.x - prev.x) * mouseSensitivity
+				accumulatedDeltaY += Float(cur.y - prev.y) * mouseSensitivity
+				let dx = Int32(accumulatedDeltaX)
+				let dy = Int32(accumulatedDeltaY)
+				if dx != 0 || dy != 0 {
+					CParsec.sendMouseDelta(dx, dy)
+					accumulatedDeltaX -= Float(dx)
+					accumulatedDeltaY -= Float(dy)
+				}
+			}
+		}
+	}
+
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		
+
 		for press in presses {
 			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: true) )
 		}
-		
+
 	}
 	
 	override func pressesEnded (_ presses: Set<UIPress>, with event: UIPressesEvent?) {
@@ -469,8 +534,42 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 		}
 	}
 	
+	// Trackpad / mouse-wheel scroll handler, separated from handlePanGesture so it
+	// can use translation deltas (smooth) instead of velocity (rough wheel
+	// messages). Hooked up by a UIPanGestureRecognizer with
+	// allowedScrollTypesMask = .all and maximumNumberOfTouches = 0 in viewDidLoad,
+	// so it only sees scroll-wheel / trackpad-scroll events, never finger touches.
+	@objc func handleTrackpadScroll(_ gestureRecognizer: UIPanGestureRecognizer) {
+		switch gestureRecognizer.state {
+		case .began:
+			lastScrollTranslation = .zero
+			accumulatedScrollX = 0.0
+			accumulatedScrollY = 0.0
+		case .changed:
+			let translation = gestureRecognizer.translation(in: gestureRecognizer.view)
+			let deltaX = Float(translation.x - lastScrollTranslation.x) * mouseSensitivity
+			let deltaY = Float(translation.y - lastScrollTranslation.y) * mouseSensitivity
+			lastScrollTranslation = translation
+			accumulatedScrollX += deltaX
+			accumulatedScrollY += deltaY
+			let intX = Int32(accumulatedScrollX)
+			let intY = Int32(accumulatedScrollY)
+			if intX != 0 || intY != 0 {
+				CParsec.sendWheelMsg(x: intX, y: intY)
+				accumulatedScrollX -= Float(intX)
+				accumulatedScrollY -= Float(intY)
+			}
+		case .ended, .cancelled, .failed:
+			lastScrollTranslation = .zero
+			accumulatedScrollX = 0.0
+			accumulatedScrollY = 0.0
+		default:
+			break
+		}
+	}
+
 	@objc func handleSingleFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
-		
+
 		let location = gestureRecognizer.location(in:gestureRecognizer.view)
 		let adjustedLocation = contentView.convert(location, from: view)
 		touchController.onTap(typeOfTap: 1, location: adjustedLocation)
