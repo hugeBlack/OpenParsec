@@ -34,6 +34,10 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var accumulatedScrollX: Float = 0.0
 	var accumulatedScrollY: Float = 0.0
 	var lastScrollTranslation: CGPoint = .zero
+
+	// Layout sync — fires a hotkey at the host when the iPad's hardware-keyboard
+	// input language changes (e.g. Caps Lock toggle on Magic Keyboard).
+	var languageSync: LanguageSyncCoordinator?
 	
 	var mouseSensitivity: Float = Float(SettingsHandler.mouseSensitivity)
 	var activatedPanFingerNumber: Int = 0
@@ -324,6 +328,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 			becomeFirstResponder()
 		}
 		scrollView.pinchGestureRecognizer?.isEnabled = zoomEnabled
+		startLanguageSyncIfNeeded()
 	}
 	
 	override func viewWillDisappear(_ animated: Bool) {
@@ -334,6 +339,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		}
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+		stopLanguageSync()
 	}
 	
 	
@@ -854,6 +860,9 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 	}
 	
 	@objc func showKeyboard() {
+		// Yield FR to the VC so the soft keyboard can attach. Symmetric to the
+		// path in setKeyboardVisible.
+		languageSync?.yieldFirstResponder()
 		becomeFirstResponder()
 	}
 
@@ -867,6 +876,10 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		if visible {
             DispatchQueue.main.async {
                 self.reloadInputViews()
+                // Cede first-responder so the soft keyboard can attach to the
+                // view controller (the hidden language-sync field holds it
+                // otherwise).
+                self.languageSync?.yieldFirstResponder()
                 let success = self.becomeFirstResponder()
                 if !success {
                    // Fallback: try again? or just log (can't log).
@@ -875,7 +888,207 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
             }
 		} else {
 			resignFirstResponder()
+			// Reclaim so we keep getting currentInputModeDidChangeNotification
+			// while the soft keyboard is hidden.
+			languageSync?.reclaimFirstResponder()
 		}
 	}
-	
+
+}
+
+// MARK: - Language sync (Mac ↔ iPad keyboard layout)
+//
+// Goal: when the user switches the iPad's hardware-keyboard input language
+// (Caps Lock toggle on Magic Keyboard / Ctrl+Space / Globe key), fire a hotkey
+// at the host so its input source switches in lock-step.
+//
+// Why a hotkey and not a "real" Unicode-text path: Parsec's iOS SDK only sends
+// MESSAGE_KEYBOARD with HID scancodes (see ParsecSDKBridge.sendKeyboardMessage).
+// There is no documented MESSAGE_CHAR / UTF-8 path that would let us bypass
+// the host layout. So we ask the host to switch its own layout. Default
+// hotkey is Ctrl+Space (macOS built-in "select previous input source"); user
+// can pick something else if their host config differs.
+//
+// Detecting the language change requires a UIResponder that accepts text
+// input to be first responder (Apple's `currentInputModeDidChangeNotification`
+// only fires in that case). We use a 1×1 alpha-0 UITextField with an empty
+// inputView so the soft keyboard never appears; the field forwards
+// pressesBegan/Ended to the view controller so hardware-keyboard scancodes
+// continue to flow through the existing pipeline.
+extension ParsecViewController {
+	func startLanguageSyncIfNeeded() {
+		guard SettingsHandler.syncKeyboardLayout, languageSync == nil else { return }
+		let coordinator = LanguageSyncCoordinator(host: self, keyForwardTarget: self)
+		coordinator.onLanguageChange = { [weak self] _ in
+			self?.sendLayoutSyncHotkey()
+		}
+		coordinator.start()
+		languageSync = coordinator
+	}
+
+	func stopLanguageSync() {
+		languageSync?.stop()
+		languageSync = nil
+	}
+
+	func sendLayoutSyncHotkey() {
+		let hotkey = SettingsHandler.layoutSyncHotkey
+		switch hotkey {
+		case .none:
+			return
+		case .ctrlSpace:
+			tapKey(modifierKey: "CONTROL", normalKey: "SPACE")
+		case .cmdSpace:
+			tapKey(modifierKey: "LGUI", normalKey: "SPACE")
+		case .altSpace:
+			tapKey(modifierKey: "LALT", normalKey: "SPACE")
+		case .altShift:
+			tapModifierChord(firstModifier: "LALT", secondModifier: "SHIFT")
+		}
+	}
+
+	// Press modifier → press+release normal key → release modifier. The
+	// release of the normal key is async (+20ms) inside CParsec, so we delay
+	// the modifier release by ~50ms to keep the chord intact on the host.
+	private func tapKey(modifierKey: String, normalKey: String) {
+		CParsec.sendVirtualKeyboardInput(text: modifierKey, isOn: true)
+		CParsec.sendVirtualKeyboardInput(text: normalKey)
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+			CParsec.sendVirtualKeyboardInput(text: modifierKey, isOn: false)
+		}
+	}
+
+	// Two modifiers held + released as a chord (e.g. Alt+Shift on Windows).
+	private func tapModifierChord(firstModifier: String, secondModifier: String) {
+		CParsec.sendVirtualKeyboardInput(text: firstModifier, isOn: true)
+		CParsec.sendVirtualKeyboardInput(text: secondModifier, isOn: true)
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
+			CParsec.sendVirtualKeyboardInput(text: secondModifier, isOn: false)
+		}
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.07) {
+			CParsec.sendVirtualKeyboardInput(text: firstModifier, isOn: false)
+		}
+	}
+}
+
+// Hidden field that owns first-responder status so that
+// UITextInputMode.currentInputModeDidChangeNotification keeps firing. It
+// forwards all UIPress events to the host view controller without consuming
+// them — that way hardware-keyboard scancodes continue to flow through
+// ParsecViewController.pressesBegan/Ended unchanged.
+final class LanguageSyncTextField: UITextField {
+	weak var keyForwardTarget: UIResponder?
+
+	override var canBecomeFirstResponder: Bool { return true }
+
+	// Returning an empty UIView for inputView suppresses the on-screen keyboard
+	// while the field is first responder, even without a connected hardware
+	// keyboard. Returning the field's existing inputAccessoryView (none) keeps
+	// the accessory chrome empty too.
+	private let _emptyInputView = UIView()
+	override var inputView: UIView? {
+		get { return _emptyInputView }
+		set { /* ignore — we want the soft kb suppressed unconditionally */ }
+	}
+
+	// By NOT calling super, we prevent UITextField's legacy text-input path
+	// from consuming printable keys via UIKeyInput.insertText. Same trick
+	// Moonlight uses in StreamView.m pressesBegan/pressesEnded.
+	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		keyForwardTarget?.pressesBegan(presses, with: event)
+	}
+	override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		keyForwardTarget?.pressesEnded(presses, with: event)
+	}
+	override func pressesChanged(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		keyForwardTarget?.pressesChanged(presses, with: event)
+	}
+	override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		keyForwardTarget?.pressesCancelled(presses, with: event)
+	}
+}
+
+// Owns the hidden field, the change-notification observer, and the
+// last-seen-language memo. Cooperates with the view controller's
+// becomeFirstResponder / resignFirstResponder lifecycle via yield/reclaim.
+final class LanguageSyncCoordinator {
+	private weak var host: UIViewController?
+	private weak var keyForwardTarget: UIResponder?
+	private var hiddenField: LanguageSyncTextField?
+	private var observer: NSObjectProtocol?
+	private var lastLanguage: String?
+	var onLanguageChange: ((String?) -> Void)?
+
+	init(host: UIViewController, keyForwardTarget: UIResponder) {
+		self.host = host
+		self.keyForwardTarget = keyForwardTarget
+	}
+
+	func start() {
+		guard hiddenField == nil, let hostView = host?.view else { return }
+
+		let field = LanguageSyncTextField(frame: CGRect(x: -100, y: -100, width: 1, height: 1))
+		field.alpha = 0
+		field.autocorrectionType = .no
+		field.autocapitalizationType = .none
+		field.spellCheckingType = .no
+		field.smartDashesType = .no
+		field.smartQuotesType = .no
+		field.smartInsertDeleteType = .no
+		field.keyForwardTarget = keyForwardTarget
+		hostView.addSubview(field)
+		field.becomeFirstResponder()
+		hiddenField = field
+
+		// Seed with current language so we don't fire a redundant hotkey on
+		// first real change.
+		lastLanguage = currentLanguage(from: nil)
+
+		observer = NotificationCenter.default.addObserver(
+			forName: UITextInputMode.currentInputModeDidChangeNotification,
+			object: nil,
+			queue: .main
+		) { [weak self] note in
+			self?.handleChange(note: note)
+		}
+	}
+
+	func stop() {
+		if let obs = observer {
+			NotificationCenter.default.removeObserver(obs)
+			observer = nil
+		}
+		hiddenField?.resignFirstResponder()
+		hiddenField?.removeFromSuperview()
+		hiddenField = nil
+	}
+
+	// Step aside so the host view controller can become first responder
+	// (e.g. when the soft keyboard is shown via 3-finger tap).
+	func yieldFirstResponder() {
+		hiddenField?.resignFirstResponder()
+	}
+
+	// Re-take first-responder status when the host VC has resigned (typically
+	// after the soft keyboard is dismissed).
+	func reclaimFirstResponder() {
+		hiddenField?.becomeFirstResponder()
+	}
+
+	private func handleChange(note: Notification) {
+		let lang = currentLanguage(from: note)
+		guard lang != lastLanguage else { return }
+		lastLanguage = lang
+		onLanguageChange?(lang)
+	}
+
+	// Prefer the mode advertised by the notification, fall back to whatever
+	// the hidden field currently reports. Either may be nil if no responder
+	// accepts text input at the moment.
+	private func currentLanguage(from note: Notification?) -> String? {
+		if let mode = note?.object as? UITextInputMode, let lang = mode.primaryLanguage {
+			return lang
+		}
+		return hiddenField?.textInputMode?.primaryLanguage
+	}
 }

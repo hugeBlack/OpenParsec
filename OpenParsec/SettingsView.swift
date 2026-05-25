@@ -17,6 +17,8 @@ struct SettingsView:View
 	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
+	@AppStorage("syncKeyboardLayout") var syncKeyboardLayout: Bool = true
+	@AppStorage("layoutSyncHotkey") var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
 	
 	let resolutionChoices: [Choice<ParsecResolution>]
@@ -110,6 +112,26 @@ struct SettingsView:View
 									.frame(width: 200)
 								Text(String(format: "%.1f", mouseSensitivity))
 							}
+                        }
+                        CatTitle("Keyboard")
+                        CatList()
+                        {
+                            CatItem("Sync layout with host")
+                            {
+                                Toggle("", isOn:$syncKeyboardLayout)
+                                    .frame(width:80)
+                            }
+                            CatItem("Layout switch hotkey")
+                            {
+                                MultiPicker(selection:$layoutSyncHotkey, options:
+                                [
+                                    Choice("Off", LayoutSyncHotkey.none),
+                                    Choice("Ctrl + Space", LayoutSyncHotkey.ctrlSpace),
+                                    Choice("Cmd + Space", LayoutSyncHotkey.cmdSpace),
+                                    Choice("Alt + Space", LayoutSyncHotkey.altSpace),
+                                    Choice("Alt + Shift", LayoutSyncHotkey.altShift)
+                                ])
+                            }
                         }
                         CatTitle("Graphics")
                         CatList()

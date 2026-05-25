@@ -16,6 +16,13 @@ struct SettingsHandler {
 	@AppStorage("decoderCompatibility") public static var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
 	@AppStorage("showKeyboardButton") public static var showKeyboardButton: Bool = true
 
+	// When the iPad's hardware keyboard layout changes (Caps Lock / Ctrl+Space
+	// on Magic Keyboard), fire a hotkey at the host so the host's input source
+	// switches in lock-step. Eliminates the "wrong characters after switching
+	// language" problem people hit on iPad ↔ Mac Parsec sessions.
+	@AppStorage("syncKeyboardLayout") public static var syncKeyboardLayout: Bool = true
+	@AppStorage("layoutSyncHotkey") public static var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
+
 	@AppStorage("saveSessionSettings") public static var saveSessionSettings: Bool = true
 	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false
 	@AppStorage("savedConstantFps") public static var savedConstantFps: Bool = false

@@ -20,6 +20,20 @@ enum CursorMode: Int
     case direct
 }
 
+// Which hotkey to fire at the host when the iPad's hardware-keyboard input
+// language changes. Default: Ctrl+Space, the macOS built-in "select previous
+// input source" shortcut — works if the user has the same two layouts on the
+// host as on the iPad, in the same order. For other layout sets / OSes the
+// user can pick a different combination in Settings.
+enum LayoutSyncHotkey: Int, CaseIterable
+{
+    case none = 0
+    case ctrlSpace = 1
+    case cmdSpace = 2
+    case altSpace = 3
+    case altShift = 4
+}
+
 enum RightClickPosition: Int
 {
 	case firstFinger
