@@ -35,6 +35,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var accumulatedScrollY: Float = 0.0
 	var lastScrollTranslation: CGPoint = .zero
 
+	// Momentum scrolling state — CADisplayLink keeps firing wheel messages
+	// with exponential decay after the user's fingers leave the trackpad.
+	var momentumDisplayLink: CADisplayLink?
+	var momentumVelocityX: Float = 0.0
+	var momentumVelocityY: Float = 0.0
+
 	// Layout sync — fires a hotkey at the host when the iPad's hardware-keyboard
 	// input language changes (e.g. Caps Lock toggle on Magic Keyboard).
 	var languageSync: LanguageSyncCoordinator?
@@ -340,6 +346,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
 		stopLanguageSync()
+		stopScrollMomentum()
 	}
 	
 	
@@ -353,6 +360,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	// (see viewDidLoad), so those touches reach this override unobstructed.
 	override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
 		super.touchesBegan(touches, with: event)
+		// Any new touch (finger, pencil, trackpad click) cancels inertial
+		// scrolling — matches native iOS UIScrollView behaviour.
+		stopScrollMomentum()
 		for touch in touches where touch.type == .indirectPointer {
 			accumulatedDeltaX = 0.0
 			accumulatedDeltaY = 0.0
@@ -546,15 +556,23 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 	// allowedScrollTypesMask = .all and maximumNumberOfTouches = 0 in viewDidLoad,
 	// so it only sees scroll-wheel / trackpad-scroll events, never finger touches.
 	@objc func handleTrackpadScroll(_ gestureRecognizer: UIPanGestureRecognizer) {
+		// "Natural scrolling" — swipe-direction follows content, matching iPadOS
+		// / macOS default. Flip to false (in Settings) for classic mouse-wheel
+		// direction. Applied to both the live drag and the inertia tail.
+		let direction: Float = SettingsHandler.naturalScrolling ? -1.0 : 1.0
+		let sensitivity = Float(SettingsHandler.scrollSensitivity)
+
 		switch gestureRecognizer.state {
 		case .began:
+			// New scroll gesture aborts any ongoing inertia.
+			stopScrollMomentum()
 			lastScrollTranslation = .zero
 			accumulatedScrollX = 0.0
 			accumulatedScrollY = 0.0
 		case .changed:
 			let translation = gestureRecognizer.translation(in: gestureRecognizer.view)
-			let deltaX = Float(translation.x - lastScrollTranslation.x) * mouseSensitivity
-			let deltaY = Float(translation.y - lastScrollTranslation.y) * mouseSensitivity
+			let deltaX = Float(translation.x - lastScrollTranslation.x) * sensitivity * direction
+			let deltaY = Float(translation.y - lastScrollTranslation.y) * sensitivity * direction
 			lastScrollTranslation = translation
 			accumulatedScrollX += deltaX
 			accumulatedScrollY += deltaY
@@ -565,13 +583,63 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 				accumulatedScrollX -= Float(intX)
 				accumulatedScrollY -= Float(intY)
 			}
-		case .ended, .cancelled, .failed:
+		case .ended:
+			lastScrollTranslation = .zero
+			if SettingsHandler.scrollMomentum {
+				// velocity(in:) is in points/sec; convert to points/frame at 60 Hz.
+				let velocity = gestureRecognizer.velocity(in: gestureRecognizer.view)
+				momentumVelocityX = Float(velocity.x) / 60.0 * sensitivity * direction
+				momentumVelocityY = Float(velocity.y) / 60.0 * sensitivity * direction
+				startScrollMomentum()
+			}
+		case .cancelled, .failed:
 			lastScrollTranslation = .zero
 			accumulatedScrollX = 0.0
 			accumulatedScrollY = 0.0
 		default:
 			break
 		}
+	}
+
+	// Inertia tail. Per-frame decay multiplier is mapped linearly from the
+	// user's "Inertia Strength" setting: 0 → 0.80 (snappy, ~150 ms), 1 → 0.98
+	// (long glide, ~2 s).
+	private func startScrollMomentum() {
+		let threshold: Float = 0.5
+		if abs(momentumVelocityX) < threshold && abs(momentumVelocityY) < threshold {
+			return
+		}
+		stopScrollMomentum()
+		let link = CADisplayLink(target: self, selector: #selector(scrollMomentumTick(_:)))
+		link.add(to: .main, forMode: .common)
+		momentumDisplayLink = link
+	}
+
+	@objc private func scrollMomentumTick(_ link: CADisplayLink) {
+		accumulatedScrollX += momentumVelocityX
+		accumulatedScrollY += momentumVelocityY
+		let intX = Int32(accumulatedScrollX)
+		let intY = Int32(accumulatedScrollY)
+		if intX != 0 || intY != 0 {
+			CParsec.sendWheelMsg(x: intX, y: intY)
+			accumulatedScrollX -= Float(intX)
+			accumulatedScrollY -= Float(intY)
+		}
+		let strength = Float(SettingsHandler.scrollMomentumStrength)
+		let decay: Float = 0.80 + 0.18 * strength
+		momentumVelocityX *= decay
+		momentumVelocityY *= decay
+		let threshold: Float = 0.5
+		if abs(momentumVelocityX) < threshold && abs(momentumVelocityY) < threshold {
+			stopScrollMomentum()
+		}
+	}
+
+	private func stopScrollMomentum() {
+		momentumDisplayLink?.invalidate()
+		momentumDisplayLink = nil
+		momentumVelocityX = 0.0
+		momentumVelocityY = 0.0
 	}
 
 	@objc func handleSingleFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
@@ -894,6 +962,121 @@ extension ParsecViewController : UIKeyInput, UITextInputTraits {
 		}
 	}
 
+}
+
+// MARK: - System-shortcut capture
+//
+// iPadOS shell normally swallows Cmd+letter combinations (and many Cmd+modifier
+// chords) before they reach any app — that's why Cmd+A inside a Parsec session
+// doesn't "select all" on the host, Cmd+S doesn't save, etc.
+//
+// Registering an explicit UIKeyCommand for each combination tells the responder
+// chain to deliver them to us instead. On iOS 15+, setting
+// `wantsPriorityOverSystemBehavior = true` further suppresses the system's own
+// text-input handling for the same chord.
+//
+// What we CANNOT capture on iPadOS via public APIs (no app can):
+//   • Cmd+Space (Spotlight)
+//   • Cmd+H (Home)
+//   • Cmd+Tab (app switcher)
+//   • Globe key shortcut layer
+//   • Swipe-up-from-bottom (Home gesture)
+//
+// Those are wired below the responder chain in SpringBoard. The PR #64
+// approach (remap Opt → Cmd on the host) is the workaround the iPad
+// ecosystem has settled on for the most common case; we don't duplicate it
+// here because that PR is in flight.
+extension ParsecViewController {
+	// Cached because keyCommands is queried each event and we register ~280
+	// commands. Rebuilds itself the first time captureSystemKeys flips on
+	// during a session and the user re-enters the streaming view.
+	private static let _capturableCharset: String = "abcdefghijklmnopqrstuvwxyz0123456789-=[];',./`\\"
+	private static let _capturableModifierCombos: [UIKeyModifierFlags] = [
+		.command,
+		[.command, .shift],
+		[.command, .alternate],
+		[.command, .control],
+		.alternate,
+		[.alternate, .shift]
+	]
+
+	func buildSystemCaptureKeyCommands() -> [UIKeyCommand] {
+		var commands: [UIKeyCommand] = []
+		for char in Self._capturableCharset {
+			for mods in Self._capturableModifierCombos {
+				let cmd = UIKeyCommand(
+					input: String(char),
+					modifierFlags: mods,
+					action: #selector(handleCapturedKey(_:))
+				)
+				if #available(iOS 15.0, *) {
+					cmd.wantsPriorityOverSystemBehavior = true
+				}
+				commands.append(cmd)
+			}
+		}
+		// Cmd + special keys. Cmd+Space is registered but iPadOS still wins;
+		// the host won't see it. Leaving it in so behaviour matches if Apple
+		// ever loosens this.
+		for special in ["\t", " ", "\r", "`"] {
+			let cmd = UIKeyCommand(
+				input: special,
+				modifierFlags: .command,
+				action: #selector(handleCapturedKey(_:))
+			)
+			if #available(iOS 15.0, *) {
+				cmd.wantsPriorityOverSystemBehavior = true
+			}
+			commands.append(cmd)
+		}
+		return commands
+	}
+
+	override var keyCommands: [UIKeyCommand]? {
+		guard SettingsHandler.captureSystemKeys else { return super.keyCommands }
+		return buildSystemCaptureKeyCommands()
+	}
+
+	// Translates a UIKeyCommand into a modifier-aware scancode sequence for
+	// the host. We deliberately use sendVirtualKeyboardInput(text:, isOn:)
+	// instead of (text:) so the wrapper doesn't auto-add Shift — we're
+	// managing modifiers explicitly.
+	@objc func handleCapturedKey(_ cmd: UIKeyCommand) {
+		let mods = cmd.modifierFlags
+
+		if mods.contains(.command) { CParsec.sendVirtualKeyboardInput(text: "LGUI", isOn: true) }
+		if mods.contains(.shift)   { CParsec.sendVirtualKeyboardInput(text: "SHIFT", isOn: true) }
+		if mods.contains(.control) { CParsec.sendVirtualKeyboardInput(text: "CONTROL", isOn: true) }
+		if mods.contains(.alternate) { CParsec.sendVirtualKeyboardInput(text: "LALT", isOn: true) }
+
+		guard let raw = cmd.input, !raw.isEmpty else {
+			releaseHeldModifiers(mods)
+			return
+		}
+
+		let keyText: String
+		switch raw {
+		case "\t": keyText = "TAB"
+		case " ":  keyText = "SPACE"
+		case "\r", "\n": keyText = "ENTER"
+		default:   keyText = raw.uppercased()
+		}
+
+		CParsec.sendVirtualKeyboardInput(text: keyText, isOn: true)
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+			CParsec.sendVirtualKeyboardInput(text: keyText, isOn: false)
+		}
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+			self?.releaseHeldModifiers(mods)
+		}
+	}
+
+	private func releaseHeldModifiers(_ mods: UIKeyModifierFlags) {
+		if mods.contains(.command) { CParsec.sendVirtualKeyboardInput(text: "LGUI", isOn: false) }
+		if mods.contains(.shift)   { CParsec.sendVirtualKeyboardInput(text: "SHIFT", isOn: false) }
+		if mods.contains(.control) { CParsec.sendVirtualKeyboardInput(text: "CONTROL", isOn: false) }
+		if mods.contains(.alternate) { CParsec.sendVirtualKeyboardInput(text: "LALT", isOn: false) }
+	}
 }
 
 // MARK: - Language sync (Mac ↔ iPad keyboard layout)

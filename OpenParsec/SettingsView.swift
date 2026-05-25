@@ -11,6 +11,11 @@ struct SettingsView:View
 	@AppStorage("cursorMode") var cursorMode: CursorMode = .touchpad
 	@AppStorage("cursorScale") var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") var mouseSensitivity: Double = 1.0
+	@AppStorage("scrollSensitivity") var scrollSensitivity: Double = 1.0
+	@AppStorage("naturalScrolling") var naturalScrolling: Bool = true
+	@AppStorage("scrollMomentum") var scrollMomentum: Bool = true
+	@AppStorage("scrollMomentumStrength") var scrollMomentumStrength: Double = 0.5
+	@AppStorage("captureSystemKeys") var captureSystemKeys: Bool = true
 	@AppStorage("noOverlay") var noOverlay: Bool = false
 	@AppStorage("cursorScale") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
@@ -112,6 +117,28 @@ struct SettingsView:View
 									.frame(width: 200)
 								Text(String(format: "%.1f", mouseSensitivity))
 							}
+							CatItem("Scroll Sensitivity")
+							{
+								Slider(value: $scrollSensitivity, in:0.1...4, step:0.1)
+									.frame(width: 200)
+								Text(String(format: "%.1f", scrollSensitivity))
+							}
+							CatItem("Natural Scrolling")
+							{
+								Toggle("", isOn:$naturalScrolling)
+									.frame(width:80)
+							}
+							CatItem("Scroll Inertia")
+							{
+								Toggle("", isOn:$scrollMomentum)
+									.frame(width:80)
+							}
+							CatItem("Inertia Strength")
+							{
+								Slider(value: $scrollMomentumStrength, in:0...1, step:0.05)
+									.frame(width: 200)
+								Text(String(format: "%.2f", scrollMomentumStrength))
+							}
                         }
                         CatTitle("Keyboard")
                         CatList()
@@ -131,6 +158,11 @@ struct SettingsView:View
                                     Choice("Alt + Space", LayoutSyncHotkey.altSpace),
                                     Choice("Alt + Shift", LayoutSyncHotkey.altShift)
                                 ])
+                            }
+                            CatItem("Capture System Shortcuts")
+                            {
+                                Toggle("", isOn:$captureSystemKeys)
+                                    .frame(width:80)
                             }
                         }
                         CatTitle("Graphics")

@@ -9,6 +9,24 @@ struct SettingsHandler {
 	@AppStorage("cursorMode") public static var cursorMode: CursorMode = .touchpad
 	@AppStorage("cursorScale") public static var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") public static var mouseSensitivity: Double = 1.0
+	@AppStorage("scrollSensitivity") public static var scrollSensitivity: Double = 1.0
+	// When true (default), trackpad scroll direction matches what iPad/macOS
+	// call "natural scrolling" — swipe down moves content down. Flip to false
+	// if you want classic mouse-wheel direction.
+	@AppStorage("naturalScrolling") public static var naturalScrolling: Bool = true
+	// Inertia after the finger leaves the trackpad: CADisplayLink keeps
+	// firing wheel messages with exponential decay, so scrolls don't stop
+	// dead the moment you let go.
+	@AppStorage("scrollMomentum") public static var scrollMomentum: Bool = true
+	// 0.0 ≈ ~150 ms of glide; 1.0 ≈ ~2 s of long glide. Linear mapping into
+	// a per-frame decay multiplier in startScrollMomentum.
+	@AppStorage("scrollMomentumStrength") public static var scrollMomentumStrength: Double = 0.5
+	// Best-effort iPadOS system-shortcut capture via UIKeyCommand registry
+	// with .wantsPriorityOverSystemBehavior (iOS 15+). Catches Cmd+letter
+	// combinations the iPad shell would otherwise eat. Cmd+Space, Cmd+H,
+	// Globe key, and swipe-up gestures stay system-level — those cannot be
+	// intercepted from a sandboxed iPad app.
+	@AppStorage("captureSystemKeys") public static var captureSystemKeys: Bool = true
 	@AppStorage("noOverlay") public static var noOverlay: Bool = false
 	@AppStorage("cursorScale") public static var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger
