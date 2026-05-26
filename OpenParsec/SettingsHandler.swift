@@ -61,6 +61,10 @@ struct SettingsHandler {
 	@AppStorage("savedMuted") public static var savedMuted: Bool = false
 	// Remember which display the user picked last; restored on the next
 	// connect once the host enumerates its displays (user-data event 12).
+	// The id is the primary key; the name (e.g. "Built-in Retina Display ...")
+	// is a fallback because Parsec sometimes regenerates display ids between
+	// connects for the same physical display.
 	@AppStorage("savedDisplayOutput") public static var savedDisplayOutput: String = ""
+	@AppStorage("savedDisplayName") public static var savedDisplayName: String = ""
 
 }

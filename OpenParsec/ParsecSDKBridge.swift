@@ -275,10 +275,19 @@ class ParsecSDKBridge: ParsecService
 					// and cause a brief re-encode flicker.
 					if !self.didRestoreSavedDisplay {
 						self.didRestoreSavedDisplay = true
-						let saved = SettingsHandler.savedDisplayOutput
-						if !saved.isEmpty, saved != "none",
-						   config.contains(where: { $0.id == saved }) {
-							DataManager.model.output = saved
+						let savedId = SettingsHandler.savedDisplayOutput
+						let savedName = SettingsHandler.savedDisplayName
+						guard !savedId.isEmpty || !savedName.isEmpty else { return }
+						// Match by id first (stable when the host reports
+						// consistent display ids across sessions). Fall
+						// back to name+adapter match so a display that
+						// changed id between connects (Parsec sometimes
+						// regenerates them) is still found.
+						let match = config.first(where: { $0.id == savedId })
+							?? config.first(where: { !savedName.isEmpty && "\($0.name) \($0.adapterName)" == savedName })
+						if let match = match {
+							DataManager.model.output = match.id
+							SettingsHandler.savedDisplayOutput = match.id // re-sync if id rolled
 							self.updateHostVideoConfig()
 						}
 					}

@@ -547,11 +547,11 @@ struct ParsecView: View
 			}
 			CParsec.disconnect()
 		}
-		// 100 ms is enough to let the two `while backgroundTaskRunning` poll
-		// loops in ParsecSDKBridge exit (worst case = one ~16 ms iteration
-		// of their SDK poll). The 20 ms drain sleep inside disconnect()
-		// covers the same race; this just adds a little headroom.
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+		// 600 ms gives the SDK enough time to fully tear down the session
+		// (audio queue, poll loops, internal state) before we reconnect.
+		// The user previously saw "Disconnected 20" with a 100 ms gap —
+		// turns out the SDK isn't truly ready for connect() that fast.
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
 			let status = CParsec.connect(peerID)
 			// connect() already installs the fresh ParsecClientConfig with the
 			// new resolution; calling applyConfig() right after would issue a
@@ -618,7 +618,17 @@ struct ParsecView: View
 			// Persist so the next connect can auto-restore this choice once
 			// the host enumerates displays (user-data event 12). "none" is
 			// the "Auto" pseudo-id and isn't worth remembering.
-			SettingsHandler.savedDisplayOutput = (displayId == "none") ? "" : displayId
+			if displayId == "none" {
+				SettingsHandler.savedDisplayOutput = ""
+				SettingsHandler.savedDisplayName = ""
+			} else {
+				SettingsHandler.savedDisplayOutput = displayId
+				// Also persist the human-readable name so a regenerated id
+				// next session can be matched by name.
+				if let cfg = DataManager.model.displayConfigs.first(where: { $0.id == displayId }) {
+					SettingsHandler.savedDisplayName = "\(cfg.name) \(cfg.adapterName)"
+				}
+			}
 			CParsec.updateHostVideoConfig()
 		}
 	}

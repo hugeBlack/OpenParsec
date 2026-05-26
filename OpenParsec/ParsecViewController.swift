@@ -16,11 +16,16 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var gamePadController: GamepadController!
 	var touchController: TouchController!
 	var u: UIImageView?
-	// Locally-rendered arrow cursor that follows input immediately, skipping
-	// the host RTT that the host-streamed cursor (`u`) inherits. Visibility
-	// is toggled in updateImage based on SettingsHandler.localCursorOverlay.
-	var localCursorImageView: UIImageView?
+	// Locally-rendered iPadOS-style pointer dot that follows input immediately,
+	// skipping the host RTT that the host-streamed cursor (`u`) inherits.
+	// Visibility is toggled in updateImage based on
+	// SettingsHandler.localCursorOverlay.
+	var localCursorImageView: UIView?
 	var localCursorPosition: CGPoint = .zero
+	// viewDidLoad runs before the contentView has a non-zero size, so seeding
+	// the cursor there reads midX/Y as 0 and parks it at the corner. Re-seed
+	// once layout produces real bounds. One-shot via this flag.
+	var hasSeededLocalCursor: Bool = false
 	var lastImg: CGImage?
     var lastMouseX: Int32 = -1
     var lastMouseY: Int32 = -1
@@ -255,27 +260,30 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		u = UIImageView(frame: CGRect(x: 0,y: 0,width: 100, height: 100))
 		contentView.addSubview(u!) // Add Cursor to ContentView
 
-		// Local overlay cursor — same parent so it scrolls with the content
-		// when zoomed. Uses the system pointer SF Symbol so it looks native;
-		// kept small and bright-white-on-shadow so it reads against any
-		// background. Position is tracked client-side from input.
-		let localCursor = UIImageView(frame: CGRect(x: 0, y: 0, width: 20, height: 20))
-		let cursorConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .bold)
-		localCursor.image = UIImage(systemName: "cursorarrow", withConfiguration: cursorConfig)
-		localCursor.tintColor = .white
+		// Local overlay cursor — iPadOS-style pointer dot drawn programmatically
+		// so it actually looks native (the SF Symbol cursorarrow we tried
+		// before was a Mac-style arrow that didn't match iPad muscle memory).
+		// Light gray with a darker border for contrast on any background,
+		// soft shadow for legibility. Same parent (contentView) so it scrolls
+		// with the streamed content when the user is zoomed in.
+		let dotSize: CGFloat = 13
+		let localCursor = UIView(frame: CGRect(x: 0, y: 0, width: dotSize, height: dotSize))
+		localCursor.backgroundColor = UIColor(white: 0.92, alpha: 0.85)
+		localCursor.layer.cornerRadius = dotSize / 2
+		localCursor.layer.borderWidth = 0.5
+		localCursor.layer.borderColor = UIColor(white: 0.15, alpha: 0.45).cgColor
 		localCursor.layer.shadowColor = UIColor.black.cgColor
-		localCursor.layer.shadowOpacity = 0.65
-		localCursor.layer.shadowRadius = 1.5
-		localCursor.layer.shadowOffset = CGSize(width: 0.5, height: 1)
+		localCursor.layer.shadowOpacity = 0.35
+		localCursor.layer.shadowRadius = 2.5
+		localCursor.layer.shadowOffset = CGSize(width: 0, height: 1)
+		localCursor.isUserInteractionEnabled = false
 		localCursor.isHidden = !SettingsHandler.localCursorOverlay
 		contentView.addSubview(localCursor)
 		localCursorImageView = localCursor
-		// `mouseInfo.mouseX/Y` defaults to (1, 1) before the host echoes the
-		// first cursor event, so seeding from it would put the overlay at
-		// the top-left until the first input. Centre of the content view is
-		// a less-jarring starting point.
-		localCursorPosition = CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
-		localCursor.center = localCursorPosition
+		// The real seeding happens in viewDidLayoutSubviews — contentView's
+		// bounds aren't valid until layout has run, so reading midX/Y here
+		// would give (0, 0). Park at (0, 0) for now; the first layout pass
+		// will move it to the centre.
 		
 		setNeedsUpdateOfPrefersPointerLocked()
 		
@@ -354,6 +362,18 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		
 	}
 	
+	override func viewDidLayoutSubviews() {
+		super.viewDidLayoutSubviews()
+		// One-shot seed of the local cursor at the content view's centre
+		// after layout has produced real bounds. viewDidLoad reads zero
+		// bounds and would park the cursor at the corner.
+		if !hasSeededLocalCursor && contentView.bounds.width > 0 && contentView.bounds.height > 0 {
+			localCursorPosition = CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
+			localCursorImageView?.center = localCursorPosition
+			hasSeededLocalCursor = true
+		}
+	}
+
 	override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
 		super.viewWillTransition(to: size, with: coordinator)
 		
@@ -432,17 +452,21 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 			} else {
 				let prev = touch.precisePreviousLocation(in: view)
 				let cur = touch.preciseLocation(in: view)
-				accumulatedDeltaX += Float(cur.x - prev.x) * mouseSensitivity
-				accumulatedDeltaY += Float(cur.y - prev.y) * mouseSensitivity
+				let preciseDX = (cur.x - prev.x) * CGFloat(mouseSensitivity)
+				let preciseDY = (cur.y - prev.y) * CGFloat(mouseSensitivity)
+
+				// Move the LOCAL cursor at full sub-pixel precision so it
+				// glides smoothly even when the rounded host-delta is zero.
+				moveLocalCursor(byX: preciseDX, y: preciseDY)
+
+				accumulatedDeltaX += Float(preciseDX)
+				accumulatedDeltaY += Float(preciseDY)
 				// Round-half-away-from-zero (not Int32 truncation) so that
-				// sub-pixel ticks like 0.4 still emit a 1-pixel send. The
-				// truncation behaviour effectively coalesced events on slow
-				// drags or low sensitivity — perceived as "stickiness".
+				// sub-pixel ticks like 0.4 still emit a 1-pixel send to host.
 				let dx = Int32(accumulatedDeltaX.rounded(.toNearestOrAwayFromZero))
 				let dy = Int32(accumulatedDeltaY.rounded(.toNearestOrAwayFromZero))
 				if dx != 0 || dy != 0 {
 					CParsec.sendMouseDelta(dx, dy)
-					moveLocalCursor(byX: CGFloat(dx), y: CGFloat(dy))
 					accumulatedDeltaX -= Float(dx)
 					accumulatedDeltaY -= Float(dy)
 				}
@@ -621,24 +645,27 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 					accumulatedDeltaY = 0.0
 				}
 
-				// Calculate delta since last update
-				let deltaX = Float(currentTranslation.x - lastPanTranslation.x) * mouseSensitivity
-				let deltaY = Float(currentTranslation.y - lastPanTranslation.y) * mouseSensitivity
+				// Calculate delta since last update at full precision.
+				let preciseDX = (currentTranslation.x - lastPanTranslation.x) * CGFloat(mouseSensitivity)
+				let preciseDY = (currentTranslation.y - lastPanTranslation.y) * CGFloat(mouseSensitivity)
 
 				lastPanTranslation = currentTranslation
+
+				// Move the LOCAL cursor at full sub-pixel precision so its
+				// motion stays smooth even between whole-pixel host deltas.
+				moveLocalCursor(byX: preciseDX, y: preciseDY)
 
 				// Accumulate for sub-pixel precision, then round-half-away-
 				// from-zero so 0.4-px ticks still emit a 1-pixel message
 				// (Int32 truncation made slow drags feel sticky).
-				accumulatedDeltaX += deltaX
-				accumulatedDeltaY += deltaY
+				accumulatedDeltaX += Float(preciseDX)
+				accumulatedDeltaY += Float(preciseDY)
 
 				let intDeltaX = Int32(accumulatedDeltaX.rounded(.toNearestOrAwayFromZero))
 				let intDeltaY = Int32(accumulatedDeltaY.rounded(.toNearestOrAwayFromZero))
 
 				if intDeltaX != 0 || intDeltaY != 0 {
 					CParsec.sendMouseDelta(intDeltaX, intDeltaY)
-					moveLocalCursor(byX: CGFloat(intDeltaX), y: CGFloat(intDeltaY))
 					accumulatedDeltaX -= Float(intDeltaX)
 					accumulatedDeltaY -= Float(intDeltaY)
 				}
@@ -658,10 +685,13 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 	// allowedScrollTypesMask = .all and maximumNumberOfTouches = 0 in viewDidLoad,
 	// so it only sees scroll-wheel / trackpad-scroll events, never finger touches.
 	@objc func handleTrackpadScroll(_ gestureRecognizer: UIPanGestureRecognizer) {
-		// "Natural scrolling" — swipe-direction follows content, matching iPadOS
-		// / macOS default. Flip to false (in Settings) for classic mouse-wheel
-		// direction. Applied to both the live drag and the inertia tail.
-		let direction: Float = SettingsHandler.naturalScrolling ? -1.0 : 1.0
+		// "Natural scrolling" toggle ON = swipe-direction follows content, which
+		// is the macOS default ("Natural" in System Settings). With the user's
+		// Mac on its default Natural Scrolling = ON, we want to forward
+		// translation deltas without flipping — host applies its own
+		// inversion. Flip only when toggle is OFF (= user wants classic
+		// mouse-wheel feel).
+		let direction: Float = SettingsHandler.naturalScrolling ? 1.0 : -1.0
 		let sensitivity = Float(SettingsHandler.scrollSensitivity)
 
 		switch gestureRecognizer.state {
@@ -712,8 +742,11 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			lastScrollTranslation = translation
 			accumulatedScrollX += deltaX
 			accumulatedScrollY += deltaY
-			let intX = Int32(accumulatedScrollX)
-			let intY = Int32(accumulatedScrollY)
+			// Same rounding trick as the mouse-delta path — Int32 truncation
+			// previously swallowed sub-pixel ticks so slow trackpad scrolls
+			// felt completely dead until enough whole pixels piled up.
+			let intX = Int32(accumulatedScrollX.rounded(.toNearestOrAwayFromZero))
+			let intY = Int32(accumulatedScrollY.rounded(.toNearestOrAwayFromZero))
 			if intX != 0 || intY != 0 {
 				CParsec.sendWheelMsg(x: intX, y: intY)
 				accumulatedScrollX -= Float(intX)
@@ -763,8 +796,8 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 	@objc private func scrollMomentumTick(_ link: CADisplayLink) {
 		accumulatedScrollX += momentumVelocityX
 		accumulatedScrollY += momentumVelocityY
-		let intX = Int32(accumulatedScrollX)
-		let intY = Int32(accumulatedScrollY)
+		let intX = Int32(accumulatedScrollX.rounded(.toNearestOrAwayFromZero))
+		let intY = Int32(accumulatedScrollY.rounded(.toNearestOrAwayFromZero))
 		if intX != 0 || intY != 0 {
 			CParsec.sendWheelMsg(x: intX, y: intY)
 			accumulatedScrollX -= Float(intX)
