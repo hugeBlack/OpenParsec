@@ -11,6 +11,7 @@ struct SettingsView:View
 	@AppStorage("cursorMode") var cursorMode: CursorMode = .touchpad
 	@AppStorage("cursorScale") var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") var mouseSensitivity: Double = 1.0
+	@AppStorage("localCursorOverlay") var localCursorOverlay: Bool = false
 	@AppStorage("scrollSensitivity") var scrollSensitivity: Double = 1.0
 	@AppStorage("naturalScrolling") var naturalScrolling: Bool = true
 	@AppStorage("scrollMomentum") var scrollMomentum: Bool = true
@@ -111,6 +112,11 @@ struct SettingsView:View
                                 Slider(value: $cursorScale, in:0.1...4, step:0.1)
 									.frame(width: 200)
 								Text(String(format: "%.1f", cursorScale))
+                            }
+                            CatItem("Local Cursor Overlay")
+                            {
+                                Toggle("", isOn:$localCursorOverlay)
+                                    .frame(width:80)
                             }
 							CatItem("Mouse Sensitivity")
 							{

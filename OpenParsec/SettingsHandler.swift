@@ -9,6 +9,10 @@ struct SettingsHandler {
 	@AppStorage("cursorMode") public static var cursorMode: CursorMode = .touchpad
 	@AppStorage("cursorScale") public static var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") public static var mouseSensitivity: Double = 1.0
+	// Draw a local arrow cursor on top of the streamed video and skip
+	// rendering the host's own cursor — the local one tracks input
+	// immediately while the host's cursor visually lags by the network RTT.
+	@AppStorage("localCursorOverlay") public static var localCursorOverlay: Bool = false
 	@AppStorage("scrollSensitivity") public static var scrollSensitivity: Double = 1.0
 	// When true (default), trackpad scroll direction matches what iPad/macOS
 	// call "natural scrolling" — swipe down moves content down. Flip to false

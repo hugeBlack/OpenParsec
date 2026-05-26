@@ -13,7 +13,8 @@ struct ParsecStatusBar : View {
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
 
-	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
+	init(isReconfiguring: Binding<Bool>, showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
+		_isReconfiguring = isReconfiguring
 		_showMenu = showMenu
 		_showDCAlert = showDCAlert
 		_DCAlertText = DCAlertText

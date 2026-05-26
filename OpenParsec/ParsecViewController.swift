@@ -16,6 +16,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var gamePadController: GamepadController!
 	var touchController: TouchController!
 	var u: UIImageView?
+	// Locally-rendered arrow cursor that follows input immediately, skipping
+	// the host RTT that the host-streamed cursor (`u`) inherits. Visibility
+	// is toggled in updateImage based on SettingsHandler.localCursorOverlay.
+	var localCursorImageView: UIImageView?
+	var localCursorPosition: CGPoint = .zero
 	var lastImg: CGImage?
     var lastMouseX: Int32 = -1
     var lastMouseY: Int32 = -1
@@ -92,7 +97,21 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
         let currentMouseY = CParsec.mouseInfo.mouseY
         let currentHidden = CParsec.mouseInfo.cursorHidden
         let currentImg = CParsec.mouseInfo.cursorImg
-        
+
+        // Toggle host vs local cursor visibility from the same place so they
+        // stay mutually exclusive without scattered if-statements.
+        let useLocalOverlay = SettingsHandler.localCursorOverlay
+        localCursorImageView?.isHidden = !useLocalOverlay
+        if useLocalOverlay {
+            // Suppress the host-rendered cursor image — we're drawing our
+            // own. Early-return to skip the position math below since `u`
+            // isn't being displayed.
+            u?.isHidden = true
+            return
+        } else {
+            u?.isHidden = false
+        }
+
         // Skip if nothing changed
         if currentMouseX == lastMouseX &&
            currentMouseY == lastMouseY &&
@@ -235,6 +254,26 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 
 		u = UIImageView(frame: CGRect(x: 0,y: 0,width: 100, height: 100))
 		contentView.addSubview(u!) // Add Cursor to ContentView
+
+		// Local overlay cursor — same parent so it scrolls with the content
+		// when zoomed. Uses the system pointer SF Symbol so it looks native;
+		// kept small and bright-white-on-shadow so it reads against any
+		// background. Position is tracked client-side from input.
+		let localCursor = UIImageView(frame: CGRect(x: 0, y: 0, width: 20, height: 20))
+		let cursorConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .bold)
+		localCursor.image = UIImage(systemName: "cursorarrow", withConfiguration: cursorConfig)
+		localCursor.tintColor = .white
+		localCursor.layer.shadowColor = UIColor.black.cgColor
+		localCursor.layer.shadowOpacity = 0.65
+		localCursor.layer.shadowRadius = 1.5
+		localCursor.layer.shadowOffset = CGSize(width: 0.5, height: 1)
+		localCursor.isHidden = !SettingsHandler.localCursorOverlay
+		contentView.addSubview(localCursor)
+		localCursorImageView = localCursor
+		// Seed from whatever the host last said (usually centre of stream
+		// after setFrame). Updated in real time from input events.
+		localCursorPosition = CGPoint(x: CGFloat(CParsec.mouseInfo.mouseX), y: CGFloat(CParsec.mouseInfo.mouseY))
+		localCursor.center = localCursorPosition
 		
 		setNeedsUpdateOfPrefersPointerLocked()
 		
@@ -387,6 +426,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 				let pos = touch.preciseLocation(in: view)
 				let adjusted = contentView.convert(pos, from: view)
 				CParsec.sendMousePosition(Int32(adjusted.x), Int32(adjusted.y))
+				moveLocalCursor(to: adjusted)
 			} else {
 				let prev = touch.precisePreviousLocation(in: view)
 				let cur = touch.preciseLocation(in: view)
@@ -400,11 +440,33 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 				let dy = Int32(accumulatedDeltaY.rounded(.toNearestOrAwayFromZero))
 				if dx != 0 || dy != 0 {
 					CParsec.sendMouseDelta(dx, dy)
+					moveLocalCursor(byX: CGFloat(dx), y: CGFloat(dy))
 					accumulatedDeltaX -= Float(dx)
 					accumulatedDeltaY -= Float(dy)
 				}
 			}
 		}
+	}
+
+	// Move the local cursor overlay (no-op if it's hidden — we just keep
+	// the tracker fresh so toggling the setting mid-session lands on a
+	// sensible position).
+	func moveLocalCursor(to position: CGPoint) {
+		localCursorPosition = position
+		clampAndApplyLocalCursor()
+	}
+
+	func moveLocalCursor(byX dx: CGFloat, y dy: CGFloat) {
+		localCursorPosition.x += dx
+		localCursorPosition.y += dy
+		clampAndApplyLocalCursor()
+	}
+
+	private func clampAndApplyLocalCursor() {
+		let bounds = contentView.bounds
+		localCursorPosition.x = max(0, min(localCursorPosition.x, bounds.width))
+		localCursorPosition.y = max(0, min(localCursorPosition.y, bounds.height))
+		localCursorImageView?.center = localCursorPosition
 	}
 
 	// Cleared sub-pixel residue so the next gesture starts from zero. Without
@@ -546,6 +608,7 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
                 // Convert to content coordinates
 				let adjustedPosition = contentView.convert(position, from: view)
 				CParsec.sendMousePosition(Int32(adjustedPosition.x), Int32(adjustedPosition.y))
+				moveLocalCursor(to: adjustedPosition)
 			} else {
 				// Simple translation-based movement with sub-pixel accumulation
 				let currentTranslation = gestureRecognizer.translation(in: gestureRecognizer.view)
@@ -573,6 +636,7 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 
 				if intDeltaX != 0 || intDeltaY != 0 {
 					CParsec.sendMouseDelta(intDeltaX, intDeltaY)
+					moveLocalCursor(byX: CGFloat(intDeltaX), y: CGFloat(intDeltaY))
 					accumulatedDeltaX -= Float(intDeltaX)
 					accumulatedDeltaY -= Float(intDeltaY)
 				}
