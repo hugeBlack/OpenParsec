@@ -30,6 +30,7 @@ struct SettingsView:View
 	@AppStorage("layoutSyncHotkey") var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
 	@State private var crashCopied: Bool = false
+	@State private var diagCopied: Bool = false
 	
 	let resolutionChoices: [Choice<ParsecResolution>]
 
@@ -277,6 +278,21 @@ struct SettingsView:View
 								}) {
 									Text(crashCopied ? "Copied!" : (CrashReporter.peek() == nil ? "None" : "Copy"))
 										.foregroundColor(CrashReporter.peek() == nil ? .gray : Color("AccentColor"))
+								}
+							}
+							CatItem("Diagnostics Log")
+							{
+								Button(action: {
+									if let diag = Diagnostics.peek() {
+										UIPasteboard.general.string = diag
+										diagCopied = true
+									} else {
+										UIPasteboard.general.string = "(no diagnostics recorded)"
+										diagCopied = true
+									}
+								}) {
+									Text(diagCopied ? "Copied!" : (Diagnostics.peek() == nil ? "None" : "Copy"))
+										.foregroundColor(Diagnostics.peek() == nil ? .gray : Color("AccentColor"))
 								}
 							}
 						}

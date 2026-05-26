@@ -99,6 +99,12 @@ class ParsecSDKBridge: ParsecService
 	private var _mouseInfo = MouseInfo()
 	private var mouseInfoLock = os_unfair_lock_s()
 
+	// S04: raw host-OS int mirror, written from the case-11 main block and read
+	// lock-free from input threads (plain Int load is atomic on-device). Reset
+	// to -1 on connect AND disconnect so a stale value can't bleed across a
+	// host switch. -1 = unknown / not yet received.
+	var hostOSValue: Int = -1
+
 	// Atomic snapshot for cross-thread readers. Returns a consistent copy of
 	// the whole struct under the lock so `cursorImg`'s retain happens while no
 	// writer can release it.
@@ -168,6 +174,8 @@ class ParsecSDKBridge: ParsecService
 		// silently never re-run.
 		didRestoreSavedDisplay = false
 		didSetResolution = false
+		hostOSValue = -1
+		DispatchQueue.main.async { DataManager.model.hostOS = -1 }
 
 		var parsecClientCfg = ParsecClientConfig()
 		parsecClientCfg.video.0.decoderIndex = 1
@@ -209,6 +217,8 @@ class ParsecSDKBridge: ParsecService
 		// happens to advertise.
 		didSetResolution = false
 		didRestoreSavedDisplay = false
+		hostOSValue = -1
+		DispatchQueue.main.async { DataManager.model.hostOS = -1 }
 
 		// Give the two `while backgroundTaskRunning` loops in
 		// startBackgroundTask() one full poll-timeout to notice the flag
@@ -299,6 +309,14 @@ class ParsecSDKBridge: ParsecService
 					DataManager.model.resolutionY = videoConfig.resolutionY
 					DataManager.model.bitrate = videoConfig.encoderMaxBitrate
 					DataManager.model.constantFps = videoConfig.fullFPS
+					// S04: capture the host-OS int and log it once per session
+					// change so its undocumented encoding can be discovered
+					// against known Mac/Windows hosts.
+					if self.hostOSValue != videoConfig.hostOS {
+						self.hostOSValue = videoConfig.hostOS
+						DataManager.model.hostOS = videoConfig.hostOS
+						Diagnostics.note("hostOS=\(videoConfig.hostOS) (resolution=\(videoConfig.resolutionX)x\(videoConfig.resolutionY), bitrate=\(videoConfig.encoderMaxBitrate))")
+					}
 					if !self.didSetResolution {
 						self.didSetResolution = true
 						DataManager.model.resolutionX = SettingsHandler.resolution.width

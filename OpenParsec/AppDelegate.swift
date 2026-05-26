@@ -116,6 +116,43 @@ enum CrashReporter {
 	}
 }
 
+// Lightweight append-only diagnostics channel, sibling to CrashReporter.
+// Used for empirical discovery that has no local console (e.g. the host-OS
+// int encoding in S04, or netProtocol/mediaContainer in S08). Entries persist
+// to Documents/diagnostics.log and can be copied out via Settings →
+// "Copy Diagnostics" or pulled from the Files app. Called only from normal
+// (non-signal) contexts, so Foundation use is fine here.
+enum Diagnostics {
+	static var logURL: URL {
+		let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+		return docs.appendingPathComponent("diagnostics.log")
+	}
+
+	static func note(_ line: String) {
+		let stamp = ISO8601DateFormatter().string(from: Date())
+		let entry = "[\(stamp)] \(line)\n"
+		print("[OpenParsec][diag] \(line)")
+		guard let data = entry.data(using: .utf8) else { return }
+		if let handle = try? FileHandle(forWritingTo: logURL) {
+			defer { try? handle.close() }
+			handle.seekToEndOfFile()
+			handle.write(data)
+		} else {
+			// File doesn't exist yet — create it with this first entry.
+			try? data.write(to: logURL, options: .atomic)
+		}
+	}
+
+	static func peek() -> String? {
+		guard let text = try? String(contentsOf: logURL, encoding: .utf8), !text.isEmpty else { return nil }
+		return text
+	}
+
+	static func clear() {
+		try? FileManager.default.removeItem(at: logURL)
+	}
+}
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate
 {
