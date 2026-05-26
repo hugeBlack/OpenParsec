@@ -11,6 +11,7 @@ struct SettingsView:View
 	@AppStorage("cursorMode") var cursorMode: CursorMode = .touchpad
 	@AppStorage("cursorScale") var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") var mouseSensitivity: Double = 1.0
+	@AppStorage("mouseAcceleration") var mouseAcceleration: Double = 0.0
 	@AppStorage("localCursorOverlay") var localCursorOverlay: Bool = false
 	@AppStorage("scrollSensitivity") var scrollSensitivity: Double = 1.0
 	@AppStorage("naturalScrolling") var naturalScrolling: Bool = true

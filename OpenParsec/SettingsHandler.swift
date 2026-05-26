@@ -9,6 +9,11 @@ struct SettingsHandler {
 	@AppStorage("cursorMode") public static var cursorMode: CursorMode = .touchpad
 	@AppStorage("cursorScale") public static var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") public static var mouseSensitivity: Double = 1.0
+	// Non-linear acceleration applied on top of mouseSensitivity. 0 = pure
+	// linear (fastest gestures travel the same per-pixel as slow ones); up
+	// to 1.5 = strong macOS-style acceleration where fast flicks travel
+	// further. Surfaced as a slider in Settings → Interactivity.
+	@AppStorage("mouseAcceleration") public static var mouseAcceleration: Double = 0.0
 	// Draw a local arrow cursor on top of the streamed video and skip
 	// rendering the host's own cursor — the local one tracks input
 	// immediately while the host's cursor visually lags by the network RTT.
