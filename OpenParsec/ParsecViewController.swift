@@ -95,7 +95,17 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	required init?(coder: NSCoder) {
 		fatalError("init(coder:) has not been implemented")
 	}
-	
+
+	deinit {
+		// CADisplayLink retains its target; without an explicit invalidate
+		// here a momentum glide still in flight at teardown would keep this
+		// controller alive and keep ticking. stopScrollMomentum is also
+		// called from viewWillDisappear, but deinit is the backstop.
+		momentumDisplayLink?.invalidate()
+		momentumDisplayLink = nil
+		languageSync?.stop()
+	}
+
 	func updateImage() {
         // Optimization: Snap current valus
         let currentMouseX = CParsec.mouseInfo.mouseX

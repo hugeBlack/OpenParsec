@@ -105,13 +105,19 @@ class GamepadController {
 				let sens = Float(SettingsHandler.mouseSensitivity)
 				let dx = v / 1.25 * sens
 				let dy = -v2 / 1.25 * sens  // GCMouse Y is inverted vs screen
+				// GCMouse handlers fire on GameController's private background
+				// queue (no handlerQueue is set to main). CParsec sends are
+				// thread-safe, but the local-cursor overlay touches UIView
+				// geometry — that MUST happen on the main thread or UIKit
+				// traps. Dispatch the overlay update to main; keep the send
+				// inline so input latency isn't affected.
 				CParsec.sendMouseDelta(Int32(dx), Int32(dy))
-				// Also drive the local cursor overlay — without this, plugging
-				// an external mouse would freeze the overlay at its last spot
-				// while the host cursor moved elsewhere (effectively "no
-				// cursor on the iPad screen").
-				if let vc = self?.viewController as? ParsecViewController {
-					vc.moveLocalCursor(byX: CGFloat(dx), y: CGFloat(dy))
+				if SettingsHandler.localCursorOverlay {
+					DispatchQueue.main.async {
+						if let vc = self?.viewController as? ParsecViewController {
+							vc.moveLocalCursor(byX: CGFloat(dx), y: CGFloat(dy))
+						}
+					}
 				}
 			}
 			// Scroll wheel: yAxis = vertical (send as y), xAxis = horizontal
