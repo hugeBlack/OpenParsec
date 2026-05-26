@@ -452,8 +452,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 			} else {
 				let prev = touch.precisePreviousLocation(in: view)
 				let cur = touch.preciseLocation(in: view)
-				let preciseDX = (cur.x - prev.x) * CGFloat(mouseSensitivity)
-				let preciseDY = (cur.y - prev.y) * CGFloat(mouseSensitivity)
+				let rawDX = cur.x - prev.x
+				let rawDY = cur.y - prev.y
+				let scale = effectiveDeltaScale(rawDX: rawDX, rawDY: rawDY)
+				let preciseDX = rawDX * scale
+				let preciseDY = rawDY * scale
 
 				// Move the LOCAL cursor at full sub-pixel precision so it
 				// glides smoothly even when the rounded host-delta is zero.
@@ -472,6 +475,20 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 				}
 			}
 		}
+	}
+
+	// Combined sensitivity × acceleration. Acceleration adds a per-event
+	// gain proportional to the per-event speed: bigger movements travel
+	// proportionally further, mimicking macOS pointer acceleration. Falls
+	// back to pure linear sensitivity when mouseAcceleration == 0.
+	private func effectiveDeltaScale(rawDX: CGFloat, rawDY: CGFloat) -> CGFloat {
+		let sens = CGFloat(SettingsHandler.mouseSensitivity)
+		let accel = CGFloat(SettingsHandler.mouseAcceleration)
+		guard accel > 0 else { return sens }
+		// |raw_delta| is in points per input event (typically 0..15).
+		// Dividing by 5 normalizes so 5 px/event ≈ 1× boost at accel=1.
+		let speed = sqrt(rawDX * rawDX + rawDY * rawDY) / 5.0
+		return sens + accel * speed
 	}
 
 	// Move the local cursor overlay (no-op if it's hidden — we just keep
@@ -645,9 +662,13 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 					accumulatedDeltaY = 0.0
 				}
 
-				// Calculate delta since last update at full precision.
-				let preciseDX = (currentTranslation.x - lastPanTranslation.x) * CGFloat(mouseSensitivity)
-				let preciseDY = (currentTranslation.y - lastPanTranslation.y) * CGFloat(mouseSensitivity)
+				// Calculate delta since last update at full precision, with
+				// the combined sensitivity × acceleration curve.
+				let rawDX = currentTranslation.x - lastPanTranslation.x
+				let rawDY = currentTranslation.y - lastPanTranslation.y
+				let scale = effectiveDeltaScale(rawDX: rawDX, rawDY: rawDY)
+				let preciseDX = rawDX * scale
+				let preciseDY = rawDY * scale
 
 				lastPanTranslation = currentTranslation
 
@@ -1333,6 +1354,8 @@ extension ParsecViewController {
 			tapKey(modifierKey: "LALT", normalKey: "SPACE")
 		case .altShift:
 			tapModifierChord(firstModifier: "LALT", secondModifier: "SHIFT")
+		case .ctrlShift:
+			tapModifierChord(firstModifier: "CONTROL", secondModifier: "SHIFT")
 		}
 	}
 

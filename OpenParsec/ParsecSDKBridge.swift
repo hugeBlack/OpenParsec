@@ -32,6 +32,7 @@ enum LayoutSyncHotkey: Int, CaseIterable
     case cmdSpace = 2
     case altSpace = 3
     case altShift = 4
+    case ctrlShift = 5  // ⌃⇧ — another common macOS layout-toggle binding
 }
 
 enum RightClickPosition: Int

@@ -125,6 +125,12 @@ struct SettingsView:View
 									.frame(width: 200)
 								Text(String(format: "%.1f", mouseSensitivity))
 							}
+							CatItem("Mouse Acceleration")
+							{
+								Slider(value: $mouseAcceleration, in:0...1.5, step:0.05)
+									.frame(width: 200)
+								Text(String(format: "%.2f", mouseAcceleration))
+							}
 							CatItem("Scroll Sensitivity")
 							{
 								Slider(value: $scrollSensitivity, in:0.1...4, step:0.1)
@@ -161,6 +167,7 @@ struct SettingsView:View
                                 MultiPicker(selection:$layoutSyncHotkey, options:
                                 [
                                     Choice("⌃ + Space (macOS default)", LayoutSyncHotkey.ctrlSpace),
+                                    Choice("⌃ + ⇧ (macOS alt)", LayoutSyncHotkey.ctrlShift),
                                     Choice("⌘ + Space", LayoutSyncHotkey.cmdSpace),
                                     Choice("⌥ + Space", LayoutSyncHotkey.altSpace),
                                     Choice("Alt + Shift (Windows)", LayoutSyncHotkey.altShift),
