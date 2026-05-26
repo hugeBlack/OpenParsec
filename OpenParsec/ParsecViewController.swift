@@ -722,10 +722,15 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			let now = CACurrentMediaTime()
 			if lastScrollChangeTime > 0 {
 				let dt = now - lastScrollChangeTime
-				// If there's been a long pause since the last .changed (>200 ms,
-				// e.g. user paused mid-scroll), forget the peak so the new
-				// segment doesn't inherit yesterday's velocity for its inertia.
-				if dt > 0.2 {
+				// iPadOS sends a deceleration tail of `.changed` events after
+				// the user lifts their fingers, and those events arrive
+				// further apart as the deceleration fades. The previous
+				// 0.2 s peak-reset was hitting during that tail and zeroing
+				// the peak right before `.ended` fired — that's why inertia
+				// silently didn't trigger. Raised to 1.0 s, which is much
+				// longer than any natural same-gesture pause but still
+				// catches "scroll, idle, scroll" patterns.
+				if dt > 1.0 {
 					peakScrollVelocityX = 0
 					peakScrollVelocityY = 0
 				}
@@ -755,9 +760,10 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 		case .ended:
 			lastScrollTranslation = .zero
 			// Use peak velocity from .changed phase (not recognizer.velocity at
-			// .ended — that's already decayed by iPad). Only trigger if user
-			// scrolled fast enough to expect inertia.
-			let minSeedSpeed: CGFloat = 80
+			// .ended — that's already decayed by iPad). The previous 80 pts/s
+			// threshold rejected most natural-feel scrolls; lowered to 20 so
+			// even gentle drags still get a short inertia tail.
+			let minSeedSpeed: CGFloat = 20
 			if SettingsHandler.scrollMomentum,
 			   abs(peakScrollVelocityX) > minSeedSpeed || abs(peakScrollVelocityY) > minSeedSpeed {
 				momentumVelocityX = Float(peakScrollVelocityX) / 60.0 * sensitivity * direction
@@ -1505,17 +1511,19 @@ final class LanguageSyncCoordinator {
 
 	private func handleChange(note: Notification) {
 		let lang = currentLanguage(from: note)
-		// First observed value (could be the async seed not having fired yet)
-		// — just store, don't fire the hotkey.
-		if !hasSeenInitialLanguage {
-			hasSeenInitialLanguage = true
-			lastLanguage = lang
-			return
-		}
+		// On user reports the previous initial-seed + 150 ms debounce gates
+		// were swallowing legitimate hotkey fires (the very first iPad layout
+		// switch after a session start in particular). Loosened: only skip if
+		// the language string actually hasn't changed. A stray duplicate
+		// Ctrl+Space at session start is harmless; missing every real switch
+		// is not.
 		guard lang != lastLanguage else { return }
 		lastLanguage = lang
+		hasSeenInitialLanguage = true
+		// Short debounce ONLY to coalesce iPadOS double-notification glitches
+		// — 50 ms is well under any human switching cadence.
 		let now = CACurrentMediaTime()
-		guard now - lastHotkeyAt > 0.15 else { return }
+		guard now - lastHotkeyAt > 0.05 else { return }
 		lastHotkeyAt = now
 		onLanguageChange?(lang)
 	}
