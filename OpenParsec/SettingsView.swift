@@ -15,8 +15,6 @@ struct SettingsView:View
 	@AppStorage("localCursorOverlay") var localCursorOverlay: Bool = false
 	@AppStorage("scrollSensitivity") var scrollSensitivity: Double = 1.0
 	@AppStorage("naturalScrolling") var naturalScrolling: Bool = true
-	@AppStorage("scrollMomentum") var scrollMomentum: Bool = true
-	@AppStorage("scrollMomentumStrength") var scrollMomentumStrength: Double = 0.5
 	@AppStorage("captureSystemKeys") var captureSystemKeys: Bool = true
 	@AppStorage("windowsHostKeyboardRemap") var windowsHostKeyboardRemap: Bool = false
 	@AppStorage("noOverlay") var noOverlay: Bool = false
@@ -144,17 +142,6 @@ struct SettingsView:View
 							{
 								Toggle("", isOn:$naturalScrolling)
 									.frame(width:80)
-							}
-							CatItem("Scroll Inertia")
-							{
-								Toggle("", isOn:$scrollMomentum)
-									.frame(width:80)
-							}
-							CatItem("Inertia Strength")
-							{
-								Slider(value: $scrollMomentumStrength, in:0...1, step:0.05)
-									.frame(width: 200)
-								Text(String(format: "%.2f", scrollMomentumStrength))
 							}
                         }
                         CatTitle("Keyboard")

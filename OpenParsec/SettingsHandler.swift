@@ -23,13 +23,9 @@ struct SettingsHandler {
 	// call "natural scrolling" — swipe down moves content down. Flip to false
 	// if you want classic mouse-wheel direction.
 	@AppStorage("naturalScrolling") public static var naturalScrolling: Bool = true
-	// Inertia after the finger leaves the trackpad: CADisplayLink keeps
-	// firing wheel messages with exponential decay, so scrolls don't stop
-	// dead the moment you let go.
-	@AppStorage("scrollMomentum") public static var scrollMomentum: Bool = true
-	// 0.0 ≈ ~150 ms of glide; 1.0 ≈ ~2 s of long glide. Linear mapping into
-	// a per-frame decay multiplier in startScrollMomentum.
-	@AppStorage("scrollMomentumStrength") public static var scrollMomentumStrength: Double = 0.5
+	// S03: client-side scroll inertia was removed (iPadOS provides native
+	// scroll-deceleration events; the client tail double-applied them). The
+	// scrollMomentum / scrollMomentumStrength settings are gone with it.
 	// Best-effort iPadOS system-shortcut capture via UIKeyCommand registry
 	// with .wantsPriorityOverSystemBehavior (iOS 15+). Catches Cmd+letter
 	// combinations the iPad shell would otherwise eat. Cmd+Space, Cmd+H,
