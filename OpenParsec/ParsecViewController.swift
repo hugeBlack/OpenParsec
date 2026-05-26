@@ -431,13 +431,22 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	// (see viewDidLoad), so those touches reach this override unobstructed.
 	override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
 		super.touchesBegan(touches, with: event)
-		// Any new touch (finger, pencil, trackpad click) cancels inertial
-		// scrolling — matches native iOS UIScrollView behaviour.
-		stopScrollMomentum()
-		for touch in touches where touch.type == .indirectPointer {
-			accumulatedDeltaX = 0.0
-			accumulatedDeltaY = 0.0
-			break
+		// Only direct finger / pencil touches should kill scroll inertia —
+		// .indirectPointer touches (trackpad cursor crossing a region, palm
+		// rest, etc.) would otherwise cancel momentum mid-glide for no
+		// user-visible reason.
+		var killMomentum = false
+		for touch in touches {
+			if touch.type == .direct || touch.type == .pencil {
+				killMomentum = true
+			}
+			if touch.type == .indirectPointer {
+				accumulatedDeltaX = 0.0
+				accumulatedDeltaY = 0.0
+			}
+		}
+		if killMomentum {
+			stopScrollMomentum()
 		}
 	}
 
@@ -806,12 +815,19 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 		}
 	}
 
-	// Inertia tail. Per-frame decay multiplier is mapped linearly from the
-	// user's "Inertia Strength" setting: 0 → 0.80 (snappy, ~150 ms), 1 → 0.98
-	// (long glide, ~2 s).
+	// Inertia tail. iPadOS hands us its own deceleration before `.ended`
+	// fires, so by the time we seed momentum the peak has already been
+	// partly converted into wheel ticks during `.changed`. The 0.5 pts/frame
+	// stop floor we used to have killed any seed under ~5 frames of glide —
+	// that's why "no inertia at all" was the dominant feedback even with
+	// the toggle on. Floor lowered to 0.05, decay range widened so the
+	// "Inertia Strength" slider has a clearly distinguishable bottom
+	// (snappy, ~10 frames) and top (long glide, multi-second).
+	private static let momentumStopThreshold: Float = 0.05
+
 	private func startScrollMomentum() {
-		let threshold: Float = 0.5
-		if abs(momentumVelocityX) < threshold && abs(momentumVelocityY) < threshold {
+		if abs(momentumVelocityX) < Self.momentumStopThreshold &&
+		   abs(momentumVelocityY) < Self.momentumStopThreshold {
 			return
 		}
 		stopScrollMomentum()
@@ -830,12 +846,14 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			accumulatedScrollX -= Float(intX)
 			accumulatedScrollY -= Float(intY)
 		}
+		// Decay map: strength 0 → 0.90 (snappy), strength 1 → 0.995 (long).
+		// Default strength 0.5 → 0.9475, ~30-frame half-life ≈ 500 ms.
 		let strength = Float(SettingsHandler.scrollMomentumStrength)
-		let decay: Float = 0.80 + 0.18 * strength
+		let decay: Float = 0.90 + 0.095 * strength
 		momentumVelocityX *= decay
 		momentumVelocityY *= decay
-		let threshold: Float = 0.5
-		if abs(momentumVelocityX) < threshold && abs(momentumVelocityY) < threshold {
+		if abs(momentumVelocityX) < Self.momentumStopThreshold &&
+		   abs(momentumVelocityY) < Self.momentumStopThreshold {
 			stopScrollMomentum()
 		}
 	}
