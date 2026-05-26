@@ -1,6 +1,7 @@
 import ParsecSDK
 import MetalKit
 import UIKit
+import os
 
 enum RendererType: Int
 {
@@ -73,14 +74,50 @@ class ParsecSDKBridge: ParsecService
 	// changeResolution), every send* method below early-returns so we don't
 	// fire ParsecClientSendMessage into a disconnected client.
 	var backgroundTaskRunning = true
+	// C3 fix: monotonic token bumped on every startBackgroundTask(). Each poll
+	// loop captures the value at spawn and exits the instant the token moves,
+	// so a fast disconnect→reconnect (which the 0.02 s drain in disconnect()
+	// can't guarantee has fully drained) cannot leave two generations of
+	// audio/event loops running against one client and double-polling
+	// ParsecGetBuffer / ParsecFree.
+	private var pollGeneration: Int = 0
 	var didSetResolution = false
 	// Restored once per session in handleUserDataEvent case 12 so display
 	// hot-plug / sleep-wake echoes don't keep re-firing updateHostVideoConfig
 	// and causing momentary re-encode flicker.
 	var didRestoreSavedDisplay = false
 	
-	public var mouseInfo = MouseInfo()
-	
+	// C1 fix: `mouseInfo` is written on the poll thread (handleCursorEvent),
+	// on the input paths (sendMousePosition / setFrame), and read on the main
+	// thread (updateImage). It holds a `CGImage?` (`cursorImg`) — an ARC
+	// reference. A struct copy in the getter retains `cursorImg` while a
+	// concurrent write releases it; that non-atomic retain/release races and
+	// over-releases the CGImage → use-after-free crash that fires constantly
+	// during cursor motion. All access now goes through `os_unfair_lock`:
+	// readers take an atomic snapshot via the `mouseInfo` getter, writers
+	// mutate under the same lock via `withMouseInfo`.
+	private var _mouseInfo = MouseInfo()
+	private var mouseInfoLock = os_unfair_lock_s()
+
+	// Atomic snapshot for cross-thread readers. Returns a consistent copy of
+	// the whole struct under the lock so `cursorImg`'s retain happens while no
+	// writer can release it.
+	var mouseInfo: MouseInfo {
+		os_unfair_lock_lock(&mouseInfoLock)
+		defer { os_unfair_lock_unlock(&mouseInfoLock) }
+		return _mouseInfo
+	}
+
+	// Serialize every mutation under the same lock the snapshot getter uses.
+	// Keep the body short — never do heavy work (e.g. CGImage construction)
+	// while holding the lock; build first, then assign inside.
+	@discardableResult
+	private func withMouseInfo<T>(_ body: (inout MouseInfo) -> T) -> T {
+		os_unfair_lock_lock(&mouseInfoLock)
+		defer { os_unfair_lock_unlock(&mouseInfoLock) }
+		return body(&_mouseInfo)
+	}
+
 	init() {
 		print("Parsec SDK Version: " + String(ParsecSDKBridge.PARSEC_VER))
 		
@@ -203,8 +240,10 @@ class ParsecSDKBridge: ParsecService
 		
 		clientWidth = Float(width)
 		clientHeight = Float(height)
-		mouseInfo.mouseX = Int32(width / 2)
-		mouseInfo.mouseY = Int32(height / 2)
+		withMouseInfo {
+			$0.mouseX = Int32(width / 2)
+			$0.mouseY = Int32(height / 2)
+		}
 	}
 	
 	// timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
@@ -313,41 +352,49 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func handleCursorEvent(event: ParsecClientCursorEvent) {
-		let prevHidden = mouseInfo.cursorHidden
-		mouseInfo.cursorHidden = event.cursor.hidden
-		mouseInfo.mousePositionRelative = event.cursor.relative
-		
-		if event.cursor.imageUpdate || !getFirstCursor{
-			getFirstCursor = true
-			let imgKey = event.key
-			let pointer = ParsecGetBuffer(_parsec, imgKey)
-			if pointer == nil{
-				return
-			}
-			let size = event.cursor.size
-			let width = event.cursor.width
-			let height = event.cursor.height
-			mouseInfo.cursorWidth = Int(width)
-			mouseInfo.cursorHeight = Int(height)
-			
+		// hidden / relative always track the latest event; capture the prior
+		// hidden state in the same locked section to decide the reposition.
+		let prevHidden = withMouseInfo { info -> Bool in
+			let prev = info.cursorHidden
+			info.cursorHidden = event.cursor.hidden
+			info.mousePositionRelative = event.cursor.relative
+			return prev
+		}
+
+		guard event.cursor.imageUpdate || !getFirstCursor else { return }
+		getFirstCursor = true
+
+		let pointer = ParsecGetBuffer(_parsec, event.key)
+		if pointer == nil {
+			return
+		}
+
+		let size = event.cursor.size
+		let width = event.cursor.width
+		let height = event.cursor.height
+
+		// Build the CGImage BEFORE taking the lock — image construction is the
+		// expensive part and must not run while the snapshot getter is blocked.
+		let elmentLength: Int = 4
+		let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
+		let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
+		let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
+		let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: pointer, length: Int(size)))
+		let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
+		ParsecFree(pointer)
+
+		withMouseInfo { info in
+			info.cursorWidth = Int(width)
+			info.cursorHeight = Int(height)
 			if prevHidden && !event.cursor.hidden {
-				mouseInfo.mouseX = Int32(event.cursor.positionX)
-				mouseInfo.mouseY = Int32(event.cursor.positionY)
+				info.mouseX = Int32(event.cursor.positionX)
+				info.mouseY = Int32(event.cursor.positionY)
 			}
-			
-			mouseInfo.cursorHotX = Int(event.cursor.hotX)
-			mouseInfo.cursorHotY = Int(event.cursor.hotY)
-			
-			let elmentLength: Int = 4
-			let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
-			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-			let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
-			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: pointer, length: Int(size)))
-			let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
-			if cgimage != nil {
-				mouseInfo.cursorImg = cgimage
+			info.cursorHotX = Int(event.cursor.hotX)
+			info.cursorHotY = Int(event.cursor.hotY)
+			if let cgimage = cgimage {
+				info.cursorImg = cgimage
 			}
-			ParsecFree(pointer)
 		}
 	}
 	
@@ -414,10 +461,13 @@ class ParsecSDKBridge: ParsecService
 
 	func sendMouseDelta(_ dx: Int32, _ dy: Int32) {
 		guard backgroundTaskRunning else { return }
-		if mouseInfo.mousePositionRelative {
+		// One atomic snapshot, then act on it — avoids two separate locked
+		// reads racing a concurrent position write.
+		let info = mouseInfo
+		if info.mousePositionRelative {
 			sendMouseRelativeMove(dx, dy)
 		} else {
-			sendMousePosition(mouseInfo.mouseX + dx, mouseInfo.mouseY + dy)
+			sendMousePosition(info.mouseX + dx, info.mouseY + dy)
 		}
 
 	}
@@ -446,8 +496,12 @@ class ParsecSDKBridge: ParsecService
 	func sendMousePosition(_ x:Int32, _ y:Int32)
 	{
 		guard backgroundTaskRunning else { return }
-		mouseInfo.mouseX = ParsecSDKBridge.clamp(x, minValue: 0, maxValue: Int32(self.clientWidth))
-		mouseInfo.mouseY = ParsecSDKBridge.clamp(y, minValue: 0, maxValue: Int32(self.clientHeight))
+		let cx = ParsecSDKBridge.clamp(x, minValue: 0, maxValue: Int32(self.clientWidth))
+		let cy = ParsecSDKBridge.clamp(y, minValue: 0, maxValue: Int32(self.clientHeight))
+		withMouseInfo {
+			$0.mouseX = cx
+			$0.mouseY = cy
+		}
 		var motionMessage = ParsecMessage()
 		motionMessage.type = MESSAGE_MOUSE_MOTION
 		motionMessage.mouseMotion.x = x
@@ -623,14 +677,19 @@ class ParsecSDKBridge: ParsecService
 			: SettingsHandler.preferredFramesPerSecond
 		let pollTimeout = UInt32(max(1000 / fps, 8))
 
+		// Advance the generation and capture it for this pair of loops. Any
+		// previously-spawned loop sees the bumped value and exits.
+		pollGeneration &+= 1
+		let generation = pollGeneration
+
 		let item1 = DispatchWorkItem {
-			while self.backgroundTaskRunning {
+			while self.backgroundTaskRunning && self.pollGeneration == generation {
 				self.pollAudio(timeout: pollTimeout)
 			}
 		}
 
 		let item2 = DispatchWorkItem {
-			while self.backgroundTaskRunning {
+			while self.backgroundTaskRunning && self.pollGeneration == generation {
 				self.pollEvent(timeout: pollTimeout)
 			}
 		}

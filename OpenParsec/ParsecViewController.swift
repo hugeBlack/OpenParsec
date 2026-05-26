@@ -7,6 +7,10 @@ protocol ParsecPlayground {
 	init(viewController: UIViewController, updateImage: @escaping () -> Void)
 	func viewDidLoad()
 	func cleanUp()
+	// Idempotent render resume — re-currents the GL context and unpauses the
+	// render loop. Called on screen return / app foreground to recover from a
+	// paused or stale-drawable state (the black-screen-on-return bug).
+	func resume()
 	func updateSize(width: CGFloat, height: CGFloat)
 }
 
@@ -107,11 +111,15 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	}
 
 	func updateImage() {
-        // Optimization: Snap current valus
-        let currentMouseX = CParsec.mouseInfo.mouseX
-        let currentMouseY = CParsec.mouseInfo.mouseY
-        let currentHidden = CParsec.mouseInfo.cursorHidden
-        let currentImg = CParsec.mouseInfo.cursorImg
+        // Take ONE atomic snapshot of the cross-thread mouse state. Re-reading
+        // CParsec.mouseInfo per field would each lock-and-copy separately and
+        // could tear across a concurrent poll-thread write; the snapshot also
+        // pins cursorImg's lifetime for the whole frame (C1 fix).
+        let info = CParsec.mouseInfo
+        let currentMouseX = info.mouseX
+        let currentMouseY = info.mouseY
+        let currentHidden = info.cursorHidden
+        let currentImg = info.cursorImg
 
         // Toggle host vs local cursor visibility from the same place so they
         // stay mutually exclusive without scattered if-statements.
@@ -146,10 +154,10 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 			}
 
             // Using tracked values for bounds
-			u?.frame = CGRect(x: Int(currentMouseX) - Int(Double(CParsec.mouseInfo.cursorHotX) * SettingsHandler.cursorScale),
-							  y: Int(currentMouseY) - Int(Double(CParsec.mouseInfo.cursorHotY) * SettingsHandler.cursorScale),
-							  width: Int(Double(CParsec.mouseInfo.cursorWidth) * SettingsHandler.cursorScale),
-							  height: Int(Double(CParsec.mouseInfo.cursorHeight) * SettingsHandler.cursorScale))
+			u?.frame = CGRect(x: Int(currentMouseX) - Int(Double(info.cursorHotX) * SettingsHandler.cursorScale),
+							  y: Int(currentMouseY) - Int(Double(info.cursorHotY) * SettingsHandler.cursorScale),
+							  width: Int(Double(info.cursorWidth) * SettingsHandler.cursorScale),
+							  height: Int(Double(info.cursorHeight) * SettingsHandler.cursorScale))
             
 			// Check bounds and pan if needed
 			// Only pan if we are zoomed in OR if the keyboard is visible (to allow scrolling up)
@@ -369,7 +377,14 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 			name: UIResponder.keyboardWillHideNotification,
 			object: nil
 		)
-		
+
+		NotificationCenter.default.addObserver(
+			self,
+			selector: #selector(appWillEnterForeground),
+			name: UIApplication.willEnterForegroundNotification,
+			object: nil
+		)
+
 	}
 	
 	override func viewDidLayoutSubviews() {
@@ -416,6 +431,17 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		}
 		scrollView.pinchGestureRecognizer?.isEnabled = zoomEnabled
 		startLanguageSyncIfNeeded()
+		// Recover the render loop on any return to this screen (SwiftUI
+		// re-render, PiP exit, interrupted resolution change). Without this
+		// a left-over isPaused == true keeps the surface frozen/black.
+		glkView?.resume()
+	}
+
+	@objc private func appWillEnterForeground() {
+		// Background→foreground invalidates GL drawable currency; re-current
+		// the context and unpause so the next frame renders instead of going
+		// black. Scene plumbing doesn't reach this VC, so observe directly.
+		glkView?.resume()
 	}
 	
 	override func viewWillDisappear(_ animated: Bool) {

@@ -213,14 +213,22 @@ void audio_destroy(struct audio **ctx_out)
         if (ctx->audio_buf[x])
             AudioQueueFreeBuffer(ctx->q, ctx->audio_buf[x]);
     }
-    
+
+    // C5 fix: free the shared silence buffer while the queue is still alive
+    // and BEFORE freeing ctx. The old order was free(ctx) -> *ctx_out = NULL
+    // -> AudioQueueFreeBuffer(ctx->q, ...), which dereferenced the just-freed
+    // ctx (use-after-free) and freed the buffer on an already-disposed queue.
+    if (ctx->q && silence_buf) {
+        AudioQueueFreeBuffer(ctx->q, silence_buf);
+        silence_buf = NULL;
+    }
+
     if (ctx->q)
         AudioQueueDispose(ctx->q, true);
 
     free(ctx);
     *ctx_out = NULL;
 	isStart = false;
-	AudioQueueFreeBuffer(ctx->q, silence_buf);
 	silence_inqueue = silence_outqueue = 0;
 }
 
