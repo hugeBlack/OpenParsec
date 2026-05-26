@@ -138,11 +138,15 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func disconnect() {
-		
+
 		audio_clear(&_audio)
 		ParsecClientDisconnect(_parsec)
 		backgroundTaskRunning = false
-		
+		// Reset so the next case-11 echo after a reconnect re-pushes our
+		// desired resolution instead of clobbering it with whatever the host
+		// happens to advertise.
+		didSetResolution = false
+
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
 	
@@ -239,6 +243,14 @@ class ParsecSDKBridge: ParsecService
 				let config = try decoder.decode(Array<ParsecDisplayConfig>.self, from: Data(bytesNoCopy: pointer!, count: strlen(pointer!), deallocator: .none))
 				DispatchQueue.main.async {
 					DataManager.model.displayConfigs = config
+					// If the user picked a display on a previous session and
+					// the host still has it, restore the selection silently.
+					let saved = SettingsHandler.savedDisplayOutput
+					if !saved.isEmpty, saved != "none",
+					   config.contains(where: { $0.id == saved }) {
+						DataManager.model.output = saved
+						self.updateHostVideoConfig()
+					}
 				}
 			} catch {
 				print("error while parsing user data: \(error.localizedDescription)")
@@ -298,15 +310,19 @@ class ParsecSDKBridge: ParsecService
 
 		var parsecClientCfg = ParsecClientConfig()
 
+		// Preserve the user's chosen resolution. The previous code hardcoded
+		// 0/0 (= "use host default"), which silently overwrote whatever
+		// connect() had set, making it look like the in-overlay Resolution
+		// picker did nothing.
 		parsecClientCfg.video.0.decoderIndex = 1
-		parsecClientCfg.video.0.resolutionX = 0
-		parsecClientCfg.video.0.resolutionY = 0
+		parsecClientCfg.video.0.resolutionX = Int32(SettingsHandler.resolution.width)
+		parsecClientCfg.video.0.resolutionY = Int32(SettingsHandler.resolution.height)
 		parsecClientCfg.video.0.decoderCompatibility = SettingsHandler.decoderCompatibility
 		parsecClientCfg.video.0.decoderH265 = SettingsHandler.decoder == .h265
 
 		parsecClientCfg.video.1.decoderIndex = 1
-		parsecClientCfg.video.1.resolutionX = 0
-		parsecClientCfg.video.1.resolutionY = 0
+		parsecClientCfg.video.1.resolutionX = Int32(SettingsHandler.resolution.width)
+		parsecClientCfg.video.1.resolutionY = Int32(SettingsHandler.resolution.height)
 		parsecClientCfg.video.1.decoderCompatibility = SettingsHandler.decoderCompatibility
 		parsecClientCfg.video.1.decoderH265 = SettingsHandler.decoder == .h265
 

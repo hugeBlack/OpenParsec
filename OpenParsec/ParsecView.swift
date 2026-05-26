@@ -471,11 +471,36 @@ struct ParsecView: View
 	}
 	
 	func changeResolution(res: ParsecResolution) {
-        SettingsHandler.resolution = res
+		SettingsHandler.resolution = res
 		DispatchQueue.main.async {
 			DataManager.model.resolutionX = res.width
 			DataManager.model.resolutionY = res.height
-			CParsec.updateHostVideoConfig()
+		}
+
+		// Parsec's host honours bitrate / FPS / output via setVideoConfig
+		// user-data, but NOT resolution — that field is only read at
+		// ParsecClientConnect time. To actually change the streaming
+		// resolution we have to disconnect + reconnect with the new
+		// ParsecClientConfig. If we don't have a peer to reconnect to
+		// (shouldn't happen mid-session), fall back to just pushing the
+		// user-data update.
+		guard let peerID = CParsec.lastConnectedPeerID else {
+			DispatchQueue.main.async {
+				CParsec.updateHostVideoConfig()
+			}
+			return
+		}
+
+		DispatchQueue.main.async {
+			self.parsecViewController.glkView.cleanUp()
+			CParsec.disconnect()
+		}
+		// Brief pause to let the SDK fully tear down before re-issuing
+		// ParsecClientConnect with the new resolution. 300 ms matches the
+		// debounce we already use elsewhere.
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+			_ = CParsec.connect(peerID)
+			CParsec.applyConfig()
 		}
 	}
 
@@ -515,6 +540,10 @@ struct ParsecView: View
 	func changeDisplay(displayId: String) {
 		DispatchQueue.main.async {
 			DataManager.model.output = displayId
+			// Persist so the next connect can auto-restore this choice once
+			// the host enumerates displays (user-data event 12). "none" is
+			// the "Auto" pseudo-id and isn't worth remembering.
+			SettingsHandler.savedDisplayOutput = (displayId == "none") ? "" : displayId
 			CParsec.updateHostVideoConfig()
 		}
 	}

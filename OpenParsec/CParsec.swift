@@ -185,6 +185,12 @@ class CParsec
 
 	static var parsecImpl: ParsecService!
 
+	// Remember the last peer we connected to so callers like changeResolution
+	// can disconnect + reconnect with new ParsecClientConfig (resolution can
+	// only be changed via a fresh ParsecClientConnect — the in-session
+	// setVideoConfig user-data event does not move resolution on the host).
+	public static var lastConnectedPeerID: String?
+
 	static func initialize()
 	{
 		parsecImpl = ParsecSDKBridge()
@@ -192,12 +198,13 @@ class CParsec
 
 	static func destroy()
 	{
-		
+
 	}
 
 	static func connect(_ peerID: String) -> ParsecStatus
 	{
-		parsecImpl.connect(peerID)
+		lastConnectedPeerID = peerID
+		return parsecImpl.connect(peerID)
 	}
 
 	static func disconnect()

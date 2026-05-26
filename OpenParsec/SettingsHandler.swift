@@ -45,5 +45,8 @@ struct SettingsHandler {
 	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false
 	@AppStorage("savedConstantFps") public static var savedConstantFps: Bool = false
 	@AppStorage("savedMuted") public static var savedMuted: Bool = false
+	// Remember which display the user picked last; restored on the next
+	// connect once the host enumerates its displays (user-data event 12).
+	@AppStorage("savedDisplayOutput") public static var savedDisplayOutput: String = ""
 
 }
