@@ -105,6 +105,17 @@ class ParsecSDKBridge: ParsecService
 	// host switch. -1 = unknown / not yet received.
 	var hostOSValue: Int = -1
 
+	// S06: monotonic token bumped per updateHostVideoConfig() so a superseded
+	// resend/echo-request from an earlier call drops instead of stacking timers
+	// and re-confirming a stale value. Plus the user-owned fields awaiting host
+	// confirmation: while set, a case-11 echo CONFIRMS (clears) on match but
+	// must never clobber the user's in-flight bitrate/fps selection with a
+	// stale echoed value — that was the "checkmark jumps back" bug. Touched on
+	// the main thread (all callers are main); the resend closures only read the
+	// token (benign plain-Int read, same pattern as backgroundTaskRunning).
+	private var configRevision: Int = 0
+	private var pendingUserConfig: (bitrate: Int, constantFps: Bool)? = nil
+
 	// Atomic snapshot for cross-thread readers. Returns a consistent copy of
 	// the whole struct under the lock so `cursorImg`'s retain happens while no
 	// writer can release it.
@@ -305,10 +316,23 @@ class ParsecSDKBridge: ParsecService
 				let videoConfig = config.video[0]
 
 				DispatchQueue.main.async {
+					// resolutionX/Y are host-authoritative — always adopt.
 					DataManager.model.resolutionX = videoConfig.resolutionX
 					DataManager.model.resolutionY = videoConfig.resolutionY
-					DataManager.model.bitrate = videoConfig.encoderMaxBitrate
-					DataManager.model.constantFps = videoConfig.fullFPS
+					// S06: bitrate/constantFps are user-owned. If a user change
+					// is in flight, the echo only CONFIRMS (clears pending on a
+					// match) — it must not overwrite the user's selection with a
+					// stale value, which made the menu checkmark jump back. With
+					// nothing pending, adopt the host's reported values.
+					if let pending = self.pendingUserConfig {
+						if videoConfig.encoderMaxBitrate == pending.bitrate
+							&& videoConfig.fullFPS == pending.constantFps {
+							self.pendingUserConfig = nil
+						}
+					} else {
+						DataManager.model.bitrate = videoConfig.encoderMaxBitrate
+						DataManager.model.constantFps = videoConfig.fullFPS
+					}
 					// S04: capture the host-OS int and log it once per session
 					// change so its undocumented encoding can be discovered
 					// against known Mac/Windows hosts.
@@ -721,6 +745,10 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func sendUserData(type: ParsecUserDataType, message: Data) {
+		// V2: the only send* method that was missing this gate — protects
+		// against a NULL deref inside ParsecClientSendUserData during the
+		// disconnect→reconnect gap, consistent with every other send path.
+		guard backgroundTaskRunning else { return }
         var nullTerminatedMessage = message
         nullTerminatedMessage.append(0)
 		nullTerminatedMessage.withUnsafeBytes { ptr in
@@ -738,22 +766,38 @@ class ParsecSDKBridge: ParsecService
 		videoConfig.video[0].output = DataManager.model.output
 		let encoder = JSONEncoder()
 		let data = try! encoder.encode(videoConfig)
+
+		// S06: bump the revision so any in-flight resend from a previous call
+		// drops, and record the user-owned fields so the case-11 echo confirms
+		// (rather than reverts) this selection.
+		configRevision &+= 1
+		let revision = configRevision
+		pendingUserConfig = (DataManager.model.bitrate, DataManager.model.constantFps)
+
 		CParsec.sendUserData(type: .setVideoConfig, message: data)
 		// User reports: display switches needed two or three taps to actually
 		// take effect. setVideoConfig is fire-and-forget; the host can drop
 		// the message if its encoder is in the middle of a reset triggered
 		// by a previous request. Re-send the same payload after 250 ms
-		// (idempotent — same output reapplied is a no-op on the host).
+		// (idempotent — same output reapplied is a no-op on the host), but only
+		// if this call is still the latest (a newer tap supersedes it).
 		// Then ask the host to echo back its current config so case-11
 		// confirms the switch landed.
 		DispatchQueue.global().asyncAfter(deadline: .now() + 0.25) { [weak self] in
-			guard let self = self, self.backgroundTaskRunning else { return }
+			guard let self = self, self.backgroundTaskRunning, self.configRevision == revision else { return }
 			CParsec.sendUserData(type: .setVideoConfig, message: data)
 		}
 		DispatchQueue.global().asyncAfter(deadline: .now() + 0.45) { [weak self] in
-			guard let self = self, self.backgroundTaskRunning else { return }
+			guard let self = self, self.backgroundTaskRunning, self.configRevision == revision else { return }
 			let empty = "".data(using: .utf8)!
 			CParsec.sendUserData(type: .getVideoConfig, message: empty)
+		}
+		// Self-heal: drop the pending guard after a confirmation window so a
+		// host that never echoes our exact value can't permanently block future
+		// echo adoption of bitrate/fps. Only clears if still the latest call.
+		DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+			guard let self = self, self.configRevision == revision else { return }
+			self.pendingUserConfig = nil
 		}
 	}
 }
