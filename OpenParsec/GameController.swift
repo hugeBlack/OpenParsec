@@ -91,8 +91,9 @@ class GamepadController {
 	func registerMouseHandler() {
 		for mouse in GCMouse.mice() {
 			mice.insert(mouse)
-			mouse.mouseInput?.leftButton.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
+			mouse.mouseInput?.leftButton.pressedChangedHandler = {[weak self] (input: GCControllerButtonInput, v: Float, pressed: Bool) in
 				CParsec.sendMouseClickMessage(MOUSE_L, pressed)
+				_ = self // keep reference path symmetrical
 				}
 			mouse.mouseInput?.rightButton?.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
 				CParsec.sendMouseClickMessage(MOUSE_R, pressed)
@@ -100,14 +101,32 @@ class GamepadController {
 			mouse.mouseInput?.middleButton?.pressedChangedHandler = {(input: GCControllerButtonInput, v: Float, pressed: Bool) in
 				CParsec.sendMouseClickMessage(MOUSE_MIDDLE, pressed)
 				}
-			mouse.mouseInput?.mouseMovedHandler={(input: GCMouseInput, v: Float, v2: Float) in
-				CParsec.sendMouseDelta(Int32(v/1.25 * Float(SettingsHandler.mouseSensitivity)), Int32(-v2/1.25 * Float(SettingsHandler.mouseSensitivity)))
+			mouse.mouseInput?.mouseMovedHandler = {[weak self] (input: GCMouseInput, v: Float, v2: Float) in
+				let sens = Float(SettingsHandler.mouseSensitivity)
+				let dx = v / 1.25 * sens
+				let dy = -v2 / 1.25 * sens  // GCMouse Y is inverted vs screen
+				CParsec.sendMouseDelta(Int32(dx), Int32(dy))
+				// Also drive the local cursor overlay — without this, plugging
+				// an external mouse would freeze the overlay at its last spot
+				// while the host cursor moved elsewhere (effectively "no
+				// cursor on the iPad screen").
+				if let vc = self?.viewController as? ParsecViewController {
+					vc.moveLocalCursor(byX: CGFloat(dx), y: CGFloat(dy))
 				}
+			}
+			// Scroll wheel: yAxis = vertical (send as y), xAxis = horizontal
+			// (send as x). Previously these were swapped — pre-existing bug.
+			// Also apply naturalScrolling + scrollSensitivity so the wheel
+			// matches the trackpad's direction setting.
 			mouse.mouseInput?.scroll.yAxis.valueChangedHandler = {(axis: GCControllerAxisInput, value: Float) in
-				CParsec.sendWheelMsg(x: Int32(value), y: 0)
+				let dir: Float = SettingsHandler.naturalScrolling ? 1.0 : -1.0
+				let sens = Float(SettingsHandler.scrollSensitivity)
+				CParsec.sendWheelMsg(x: 0, y: Int32(value * sens * dir))
 			}
 			mouse.mouseInput?.scroll.xAxis.valueChangedHandler = {(axis: GCControllerAxisInput, value: Float) in
-				CParsec.sendWheelMsg(x: 0, y: Int32(value))
+				let dir: Float = SettingsHandler.naturalScrolling ? 1.0 : -1.0
+				let sens = Float(SettingsHandler.scrollSensitivity)
+				CParsec.sendWheelMsg(x: Int32(value * sens * dir), y: 0)
 			}
 		}
 	}
