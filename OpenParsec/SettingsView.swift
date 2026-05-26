@@ -152,11 +152,11 @@ struct SettingsView:View
                             {
                                 MultiPicker(selection:$layoutSyncHotkey, options:
                                 [
-                                    Choice("Off", LayoutSyncHotkey.none),
-                                    Choice("Ctrl + Space", LayoutSyncHotkey.ctrlSpace),
-                                    Choice("Cmd + Space", LayoutSyncHotkey.cmdSpace),
-                                    Choice("Alt + Space", LayoutSyncHotkey.altSpace),
-                                    Choice("Alt + Shift", LayoutSyncHotkey.altShift)
+                                    Choice("⌃ + Space (macOS default)", LayoutSyncHotkey.ctrlSpace),
+                                    Choice("⌘ + Space", LayoutSyncHotkey.cmdSpace),
+                                    Choice("⌥ + Space", LayoutSyncHotkey.altSpace),
+                                    Choice("Alt + Shift (Windows)", LayoutSyncHotkey.altShift),
+                                    Choice("Off", LayoutSyncHotkey.none)
                                 ])
                             }
                             CatItem("Capture System Shortcuts")

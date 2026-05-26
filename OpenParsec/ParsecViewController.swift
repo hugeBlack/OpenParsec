@@ -41,6 +41,16 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var momentumVelocityX: Float = 0.0
 	var momentumVelocityY: Float = 0.0
 
+	// iPad's trackpad already applies its own short deceleration to scroll
+	// events while reporting them; by the time `.ended` fires, the gesture
+	// recognizer's `velocity(in:)` is near zero. To produce a noticeable
+	// macOS-style inertia tail we sample translation deltas during `.changed`
+	// and remember the PEAK velocity to seed the inertia at `.ended`.
+	private var lastScrollChangeTime: CFTimeInterval = 0
+	private var lastScrollChangeTranslation: CGPoint = .zero
+	private var peakScrollVelocityX: CGFloat = 0
+	private var peakScrollVelocityY: CGFloat = 0
+
 	// Layout sync — fires a hotkey at the host when the iPad's hardware-keyboard
 	// input language changes (e.g. Caps Lock toggle on Magic Keyboard).
 	var languageSync: LanguageSyncCoordinator?
@@ -569,10 +579,30 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			lastScrollTranslation = .zero
 			accumulatedScrollX = 0.0
 			accumulatedScrollY = 0.0
+			lastScrollChangeTime = 0
+			peakScrollVelocityX = 0
+			peakScrollVelocityY = 0
 		case .changed:
 			let translation = gestureRecognizer.translation(in: gestureRecognizer.view)
 			let deltaX = Float(translation.x - lastScrollTranslation.x) * sensitivity * direction
 			let deltaY = Float(translation.y - lastScrollTranslation.y) * sensitivity * direction
+
+			// Sample peak velocity for inertia seeding. We can't trust
+			// gestureRecognizer.velocity(in:) at `.ended` because iPad already
+			// applies its own deceleration — by then velocity is near zero.
+			let now = CACurrentMediaTime()
+			if lastScrollChangeTime > 0 {
+				let dt = now - lastScrollChangeTime
+				if dt > 0.001 {
+					let vX = (translation.x - lastScrollChangeTranslation.x) / CGFloat(dt)
+					let vY = (translation.y - lastScrollChangeTranslation.y) / CGFloat(dt)
+					if abs(vX) > abs(peakScrollVelocityX) { peakScrollVelocityX = vX }
+					if abs(vY) > abs(peakScrollVelocityY) { peakScrollVelocityY = vY }
+				}
+			}
+			lastScrollChangeTime = now
+			lastScrollChangeTranslation = translation
+
 			lastScrollTranslation = translation
 			accumulatedScrollX += deltaX
 			accumulatedScrollY += deltaY
@@ -585,17 +615,26 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			}
 		case .ended:
 			lastScrollTranslation = .zero
-			if SettingsHandler.scrollMomentum {
-				// velocity(in:) is in points/sec; convert to points/frame at 60 Hz.
-				let velocity = gestureRecognizer.velocity(in: gestureRecognizer.view)
-				momentumVelocityX = Float(velocity.x) / 60.0 * sensitivity * direction
-				momentumVelocityY = Float(velocity.y) / 60.0 * sensitivity * direction
+			// Use peak velocity from .changed phase (not recognizer.velocity at
+			// .ended — that's already decayed by iPad). Only trigger if user
+			// scrolled fast enough to expect inertia.
+			let minSeedSpeed: CGFloat = 80
+			if SettingsHandler.scrollMomentum,
+			   abs(peakScrollVelocityX) > minSeedSpeed || abs(peakScrollVelocityY) > minSeedSpeed {
+				momentumVelocityX = Float(peakScrollVelocityX) / 60.0 * sensitivity * direction
+				momentumVelocityY = Float(peakScrollVelocityY) / 60.0 * sensitivity * direction
 				startScrollMomentum()
 			}
+			lastScrollChangeTime = 0
+			peakScrollVelocityX = 0
+			peakScrollVelocityY = 0
 		case .cancelled, .failed:
 			lastScrollTranslation = .zero
 			accumulatedScrollX = 0.0
 			accumulatedScrollY = 0.0
+			lastScrollChangeTime = 0
+			peakScrollVelocityX = 0
+			peakScrollVelocityY = 0
 		default:
 			break
 		}
@@ -1166,12 +1205,35 @@ final class LanguageSyncTextField: UITextField {
 
 	// Returning an empty UIView for inputView suppresses the on-screen keyboard
 	// while the field is first responder, even without a connected hardware
-	// keyboard. Returning the field's existing inputAccessoryView (none) keeps
-	// the accessory chrome empty too.
+	// keyboard.
 	private let _emptyInputView = UIView()
 	override var inputView: UIView? {
 		get { return _emptyInputView }
 		set { /* ignore — we want the soft kb suppressed unconditionally */ }
+	}
+
+	// Critical: when this hidden field is first responder, iOS walks the
+	// responder chain looking for an inputAccessoryView. The chain leads up
+	// to ParsecViewController, which provides the OpenParsec keyboard
+	// toolbar (⌘ ⌃ ⌥ ⇧ F1-F12 etc.). Result: the toolbar would appear on
+	// every connection without any user action. Returning our own non-nil
+	// (empty) accessory view halts the chain walk and keeps the toolbar
+	// hidden until the user explicitly invokes showKeyboard().
+	private let _emptyAccessoryView = UIView(frame: .zero)
+	override var inputAccessoryView: UIView? {
+		return _emptyAccessoryView
+	}
+
+	override init(frame: CGRect) {
+		super.init(frame: frame)
+		// Suppress the iPad shortcuts bar (predictive text / cut/copy/paste
+		// chevrons that hardware-keyboard text fields show by default).
+		inputAssistantItem.leadingBarButtonGroups = []
+		inputAssistantItem.trailingBarButtonGroups = []
+	}
+
+	required init?(coder: NSCoder) {
+		fatalError("init(coder:) has not been implemented")
 	}
 
 	// By NOT calling super, we prevent UITextField's legacy text-input path
