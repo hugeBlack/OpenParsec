@@ -19,8 +19,9 @@ struct SettingsView:View
 	@AppStorage("noOverlay") var noOverlay: Bool = false
 	@AppStorage("cursorScale") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
-	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
+	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 0 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
+	@AppStorage("lowLatencyMode") var lowLatencyMode: Bool = false
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
 	@AppStorage("syncKeyboardLayout") var syncKeyboardLayout: Bool = true
 	@AppStorage("layoutSyncHotkey") var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
@@ -203,6 +204,20 @@ struct SettingsView:View
 							{
 								Toggle("", isOn:$decoderCompatibility)
 									.frame(width:80)
+							}
+							CatItem("Low Latency Mode")
+							{
+								Toggle("", isOn:$lowLatencyMode)
+									.frame(width:80)
+									.onChange(of: lowLatencyMode) { newValue in
+										if newValue {
+											// Flip the most impactful knobs in one shot.
+											// Users can still override individually after.
+											preferredFramesPerSecond = 0
+											decoder = .h265
+											noOverlay = true
+										}
+									}
 							}
                         }
                         CatTitle("Misc")

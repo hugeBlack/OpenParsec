@@ -60,15 +60,23 @@ class ParsecSDKBridge: ParsecService
 	private let _audioPtr: UnsafeRawPointer
 	
 	private var isVirtualShiftOn = false
-	
+
 	public var clientWidth: Float = 1920
 	public var clientHeight: Float = 1080
-	
+
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
 	public var pngCursor: Bool = false
+	// Doubles as a gate for outgoing input messages: while false (between an
+	// explicit disconnect and the next connect, including the brief gap in
+	// changeResolution), every send* method below early-returns so we don't
+	// fire ParsecClientSendMessage into a disconnected client.
 	var backgroundTaskRunning = true
 	var didSetResolution = false
+	// Restored once per session in handleUserDataEvent case 12 so display
+	// hot-plug / sleep-wake echoes don't keep re-firing updateHostVideoConfig
+	// and causing momentary re-encode flicker.
+	var didRestoreSavedDisplay = false
 	
 	public var mouseInfo = MouseInfo()
 	
@@ -106,6 +114,14 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func connect(_ peerID: String) -> ParsecStatus {
+		// CRITICAL: disconnect() set this to false to drain the poll loops.
+		// If we don't flip it back to true here, the new poll loops spawned
+		// by startBackgroundTask() below will read false on their first
+		// iteration and exit immediately — leaving the session with no audio
+		// callbacks, no cursor updates, and no user-data events for the rest
+		// of its lifetime. Also acts as the "sending allowed" gate for input
+		// messages, so flip it before any input could possibly fire.
+		backgroundTaskRunning = true
 
 		var parsecClientCfg = ParsecClientConfig()
 		parsecClientCfg.video.0.decoderIndex = 1
@@ -146,6 +162,15 @@ class ParsecSDKBridge: ParsecService
 		// desired resolution instead of clobbering it with whatever the host
 		// happens to advertise.
 		didSetResolution = false
+		didRestoreSavedDisplay = false
+
+		// Give the two `while backgroundTaskRunning` loops in
+		// startBackgroundTask() one full poll-timeout to notice the flag
+		// flip and exit. Without this drain, a fast reconnect() can spawn
+		// fresh loops while the old ones are still inside ParsecClientPollAudio
+		// / ParsecClientPollEvents, briefly doubling the poll rate and
+		// causing audio glitches.
+		Thread.sleep(forTimeInterval: 0.02)
 
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
@@ -243,13 +268,19 @@ class ParsecSDKBridge: ParsecService
 				let config = try decoder.decode(Array<ParsecDisplayConfig>.self, from: Data(bytesNoCopy: pointer!, count: strlen(pointer!), deallocator: .none))
 				DispatchQueue.main.async {
 					DataManager.model.displayConfigs = config
-					// If the user picked a display on a previous session and
-					// the host still has it, restore the selection silently.
-					let saved = SettingsHandler.savedDisplayOutput
-					if !saved.isEmpty, saved != "none",
-					   config.contains(where: { $0.id == saved }) {
-						DataManager.model.output = saved
-						self.updateHostVideoConfig()
+					// Restore the saved display ONCE per session. The host
+					// can re-advertise its display list multiple times mid-
+					// stream (sleep/wake, display hot-plug); without this
+					// gate, every echo would re-fire updateHostVideoConfig
+					// and cause a brief re-encode flicker.
+					if !self.didRestoreSavedDisplay {
+						self.didRestoreSavedDisplay = true
+						let saved = SettingsHandler.savedDisplayOutput
+						if !saved.isEmpty, saved != "none",
+						   config.contains(where: { $0.id == saved }) {
+							DataManager.model.output = saved
+							self.updateHostVideoConfig()
+						}
 					}
 				}
 			} catch {
@@ -334,11 +365,18 @@ class ParsecSDKBridge: ParsecService
 		ParsecClientSetConfig(_parsec, &parsecClientCfg);
 	}
 	
+	// All outgoing-input methods gate on backgroundTaskRunning. False means
+	// we're between an explicit disconnect and the next connect (including
+	// the gap inside changeResolution's reconnect dance) — sending into a
+	// disconnected SDK is at best a wasted message and at worst a NULL deref
+	// inside ParsecClientSendMessage.
+
 	func sendMouseMessage(_ button:ParsecMouseButton, _ x:Int32, _ y:Int32, _ pressed: Bool)
 	{
+		guard backgroundTaskRunning else { return }
 		// Send the mouse position
 		sendMousePosition(x, y)
-		
+
 		// Send the mouse button state
 		var buttonMessage = ParsecMessage()
 		buttonMessage.type = MESSAGE_MOUSE_BUTTON
@@ -346,22 +384,24 @@ class ParsecSDKBridge: ParsecService
 		buttonMessage.mouseButton.pressed = pressed
 		ParsecClientSendMessage(_parsec, &buttonMessage)
 	}
-	
+
 	func sendMouseClickMessage(_ button:ParsecMouseButton, _ pressed: Bool) {
+		guard backgroundTaskRunning else { return }
 		var buttonMessage = ParsecMessage()
 		buttonMessage.type = MESSAGE_MOUSE_BUTTON
 		buttonMessage.mouseButton.button = button
 		buttonMessage.mouseButton.pressed = pressed
 		ParsecClientSendMessage(_parsec, &buttonMessage)
 	}
-	
+
 	func sendMouseDelta(_ dx: Int32, _ dy: Int32) {
+		guard backgroundTaskRunning else { return }
 		if mouseInfo.mousePositionRelative {
 			sendMouseRelativeMove(dx, dy)
 		} else {
 			sendMousePosition(mouseInfo.mouseX + dx, mouseInfo.mouseY + dy)
 		}
-		
+
 	}
 	static func clamp<T>(_ value: T, minValue: T, maxValue: T) -> T where T : Comparable {
 		return min(max(value, minValue), maxValue)
@@ -369,6 +409,7 @@ class ParsecSDKBridge: ParsecService
 	
 	func sendMousePosition(_ x:Int32, _ y:Int32)
 	{
+		guard backgroundTaskRunning else { return }
 		mouseInfo.mouseX = ParsecSDKBridge.clamp(x, minValue: 0, maxValue: Int32(self.clientWidth))
 		mouseInfo.mouseY = ParsecSDKBridge.clamp(y, minValue: 0, maxValue: Int32(self.clientHeight))
 		var motionMessage = ParsecMessage()
@@ -377,9 +418,10 @@ class ParsecSDKBridge: ParsecService
 		motionMessage.mouseMotion.y = y
 		ParsecClientSendMessage(_parsec, &motionMessage)
 	}
-	
+
 	func sendMouseRelativeMove(_ dx:Int32, _ dy:Int32)
 	{
+		guard backgroundTaskRunning else { return }
 		var motionMessage = ParsecMessage()
 		motionMessage.type = MESSAGE_MOUSE_MOTION
 		motionMessage.mouseMotion.x = dx
@@ -419,8 +461,9 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func sendVirtualKeyboardInput(text: String) {
+		guard backgroundTaskRunning else { return }
 		let (keyCode, useShift) = getKeyCodeByText(text: text)
-		
+
 		guard let keyCode else {
 			return
 		}
@@ -444,8 +487,9 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func sendVirtualKeyboardInput(text: String, isOn: Bool) {
+		guard backgroundTaskRunning else { return }
 		let (keyCode, _) = getKeyCodeByText(text: text)
-		
+
 		guard let keyCode else {
 			return
 		}
@@ -464,10 +508,11 @@ class ParsecSDKBridge: ParsecService
 
 	func sendKeyboardMessage(event:KeyBoardKeyEvent)
 	{
+		guard backgroundTaskRunning else { return }
 		if event.input == nil {
 			return
 		}
-		
+
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
@@ -477,6 +522,7 @@ class ParsecSDKBridge: ParsecService
 	
 	func sendGameControllerButtonMessage(controllerId: UInt32, _ button:ParsecGamepadButton, pressed: Bool)
 	{
+		guard backgroundTaskRunning else { return }
 		var pmsg = ParsecMessage()
 		pmsg.type = MESSAGE_GAMEPAD_BUTTON
 		pmsg.gamepadButton.id = controllerId
@@ -497,6 +543,7 @@ class ParsecSDKBridge: ParsecService
 	
 	func sendGameControllerAxisMessage(controllerId: UInt32, _ button:ParsecGamepadAxis, _ value: Int16)
 	{
+		guard backgroundTaskRunning else { return }
 	    var pmsg = ParsecMessage()
 		pmsg.type = MESSAGE_GAMEPAD_AXIS
 		pmsg.gamepadAxis.id = controllerId
@@ -507,6 +554,7 @@ class ParsecSDKBridge: ParsecService
 	
 	func sendGameControllerUnplugMessage(controllerId: UInt32)
 	{
+		guard backgroundTaskRunning else { return }
 	    var pmsg = ParsecMessage()
 		pmsg.type = MESSAGE_GAMEPAD_UNPLUG;
 		pmsg.gamepadUnplug.id = controllerId;
@@ -514,6 +562,7 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func sendWheelMsg(x: Int32, y: Int32) {
+		guard backgroundTaskRunning else { return }
 		var pmsg = ParsecMessage()
 		pmsg.type = MESSAGE_MOUSE_WHEEL;
 		pmsg.mouseWheel.x = x
@@ -522,26 +571,32 @@ class ParsecSDKBridge: ParsecService
 	}
 	
 	func startBackgroundTask(){
-	
-		
+		// Scale poll timeout to the configured render fps so the audio and
+		// event threads don't sit blocked inside the SDK longer than a
+		// frame budget. On 120 Hz iPads that's 8 ms; on 60 Hz, 16 ms.
+		let fps = SettingsHandler.preferredFramesPerSecond == 0
+			? UIScreen.main.maximumFramesPerSecond
+			: SettingsHandler.preferredFramesPerSecond
+		let pollTimeout = UInt32(max(1000 / fps, 8))
+
 		let item1 = DispatchWorkItem {
 			while self.backgroundTaskRunning {
-				self.pollAudio()
+				self.pollAudio(timeout: pollTimeout)
 			}
-			
 		}
 
 		let item2 = DispatchWorkItem {
 			while self.backgroundTaskRunning {
-				self.pollEvent()
-	
-				
+				self.pollEvent(timeout: pollTimeout)
 			}
-			
 		}
-		let mainQueue = DispatchQueue.global()
-		mainQueue.async(execute: item1)
-		mainQueue.async(execute: item2)
+		// .userInteractive is the right QoS for remote-desktop input/event
+		// dispatch — these threads gate audio callbacks and cursor updates.
+		// Previously used unspecified (.default) which sometimes coalesces
+		// under system load.
+		let pollQueue = DispatchQueue.global(qos: .userInteractive)
+		pollQueue.async(execute: item1)
+		pollQueue.async(execute: item2)
 	}
 	
 	func sendUserData(type: ParsecUserDataType, message: Data) {

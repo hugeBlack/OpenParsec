@@ -392,14 +392,39 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 				let cur = touch.preciseLocation(in: view)
 				accumulatedDeltaX += Float(cur.x - prev.x) * mouseSensitivity
 				accumulatedDeltaY += Float(cur.y - prev.y) * mouseSensitivity
-				let dx = Int32(accumulatedDeltaX)
-				let dy = Int32(accumulatedDeltaY)
+				// Round-half-away-from-zero (not Int32 truncation) so that
+				// sub-pixel ticks like 0.4 still emit a 1-pixel send. The
+				// truncation behaviour effectively coalesced events on slow
+				// drags or low sensitivity — perceived as "stickiness".
+				let dx = Int32(accumulatedDeltaX.rounded(.toNearestOrAwayFromZero))
+				let dy = Int32(accumulatedDeltaY.rounded(.toNearestOrAwayFromZero))
 				if dx != 0 || dy != 0 {
 					CParsec.sendMouseDelta(dx, dy)
 					accumulatedDeltaX -= Float(dx)
 					accumulatedDeltaY -= Float(dy)
 				}
 			}
+		}
+	}
+
+	// Cleared sub-pixel residue so the next gesture starts from zero. Without
+	// this the residue carries across strokes at low sensitivity and creates
+	// systematic drift.
+	override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesEnded(touches, with: event)
+		for touch in touches where touch.type == .indirectPointer {
+			accumulatedDeltaX = 0.0
+			accumulatedDeltaY = 0.0
+			break
+		}
+	}
+
+	override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+		super.touchesCancelled(touches, with: event)
+		for touch in touches where touch.type == .indirectPointer {
+			accumulatedDeltaX = 0.0
+			accumulatedDeltaY = 0.0
+			break
 		}
 	}
 
@@ -537,13 +562,14 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 
 				lastPanTranslation = currentTranslation
 
-				// Accumulate for sub-pixel precision
+				// Accumulate for sub-pixel precision, then round-half-away-
+				// from-zero so 0.4-px ticks still emit a 1-pixel message
+				// (Int32 truncation made slow drags feel sticky).
 				accumulatedDeltaX += deltaX
 				accumulatedDeltaY += deltaY
 
-				// Send movement when we have at least 1 pixel
-				let intDeltaX = Int32(accumulatedDeltaX)
-				let intDeltaY = Int32(accumulatedDeltaY)
+				let intDeltaX = Int32(accumulatedDeltaX.rounded(.toNearestOrAwayFromZero))
+				let intDeltaY = Int32(accumulatedDeltaY.rounded(.toNearestOrAwayFromZero))
 
 				if intDeltaX != 0 || intDeltaY != 0 {
 					CParsec.sendMouseDelta(intDeltaX, intDeltaY)
@@ -583,6 +609,13 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			peakScrollVelocityX = 0
 			peakScrollVelocityY = 0
 		case .changed:
+			// When the user is zoomed in, let UIScrollView's own pan handle
+			// the scroll locally — otherwise we'd both scroll the local view
+			// AND send wheel messages to the host (double-pan).
+			if scrollView.zoomScale > 1.0 {
+				return
+			}
+
 			let translation = gestureRecognizer.translation(in: gestureRecognizer.view)
 			let deltaX = Float(translation.x - lastScrollTranslation.x) * sensitivity * direction
 			let deltaY = Float(translation.y - lastScrollTranslation.y) * sensitivity * direction
@@ -593,6 +626,13 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			let now = CACurrentMediaTime()
 			if lastScrollChangeTime > 0 {
 				let dt = now - lastScrollChangeTime
+				// If there's been a long pause since the last .changed (>200 ms,
+				// e.g. user paused mid-scroll), forget the peak so the new
+				// segment doesn't inherit yesterday's velocity for its inertia.
+				if dt > 0.2 {
+					peakScrollVelocityX = 0
+					peakScrollVelocityY = 0
+				}
 				if dt > 0.001 {
 					let vX = (translation.x - lastScrollChangeTranslation.x) / CGFloat(dt)
 					let vY = (translation.y - lastScrollChangeTranslation.y) / CGFloat(dt)
@@ -1039,7 +1079,19 @@ extension ParsecViewController {
 		[.alternate, .shift]
 	]
 
+	// iOS queries `keyCommands` on every key event and on every first-responder
+	// change. Rebuilding 286 UIKeyCommand objects each time would jank typing
+	// on older iPads. Cache once per type (UIKeyCommand objects are stateless
+	// modulo their action selector, so sharing across instances is safe — the
+	// system dispatches the action to whichever responder is first).
+	// If `captureSystemKeys` flips at runtime the user has to leave + re-enter
+	// the streaming view to pick up the change.
+	private static var _cachedKeyCommands: [UIKeyCommand]?
+
 	func buildSystemCaptureKeyCommands() -> [UIKeyCommand] {
+		if let cached = Self._cachedKeyCommands {
+			return cached
+		}
 		var commands: [UIKeyCommand] = []
 		for char in Self._capturableCharset {
 			for mods in Self._capturableModifierCombos {
@@ -1068,6 +1120,7 @@ extension ParsecViewController {
 			}
 			commands.append(cmd)
 		}
+		Self._cachedKeyCommands = commands
 		return commands
 	}
 
@@ -1102,11 +1155,20 @@ extension ParsecViewController {
 		}
 
 		CParsec.sendVirtualKeyboardInput(text: keyText, isOn: true)
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+		// In Low Latency Mode we send keyup + modifier-release synchronously,
+		// avoiding ~80 ms of artificial hold time on every Cmd-shortcut. The
+		// old asyncAfter path was originally there as a defensive hold-time
+		// for games that misread instant releases — not needed on macOS.
+		if SettingsHandler.lowLatencyMode {
 			CParsec.sendVirtualKeyboardInput(text: keyText, isOn: false)
-		}
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
-			self?.releaseHeldModifiers(mods)
+			releaseHeldModifiers(mods)
+		} else {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+				CParsec.sendVirtualKeyboardInput(text: keyText, isOn: false)
+			}
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+				self?.releaseHeldModifiers(mods)
+			}
 		}
 	}
 
@@ -1221,7 +1283,10 @@ final class LanguageSyncTextField: UITextField {
 	// hidden until the user explicitly invokes showKeyboard().
 	private let _emptyAccessoryView = UIView(frame: .zero)
 	override var inputAccessoryView: UIView? {
-		return _emptyAccessoryView
+		// Explicit getter + no-op setter because UIResponder.inputAccessoryView
+		// is a mutable property — overriding with read-only fails compile.
+		get { return _emptyAccessoryView }
+		set { /* ignore */ }
 	}
 
 	override init(frame: CGRect) {
@@ -1262,6 +1327,18 @@ final class LanguageSyncCoordinator {
 	private var hiddenField: LanguageSyncTextField?
 	private var observer: NSObjectProtocol?
 	private var lastLanguage: String?
+	// True once we've observed at least one notification (or seeded a
+	// non-nil value asynchronously). Until then, treat any change as the
+	// initial state and don't fire the host hotkey — otherwise every
+	// session start spuriously sends Ctrl+Space because `lastLanguage`
+	// reads as nil immediately after becomeFirstResponder and the first
+	// real notification looks like "nil → en-US".
+	private var hasSeenInitialLanguage = false
+	// Debounce: rapid Caps-Lock taps can fire the notification twice on
+	// some iPadOS versions, which would interleave modifier press/release
+	// chords on the host. 150 ms is comfortably below typical typing
+	// rhythm but above iPadOS double-fire window.
+	private var lastHotkeyAt: CFTimeInterval = 0
 	var onLanguageChange: ((String?) -> Void)?
 
 	init(host: UIViewController, keyForwardTarget: UIResponder) {
@@ -1285,9 +1362,16 @@ final class LanguageSyncCoordinator {
 		field.becomeFirstResponder()
 		hiddenField = field
 
-		// Seed with current language so we don't fire a redundant hotkey on
-		// first real change.
-		lastLanguage = currentLanguage(from: nil)
+		// Defer seeding: textInputMode is sometimes still nil right after
+		// becomeFirstResponder. Asynchronously read on the next run-loop
+		// tick, by which point iOS has updated it.
+		DispatchQueue.main.async { [weak self] in
+			guard let self = self else { return }
+			if !self.hasSeenInitialLanguage {
+				self.lastLanguage = self.currentLanguage(from: nil)
+				self.hasSeenInitialLanguage = true
+			}
+		}
 
 		observer = NotificationCenter.default.addObserver(
 			forName: UITextInputMode.currentInputModeDidChangeNotification,
@@ -1322,8 +1406,18 @@ final class LanguageSyncCoordinator {
 
 	private func handleChange(note: Notification) {
 		let lang = currentLanguage(from: note)
+		// First observed value (could be the async seed not having fired yet)
+		// — just store, don't fire the hotkey.
+		if !hasSeenInitialLanguage {
+			hasSeenInitialLanguage = true
+			lastLanguage = lang
+			return
+		}
 		guard lang != lastLanguage else { return }
 		lastLanguage = lang
+		let now = CACurrentMediaTime()
+		guard now - lastHotkeyAt > 0.15 else { return }
+		lastHotkeyAt = now
 		onLanguageChange?(lang)
 	}
 

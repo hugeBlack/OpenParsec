@@ -30,8 +30,13 @@ struct SettingsHandler {
 	@AppStorage("noOverlay") public static var noOverlay: Bool = false
 	@AppStorage("cursorScale") public static var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger
-	@AppStorage("preferredFramesPerSecond") public static var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
+	@AppStorage("preferredFramesPerSecond") public static var preferredFramesPerSecond: Int = 0 // 0 = use device max (ProMotion). Default was 60 — that capped 120 Hz iPads at half their refresh, doubling glass-to-glass present latency.
 	@AppStorage("decoderCompatibility") public static var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
+	// Umbrella switch — when true, suppresses the artificial 20 ms / 60 ms
+	// holds on the captured-key path and the unconditional PiP capture in
+	// the render loop. Surfaced as a single Settings toggle that also flips
+	// FPS / decoder / overlay / momentum defaults via onChange.
+	@AppStorage("lowLatencyMode") public static var lowLatencyMode: Bool = false
 	@AppStorage("showKeyboardButton") public static var showKeyboardButton: Bool = true
 
 	// When the iPad's hardware keyboard layout changes (Caps Lock / Ctrl+Space

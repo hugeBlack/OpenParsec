@@ -4,6 +4,7 @@ import Foundation
 import AVFoundation
 
 struct ParsecStatusBar : View {
+	@Binding var isReconfiguring : Bool
 	@Binding var showMenu : Bool
 	@State var metricInfo: String = "Loading..."
 	@Binding var showDCAlert: Bool
@@ -43,10 +44,42 @@ struct ParsecStatusBar : View {
 			.onReceive(timer) { p in
 				poll()
 			}
+
+		// Reconnecting overlay — only visible during changeResolution's
+		// disconnect→reconnect dance. Mirrors MainView's connecting overlay.
+		if isReconfiguring {
+			ZStack {
+				Rectangle()
+					.fill(Color.black.opacity(0.45))
+					.edgesIgnoringSafeArea(.all)
+				VStack(spacing: 12) {
+					ProgressView()
+						.scaleEffect(1.4)
+						.progressViewStyle(CircularProgressViewStyle(tint: .white))
+					Text("Switching resolution…")
+						.foregroundColor(.white)
+						.font(.system(size: 16, weight: .medium))
+				}
+				.padding(24)
+				.background(
+					RoundedRectangle(cornerRadius: 12)
+						.fill(Color("BackgroundPrompt").opacity(0.85))
+				)
+			}
+			.zIndex(3)
+		}
 	}
-	
+
 	func poll()
 	{
+		// While we're deliberately disconnecting/reconnecting for a resolution
+		// change, getStatusEx will briefly report a non-OK status. Don't pop
+		// the "Disconnected" alert during that window — it's an intentional
+		// gap with an overlay in front of it.
+		if isReconfiguring
+		{
+			return
+		}
 		if showDCAlert
 		{
 			return // no need to poll if we aren't connected anymore
@@ -113,6 +146,10 @@ struct ParsecView: View
 
 	@State var showKeyboard: Bool = false
 	@State var zoomEnabled: Bool = false
+	// True while changeResolution is in its disconnect→reconnect dance.
+	// Suppresses the status-bar disconnect alert and shows a small
+	// "Switching resolution…" overlay so the user knows what's happening.
+	@State var isReconfiguring: Bool = false
 
 	@State var muted: Bool = false
 	@State var preferH265: Bool = true
@@ -162,7 +199,7 @@ struct ParsecView: View
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 			
-			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
+			ParsecStatusBar(isReconfiguring: $isReconfiguring, showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
 			
 			VStack()
 			{
@@ -492,15 +529,35 @@ struct ParsecView: View
 		}
 
 		DispatchQueue.main.async {
-			self.parsecViewController.glkView.cleanUp()
+			// Suppress disconnect alert + show the "Switching resolution…"
+			// overlay during the gap.
+			self.isReconfiguring = true
+			// Freeze the last decoded frame on screen instead of going black:
+			// pausing the GLKViewController stops `glkView(_:drawIn:)` from
+			// being called, so the framebuffer keeps its current contents.
+			if let parsecGLK = self.parsecViewController.glkView as? ParsecGLKViewController {
+				parsecGLK.glkViewController.isPaused = true
+			}
 			CParsec.disconnect()
 		}
-		// Brief pause to let the SDK fully tear down before re-issuing
-		// ParsecClientConnect with the new resolution. 300 ms matches the
-		// debounce we already use elsewhere.
-		DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+		// 100 ms is enough to let the two `while backgroundTaskRunning` poll
+		// loops in ParsecSDKBridge exit (worst case = one ~16 ms iteration
+		// of their SDK poll). The 20 ms drain sleep inside disconnect()
+		// covers the same race; this just adds a little headroom.
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 			_ = CParsec.connect(peerID)
-			CParsec.applyConfig()
+			// connect() already installs the fresh ParsecClientConfig with the
+			// new resolution; calling applyConfig() right after would issue a
+			// redundant ParsecClientSetConfig against a just-negotiated
+			// session (sometimes racy). Skip it.
+			if let parsecGLK = self.parsecViewController.glkView as? ParsecGLKViewController {
+				parsecGLK.glkViewController.isPaused = false
+			}
+			// Drop the overlay a beat later — give the first new frame time
+			// to arrive so the user sees content, not the spinner-over-stale.
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+				self.isReconfiguring = false
+			}
 		}
 	}
 

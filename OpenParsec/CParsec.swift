@@ -209,6 +209,11 @@ class CParsec
 
 	static func disconnect()
 	{
+		// Clear the peer-ID memo on any disconnect path; changeResolution sets
+		// it again right before calling connect(), so the reconnect dance is
+		// unaffected — but a user-initiated disconnect (close stream button,
+		// app background, etc.) should leave us with no stale peer.
+		lastConnectedPeerID = nil
 		parsecImpl.disconnect()
 	}
 

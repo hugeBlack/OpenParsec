@@ -48,7 +48,11 @@ class ParsecGLKRenderer:NSObject, GLKViewDelegate, GLKViewControllerDelegate
 
 		CParsec.renderGLFrame(timeout: timeout)
 
-		if #available(iOS 15.0, *) {
+		// Only run PiP frame capture while PiP is actually active (or about
+		// to be). Previously this ran on every frame even with PiP off,
+		// wasting a glReadPixels stall on the critical render path.
+		if #available(iOS 15.0, *),
+		   PictureInPictureManager.shared.isPiPActive || PictureInPictureManager.shared.isStarting {
 			PictureInPictureManager.shared.captureFrame(
 				viewWidth: GLsizei(view.drawableWidth),
 				viewHeight: GLsizei(view.drawableHeight),
