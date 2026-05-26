@@ -628,7 +628,10 @@ struct MainView: View
 
 		CParsec.disconnect()
 
-		pollTimer!.invalidate()
+		// Q2: pollTimer is nil if Cancel is tapped before the connect poll
+		// timer schedules — the old force-unwrap crashed on that race.
+		pollTimer?.invalidate()
+		pollTimer = nil
 	}
 
 	func logout()

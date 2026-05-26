@@ -38,7 +38,11 @@ struct SettingsHandler {
 	// and Opt stays Alt (it's the same physical key + same Windows mapping).
 	@AppStorage("windowsHostKeyboardRemap") public static var windowsHostKeyboardRemap: Bool = false
 	@AppStorage("noOverlay") public static var noOverlay: Bool = false
-	@AppStorage("cursorScale") public static var hideStatusBar: Bool = true
+	// Q1: previously shared the "cursorScale" key with the Double cursorScale
+	// above — a Bool write coerced cursorScale (false → 0 = invisible cursor)
+	// and vice versa. Own key now; migrateLegacyStatusBarKeyIfNeeded() seeds it
+	// and clamps any corrupted cursorScale on first launch after the upgrade.
+	@AppStorage("hideStatusBar") public static var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger
 	@AppStorage("preferredFramesPerSecond") public static var preferredFramesPerSecond: Int = 0 // 0 = use device max (ProMotion). Default was 60 — that capped 120 Hz iPads at half their refresh, doubling glass-to-glass present latency.
 	@AppStorage("decoderCompatibility") public static var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
@@ -67,5 +71,27 @@ struct SettingsHandler {
 	// connects for the same physical display.
 	@AppStorage("savedDisplayOutput") public static var savedDisplayOutput: String = ""
 	@AppStorage("savedDisplayName") public static var savedDisplayName: String = ""
+
+	// Q1 one-time migration. hideStatusBar used to (incorrectly) share the
+	// "cursorScale" UserDefaults key, so the two settings corrupted each other.
+	// On the first launch after the fix, seed the new "hideStatusBar" key with
+	// its original default and clamp any cursorScale value that a Bool write
+	// may have driven out of range (notably 0 = invisible cursor). Call once at
+	// app launch, before any UI reads these values.
+	static func migrateLegacyStatusBarKeyIfNeeded() {
+		let defaults = UserDefaults.standard
+		// Absence of the new key == migration not yet run.
+		guard defaults.object(forKey: "hideStatusBar") == nil else { return }
+		// The shared value can't be split back into two settings, so restore
+		// the original hideStatusBar default (true) and sanitize cursorScale.
+		defaults.set(true, forKey: "hideStatusBar")
+		if defaults.object(forKey: "cursorScale") != nil {
+			let raw = defaults.double(forKey: "cursorScale")
+			let clamped = min(max(raw, 0.1), 4.0)
+			if clamped != raw {
+				defaults.set(clamped, forKey: "cursorScale")
+			}
+		}
+	}
 
 }

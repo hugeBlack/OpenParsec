@@ -161,6 +161,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate
 		// Install the crash reporter as early as possible so it catches
 		// failures during the rest of launch too.
 		CrashReporter.install()
+		// Q1: repair the hideStatusBar / cursorScale shared-key corruption
+		// before any UI reads these settings.
+		SettingsHandler.migrateLegacyStatusBarKeyIfNeeded()
 		if let crash = CrashReporter.peek() {
 			// Make the previous crash trivially retrievable: copy to the
 			// pasteboard (syncs to a Mac on the same Apple ID via Universal

@@ -18,7 +18,7 @@ struct SettingsView:View
 	@AppStorage("captureSystemKeys") var captureSystemKeys: Bool = true
 	@AppStorage("windowsHostKeyboardRemap") var windowsHostKeyboardRemap: Bool = false
 	@AppStorage("noOverlay") var noOverlay: Bool = false
-	@AppStorage("cursorScale") var hideStatusBar: Bool = true
+	@AppStorage("hideStatusBar") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
 	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 0 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
