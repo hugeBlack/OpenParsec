@@ -123,6 +123,14 @@ class ParsecSDKBridge: ParsecService
 		// of its lifetime. Also acts as the "sending allowed" gate for input
 		// messages, so flip it before any input could possibly fire.
 		backgroundTaskRunning = true
+		// Every fresh connect() should attempt to restore the saved display
+		// when case-12 arrives. Resetting here (not only in disconnect()) is
+		// load-bearing — common reconnect paths (alert dismiss → reconnect,
+		// background → resume) skip disconnect() entirely, so without this
+		// the flag stayed `true` from a prior session and the restore was
+		// silently never re-run.
+		didRestoreSavedDisplay = false
+		didSetResolution = false
 
 		var parsecClientCfg = ParsecClientConfig()
 		parsecClientCfg.video.0.decoderIndex = 1
@@ -654,5 +662,21 @@ class ParsecSDKBridge: ParsecService
 		let encoder = JSONEncoder()
 		let data = try! encoder.encode(videoConfig)
 		CParsec.sendUserData(type: .setVideoConfig, message: data)
+		// User reports: display switches needed two or three taps to actually
+		// take effect. setVideoConfig is fire-and-forget; the host can drop
+		// the message if its encoder is in the middle of a reset triggered
+		// by a previous request. Re-send the same payload after 250 ms
+		// (idempotent — same output reapplied is a no-op on the host).
+		// Then ask the host to echo back its current config so case-11
+		// confirms the switch landed.
+		DispatchQueue.global().asyncAfter(deadline: .now() + 0.25) { [weak self] in
+			guard let self = self, self.backgroundTaskRunning else { return }
+			CParsec.sendUserData(type: .setVideoConfig, message: data)
+		}
+		DispatchQueue.global().asyncAfter(deadline: .now() + 0.45) { [weak self] in
+			guard let self = self, self.backgroundTaskRunning else { return }
+			let empty = "".data(using: .utf8)!
+			CParsec.sendUserData(type: .getVideoConfig, message: empty)
+		}
 	}
 }

@@ -272,13 +272,21 @@ struct ParsecView: View
 							}
 							Menu() {
 								ForEach(resolutions, id: \.self) { resolution in
+									let isCurrent = resolution.width == dataModel.resolutionX && resolution.height == dataModel.resolutionY
 									Button(action: {
 										changeResolution(res: resolution)
 									}) {
-										if resolution.width == dataModel.resolutionX && resolution.height == dataModel.resolutionY {
-											Label(resolution.desc, systemImage: "checkmark")
-										} else {
+										// iOS 14.0–14.4's UIMenu bridge crashes when SwiftUI lowers a
+										// `if Label else Text` body inside a Menu's Button to
+										// `_ConditionalContent<Label, Text>`. A single homogeneous
+										// HStack with a conditional Image is safe and renders the
+										// same checkmark visual.
+										HStack {
 											Text(resolution.desc)
+											if isCurrent {
+												Spacer(minLength: 8)
+												Image(systemName: "checkmark")
+											}
 										}
 									}
 								}
@@ -290,14 +298,17 @@ struct ParsecView: View
 							}
 							Menu() {
 								ForEach(bitrates, id: \.self) { bitrate in
+									let isCurrent = bitrate == dataModel.bitrate
 									Button(action: {
 										changeBitRate(bitrate: bitrate)
 									}) {
-                                        if bitrate == dataModel.bitrate {
-                                            Label("\(bitrate) Mbps", systemImage: "checkmark")
-                                        } else {
-                                            Text("\(bitrate) Mbps")
-                                        }
+										HStack {
+											Text("\(bitrate) Mbps")
+											if isCurrent {
+												Spacer(minLength: 8)
+												Image(systemName: "checkmark")
+											}
+										}
 									}
 								}
 							} label: {
