@@ -40,11 +40,16 @@ enum CrashReporter {
 		}
 	}
 
-	// Returns the pending crash log (if any) and removes it.
-	static func consumePending() -> String? {
-		guard let text = try? String(contentsOf: logURL, encoding: .utf8) else { return nil }
-		try? FileManager.default.removeItem(at: logURL)
+	// Non-destructive read so a Settings "Copy Last Crash Log" action can
+	// retrieve it at any time. The file is overwritten on the next crash and
+	// can be cleared explicitly via clear().
+	static func peek() -> String? {
+		guard let text = try? String(contentsOf: logURL, encoding: .utf8), !text.isEmpty else { return nil }
 		return text
+	}
+
+	static func clear() {
+		try? FileManager.default.removeItem(at: logURL)
 	}
 }
 
@@ -56,10 +61,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate
 		// Install the crash reporter as early as possible so it catches
 		// failures during the rest of launch too.
 		CrashReporter.install()
-		if let crash = CrashReporter.consumePending() {
+		if let crash = CrashReporter.peek() {
 			// Make the previous crash trivially retrievable: copy to the
 			// pasteboard (syncs to a Mac on the same Apple ID via Universal
-			// Clipboard) and print it for any attached console.
+			// Clipboard) and print it for any attached console. The file is
+			// kept (not consumed) so the Settings "Copy Last Crash Log" row
+			// can re-surface it later.
 			UIPasteboard.general.string = crash
 			print("[OpenParsec] Recovered crash log from previous run:\n\(crash)")
 		}

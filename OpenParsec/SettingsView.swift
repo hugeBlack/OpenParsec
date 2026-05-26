@@ -29,6 +29,7 @@ struct SettingsView:View
 	@AppStorage("syncKeyboardLayout") var syncKeyboardLayout: Bool = true
 	@AppStorage("layoutSyncHotkey") var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
+	@State private var crashCopied: Bool = false
 	
 	let resolutionChoices: [Choice<ParsecResolution>]
 
@@ -262,6 +263,21 @@ struct SettingsView:View
 							{
 								Toggle("", isOn:$saveSessionSettings)
 									.frame(width:80)
+							}
+							CatItem("Last Crash Log")
+							{
+								Button(action: {
+									if let crash = CrashReporter.peek() {
+										UIPasteboard.general.string = crash
+										crashCopied = true
+									} else {
+										UIPasteboard.general.string = "(no crash recorded)"
+										crashCopied = true
+									}
+								}) {
+									Text(crashCopied ? "Copied!" : (CrashReporter.peek() == nil ? "None" : "Copy"))
+										.foregroundColor(CrashReporter.peek() == nil ? .gray : Color("AccentColor"))
+								}
 							}
 						}
 						Text(getVersionInfo())
