@@ -406,6 +406,24 @@ class ParsecSDKBridge: ParsecService
 	static func clamp<T>(_ value: T, minValue: T, maxValue: T) -> T where T : Comparable {
 		return min(max(value, minValue), maxValue)
 	}
+
+	// Swap GUI ↔ Ctrl scan codes when the user has flagged the host as
+	// Windows. Mac-keyboard layout calls the modifier-row keys, left-to-right,
+	// Control / Option / Cmd. On a Windows host the equivalents are
+	// Ctrl / Alt / Win — but Win+C does nothing useful and Ctrl+C is copy.
+	// Remapping at the scan-code layer means every consumer (UIKey path,
+	// virtual keyboard, UIKeyCommand captured shortcuts) gets the swap with
+	// no per-caller awareness.
+	static func remapKeyForHostIfNeeded(_ code: ParsecKeycode) -> ParsecKeycode {
+		guard SettingsHandler.windowsHostKeyboardRemap else { return code }
+		switch code.rawValue {
+		case 227: return ParsecKeycode(224)  // LGUI → LCTRL (Cmd → Ctrl)
+		case 224: return ParsecKeycode(227)  // LCTRL → LGUI (Ctrl → Win)
+		case 231: return ParsecKeycode(228)  // RGUI → RCTRL
+		case 228: return ParsecKeycode(231)  // RCTRL → RGUI
+		default: return code               // Shift / Alt / printable keys unchanged
+		}
+	}
 	
 	func sendMousePosition(_ x:Int32, _ y:Int32)
 	{
@@ -467,18 +485,24 @@ class ParsecSDKBridge: ParsecService
 		guard let keyCode else {
 			return
 		}
+		let remapped = ParsecSDKBridge.remapKeyForHostIfNeeded(keyCode)
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		if !isVirtualShiftOn && useShift {
 			keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: KEY_LSHIFT, mod: MOD_NONE, pressed: true, __pad: (0,0,0))
 			ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 		}
-		keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: keyCode, mod: MOD_NONE, pressed: true, __pad: (0,0,0))
+		keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: remapped, mod: MOD_NONE, pressed: true, __pad: (0,0,0))
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
-		
+
 		// add release delay in case some games ignore instant key release
 		DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
-			keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: keyCode, mod: MOD_NONE, pressed: false, __pad: (0,0,0))
+			// Re-check the gate inside the closure: a disconnect can land in
+			// these 20 ms (matches the drain sleep in disconnect() exactly),
+			// in which case we would otherwise fire ParsecClientSendMessage
+			// against a torn-down client.
+			guard self.backgroundTaskRunning else { return }
+			keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: remapped, mod: MOD_NONE, pressed: false, __pad: (0,0,0))
 			if !self.isVirtualShiftOn && useShift {
 				keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: KEY_LSHIFT, mod: MOD_NONE, pressed: false, __pad: (0,0,0))
 			}
@@ -493,17 +517,18 @@ class ParsecSDKBridge: ParsecService
 		guard let keyCode else {
 			return
 		}
-		
+
 		if keyCode.rawValue == 225 {
 			isVirtualShiftOn = isOn
 		}
-		
+
+		let remapped = ParsecSDKBridge.remapKeyForHostIfNeeded(keyCode)
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.pressed = isOn
-		keyboardMessagePress.keyboard.code = keyCode
+		keyboardMessagePress.keyboard.code = remapped
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
-		
+
 	}
 
 	func sendKeyboardMessage(event:KeyBoardKeyEvent)
@@ -513,9 +538,10 @@ class ParsecSDKBridge: ParsecService
 			return
 		}
 
+		let rawCode = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
-		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
+		keyboardMessagePress.keyboard.code = ParsecSDKBridge.remapKeyForHostIfNeeded(rawCode)
 		keyboardMessagePress.keyboard.pressed = event.isPressBegin
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}

@@ -509,6 +509,12 @@ struct ParsecView: View
 	}
 	
 	func changeResolution(res: ParsecResolution) {
+		// Guard against spam-tap: if a previous changeResolution is still in
+		// its disconnect→reconnect dance, ignore further selections until it
+		// finishes. Otherwise two overlapping connect/disconnect cycles can
+		// race the SDK state machine.
+		if isReconfiguring { return }
+
 		SettingsHandler.resolution = res
 		DispatchQueue.main.async {
 			DataManager.model.resolutionX = res.width
@@ -546,7 +552,7 @@ struct ParsecView: View
 		// of their SDK poll). The 20 ms drain sleep inside disconnect()
 		// covers the same race; this just adds a little headroom.
 		DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-			_ = CParsec.connect(peerID)
+			let status = CParsec.connect(peerID)
 			// connect() already installs the fresh ParsecClientConfig with the
 			// new resolution; calling applyConfig() right after would issue a
 			// redundant ParsecClientSetConfig against a just-negotiated
@@ -554,6 +560,17 @@ struct ParsecView: View
 			if let parsecGLK = self.parsecViewController.glkView as? ParsecGLKViewController {
 				parsecGLK.glkViewController.isPaused = false
 			}
+
+			// If the reconnect didn't take (host offline, network blip),
+			// surface a real error instead of leaving the user staring at
+			// a frozen frame behind the spinner.
+			if status != PARSEC_OK && status != PARSEC_CONNECTING {
+				self.isReconfiguring = false
+				self.DCAlertText = "Reconnect failed (code \(status.rawValue))"
+				self.showDCAlert = true
+				return
+			}
+
 			// Drop the overlay a beat later — give the first new frame time
 			// to arrive so the user sees content, not the spinner-over-stale.
 			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

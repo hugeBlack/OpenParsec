@@ -270,9 +270,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		localCursor.isHidden = !SettingsHandler.localCursorOverlay
 		contentView.addSubview(localCursor)
 		localCursorImageView = localCursor
-		// Seed from whatever the host last said (usually centre of stream
-		// after setFrame). Updated in real time from input events.
-		localCursorPosition = CGPoint(x: CGFloat(CParsec.mouseInfo.mouseX), y: CGFloat(CParsec.mouseInfo.mouseY))
+		// `mouseInfo.mouseX/Y` defaults to (1, 1) before the host echoes the
+		// first cursor event, so seeding from it would put the overlay at
+		// the top-left until the first input. Centre of the content view is
+		// a less-jarring starting point.
+		localCursorPosition = CGPoint(x: contentView.bounds.midX, y: contentView.bounds.midY)
 		localCursor.center = localCursorPosition
 		
 		setNeedsUpdateOfPrefersPointerLocked()

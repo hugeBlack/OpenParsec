@@ -31,6 +31,11 @@ struct SettingsHandler {
 	// Globe key, and swipe-up gestures stay system-level — those cannot be
 	// intercepted from a sandboxed iPad app.
 	@AppStorage("captureSystemKeys") public static var captureSystemKeys: Bool = true
+	// When streaming TO a Windows host from a Mac-style iPad keyboard, swap
+	// the GUI ↔ Ctrl scan codes so Cmd+C (the iPad user's expectation)
+	// arrives as Ctrl+C on the host, Ctrl+anything arrives as Win+anything,
+	// and Opt stays Alt (it's the same physical key + same Windows mapping).
+	@AppStorage("windowsHostKeyboardRemap") public static var windowsHostKeyboardRemap: Bool = false
 	@AppStorage("noOverlay") public static var noOverlay: Bool = false
 	@AppStorage("cursorScale") public static var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger

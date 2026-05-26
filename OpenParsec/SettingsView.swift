@@ -17,6 +17,7 @@ struct SettingsView:View
 	@AppStorage("scrollMomentum") var scrollMomentum: Bool = true
 	@AppStorage("scrollMomentumStrength") var scrollMomentumStrength: Double = 0.5
 	@AppStorage("captureSystemKeys") var captureSystemKeys: Bool = true
+	@AppStorage("windowsHostKeyboardRemap") var windowsHostKeyboardRemap: Bool = false
 	@AppStorage("noOverlay") var noOverlay: Bool = false
 	@AppStorage("cursorScale") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
@@ -169,6 +170,11 @@ struct SettingsView:View
                             CatItem("Capture System Shortcuts")
                             {
                                 Toggle("", isOn:$captureSystemKeys)
+                                    .frame(width:80)
+                            }
+                            CatItem("Windows Host Remap")
+                            {
+                                Toggle("", isOn:$windowsHostKeyboardRemap)
                                     .frame(width:80)
                             }
                         }
