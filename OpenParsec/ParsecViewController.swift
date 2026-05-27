@@ -513,28 +513,37 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 				CParsec.sendMousePosition(Int32(adjusted.x), Int32(adjusted.y))
 				moveLocalCursor(to: adjusted)
 			} else {
-				let prev = touch.precisePreviousLocation(in: view)
-				let cur = touch.preciseLocation(in: view)
-				let rawDX = cur.x - prev.x
-				let rawDY = cur.y - prev.y
-				let scale = effectiveDeltaScale(rawDX: rawDX, rawDY: rawDY)
-				let preciseDX = rawDX * scale
-				let preciseDY = rawDY * scale
+				// Iterate coalesced samples so fast trackpad motion is sent at
+				// the hardware sample rate (up to 120 Hz) rather than being
+				// sub-sampled to the slower UIKit event rate. Each sample's
+				// precisePreviousLocation chains to the prior sample, so summing
+				// per-sample deltas reconstructs the full path — the cursor
+				// tracks fast flicks smoothly instead of jumping in big steps.
+				let samples = event?.coalescedTouches(for: touch) ?? [touch]
+				for sample in samples {
+					let prev = sample.precisePreviousLocation(in: view)
+					let cur = sample.preciseLocation(in: view)
+					let rawDX = cur.x - prev.x
+					let rawDY = cur.y - prev.y
+					let scale = effectiveDeltaScale(rawDX: rawDX, rawDY: rawDY)
+					let preciseDX = rawDX * scale
+					let preciseDY = rawDY * scale
 
-				// Move the LOCAL cursor at full sub-pixel precision so it
-				// glides smoothly even when the rounded host-delta is zero.
-				moveLocalCursor(byX: preciseDX, y: preciseDY)
+					// Move the LOCAL cursor at full sub-pixel precision so it
+					// glides smoothly even when the rounded host-delta is zero.
+					moveLocalCursor(byX: preciseDX, y: preciseDY)
 
-				accumulatedDeltaX += Float(preciseDX)
-				accumulatedDeltaY += Float(preciseDY)
-				// Round-half-away-from-zero (not Int32 truncation) so that
-				// sub-pixel ticks like 0.4 still emit a 1-pixel send to host.
-				let dx = Int32(accumulatedDeltaX.rounded(.toNearestOrAwayFromZero))
-				let dy = Int32(accumulatedDeltaY.rounded(.toNearestOrAwayFromZero))
-				if dx != 0 || dy != 0 {
-					CParsec.sendMouseDelta(dx, dy)
-					accumulatedDeltaX -= Float(dx)
-					accumulatedDeltaY -= Float(dy)
+					accumulatedDeltaX += Float(preciseDX)
+					accumulatedDeltaY += Float(preciseDY)
+					// Round-half-away-from-zero (not Int32 truncation) so that
+					// sub-pixel ticks like 0.4 still emit a 1-pixel send to host.
+					let dx = Int32(accumulatedDeltaX.rounded(.toNearestOrAwayFromZero))
+					let dy = Int32(accumulatedDeltaY.rounded(.toNearestOrAwayFromZero))
+					if dx != 0 || dy != 0 {
+						CParsec.sendMouseDelta(dx, dy)
+						accumulatedDeltaX -= Float(dx)
+						accumulatedDeltaY -= Float(dy)
+					}
 				}
 			}
 		}
