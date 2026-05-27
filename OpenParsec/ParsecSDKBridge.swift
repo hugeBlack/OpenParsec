@@ -115,6 +115,15 @@ class ParsecSDKBridge: ParsecService
 	// token (benign plain-Int read, same pattern as backgroundTaskRunning).
 	private var configRevision: Int = 0
 	private var pendingUserConfig: (bitrate: Int, constantFps: Bool)? = nil
+	// The display id a switch is still trying to land. A single fire-and-forget
+	// setVideoConfig can be dropped while the host encoder is mid-reset from the
+	// switch — the reason a display change historically needed two or three taps
+	// (and why "select the current monitor, then the target" worked: it spaced
+	// two sends by a human delay). We keep re-asserting this output on a widening
+	// schedule until the case-11 echo reports it as the host's current output, or
+	// we hit the attempt cap. Cleared on the main thread; the retry closures read
+	// it lock-free (same benign-plain-read pattern as pendingUserConfig).
+	private var pendingOutput: String? = nil
 
 	// Atomic snapshot for cross-thread readers. Returns a consistent copy of
 	// the whole struct under the lock so `cursorImg`'s retain happens while no
@@ -332,6 +341,14 @@ class ParsecSDKBridge: ParsecService
 					} else {
 						DataManager.model.bitrate = videoConfig.encoderMaxBitrate
 						DataManager.model.constantFps = videoConfig.fullFPS
+					}
+					// Confirm a display switch: once the host echoes the output we
+					// asked for, stop re-asserting it. We only READ the echoed
+					// output here (never write it back into model.output) so a
+					// host that omits/normalizes the field can't clobber the
+					// user's selection — same caution as the bitrate guard above.
+					if let pendingOut = self.pendingOutput, videoConfig.output == pendingOut {
+						self.pendingOutput = nil
 					}
 					// S04: capture the host-OS int and log it once per session
 					// change so its undocumented encoding can be discovered
@@ -786,6 +803,16 @@ class ParsecSDKBridge: ParsecService
 		configRevision &+= 1
 		let revision = configRevision
 		pendingUserConfig = (DataManager.model.bitrate, DataManager.model.constantFps)
+		// Track a concrete display switch so the confirm-and-retry loop below can
+		// keep re-asserting it. "none" (Auto) has no stable echoed id to confirm
+		// against, so it just rides the base send + the existing 250 ms resend.
+		let switchTarget = DataManager.model.output
+		if switchTarget != "none" && !switchTarget.isEmpty {
+			pendingOutput = switchTarget
+			scheduleDisplaySwitchRetry(revision: revision, data: data, attempt: 0)
+		} else {
+			pendingOutput = nil
+		}
 
 		CParsec.sendUserData(type: .setVideoConfig, message: data)
 		// User reports: display switches needed two or three taps to actually
@@ -811,6 +838,36 @@ class ParsecSDKBridge: ParsecService
 		DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
 			guard let self = self, self.configRevision == revision else { return }
 			self.pendingUserConfig = nil
+		}
+	}
+
+	// Re-assert a display switch on a widening schedule until the host's case-11
+	// echo confirms it (which clears pendingOutput) or we exhaust the attempts.
+	// A display change re-inits the host encoder for the new output; a request
+	// that lands during that reset is dropped, so one fire-and-forget send (or a
+	// single 250 ms resend, which fires while the host is often still busy) was
+	// unreliable — hence the historical "needs two or three taps". Each resend is
+	// idempotent (same output reapplied is a no-op once it's the active display),
+	// so over-asserting is harmless; under-asserting was the bug.
+	private func scheduleDisplaySwitchRetry(revision: Int, data: Data, attempt: Int) {
+		let delays: [Double] = [0.35, 0.8, 1.5, 2.5]
+		guard attempt < delays.count else {
+			// Give up re-asserting; drop the guard so a host that never echoes a
+			// matching output can't leave it pending forever.
+			DispatchQueue.main.async { [weak self] in
+				guard let self = self, self.configRevision == revision else { return }
+				self.pendingOutput = nil
+			}
+			return
+		}
+		DispatchQueue.global().asyncAfter(deadline: .now() + delays[attempt]) { [weak self] in
+			guard let self = self, self.backgroundTaskRunning, self.configRevision == revision else { return }
+			// Confirmed by an echo (or superseded)? Stop.
+			guard self.pendingOutput != nil else { return }
+			CParsec.sendUserData(type: .setVideoConfig, message: data)
+			let empty = "".data(using: .utf8)!
+			CParsec.sendUserData(type: .getVideoConfig, message: empty)
+			self.scheduleDisplaySwitchRetry(revision: revision, data: data, attempt: attempt + 1)
 		}
 	}
 }
