@@ -92,7 +92,7 @@ class ParsecGLKViewController : ParsecPlayground {
 	// PiP, background) is self-healed here.
 	func resume() {
 		if let ctx = glkView?.context {
-			EAGLContext.setCurrentContext(ctx)
+			_ = EAGLContext.setCurrent(ctx)
 		}
 		glkViewController.isPaused = false
 		glkView?.setNeedsDisplay()
