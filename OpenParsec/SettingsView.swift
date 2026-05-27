@@ -321,7 +321,10 @@ struct SettingsView:View
 	}
 	
 	func getVersionInfo() -> String {
-		return "Version \(Bundle.main.infoDictionary!["CFBundleShortVersionString"] ?? "Unknown versino")-\(Bundle.main.infoDictionary!["GitCommitInfo"] ?? "Unknown commit")"
+		let info = Bundle.main.infoDictionary
+		let version = info?["CFBundleShortVersionString"] as? String ?? "Unknown version"
+		let commit = info?["GitCommitInfo"] as? String ?? "Unknown commit"
+		return "Version \(version)-\(commit)"
 	}
 }
 
