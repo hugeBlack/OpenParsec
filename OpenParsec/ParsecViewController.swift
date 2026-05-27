@@ -49,12 +49,33 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var accumulatedScrollY: Float = 0.0
 	var lastScrollTranslation: CGPoint = .zero
 
-	// S03: client-side scroll inertia was REMOVED. iPadOS already synthesizes
-	// trackpad/scroll deceleration as a tail of continued `.changed` events, so
-	// the old CADisplayLink momentum stacked a second inertia on top — and its
-	// seed was hardcoded to 60 Hz (`peak/60`), so on a 120 Hz iPad the glide
-	// distance literally doubled. We now forward native deltas only (the
-	// Moonlight-iOS approach); the OS-provided momentum rides in for free.
+	// Client-side scroll inertia. The trackpad scroll path is driven by a raw
+	// UIPanGestureRecognizer (allowedScrollTypesMask = .all, max 0 touches), NOT
+	// a UIScrollView — and a raw recognizer gets NO OS-provided momentum tail
+	// after the fingers lift (only UIScrollView synthesizes deceleration). So a
+	// flick died instantly and the host saw no glide. S03 removed the old inertia
+	// on the wrong assumption that "the OS momentum rides in for free"; it does
+	// not on this recognizer, which is why inertia disappeared entirely.
+	//
+	// We re-seed a decaying glide from the PEAK velocity sampled during `.changed`
+	// (gestureRecognizer.velocity at `.ended` is already near-zero because iPadOS
+	// pre-decelerates its scroll-event stream) and drive it with a CADisplayLink.
+	// BOTH the per-tick advance and the decay are scaled by the real frame
+	// duration, so the glide distance is identical at 60 Hz and 120 Hz — fixing
+	// the original bug (a hardcoded `peak/60` seed that doubled the glide on the
+	// 120 Hz M4 iPad) without throwing away the feature.
+	var momentumDisplayLink: CADisplayLink?
+	var momentumVelocityX: Float = 0.0   // scaled host-wheel units / second
+	var momentumVelocityY: Float = 0.0
+	private var peakScrollVelocityX: CGFloat = 0   // raw points / second
+	private var peakScrollVelocityY: CGFloat = 0
+	// Glide tuning. Decay is expressed per-second and raised to dt each tick, so
+	// it is frame-rate independent. Start/stop are in scaled units/sec (same
+	// scale as momentumVelocity). These are deliberately conservative; the real
+	// feel can only be judged on-device, so they are easy to nudge.
+	private let scrollMomentumDecayPerSecond: Float = 0.02   // → ~2% of speed remains after 1 s
+	private let scrollMomentumStartSpeed: Float = 60.0       // below this a release doesn't glide
+	private let scrollMomentumStopSpeed: Float = 24.0        // below this the glide ends
 
 	// Layout sync — fires a hotkey at the host when the iPad's hardware-keyboard
 	// input language changes (e.g. Caps Lock toggle on Magic Keyboard).
@@ -114,6 +135,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 
 	deinit {
 		languageSync?.stop()
+		stopScrollMomentum()
 	}
 
 	func updateImage() {
@@ -460,6 +482,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
 		stopLanguageSync()
+		stopScrollMomentum()
 	}
 	
 	
@@ -867,9 +890,13 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 
 		switch gestureRecognizer.state {
 		case .began:
+			// A fresh scroll cancels any glide still in progress.
+			stopScrollMomentum()
 			lastScrollTranslation = .zero
 			accumulatedScrollX = 0.0
 			accumulatedScrollY = 0.0
+			peakScrollVelocityX = 0
+			peakScrollVelocityY = 0
 		case .changed:
 			let translation = gestureRecognizer.translation(in: gestureRecognizer.view)
 			// When the user is zoomed in, let UIScrollView's own pan handle the
@@ -887,9 +914,14 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 			let deltaY = Float(translation.y - lastScrollTranslation.y) * sensitivity * direction
 			lastScrollTranslation = translation
 
-			// Forward the native delta. iPadOS keeps sending `.changed` events
-			// through its own deceleration tail after the fingers lift, so the
-			// momentum arrives here for free — no client-side inertia needed.
+			// Track the peak velocity over the gesture. `velocity(in:)` at
+			// `.ended` is already near-zero because iPadOS pre-decelerates its
+			// scroll-event stream, so we seed the post-lift glide from the peak
+			// seen mid-gesture instead.
+			let v = gestureRecognizer.velocity(in: gestureRecognizer.view)
+			if abs(v.x) > abs(peakScrollVelocityX) { peakScrollVelocityX = v.x }
+			if abs(v.y) > abs(peakScrollVelocityY) { peakScrollVelocityY = v.y }
+
 			accumulatedScrollX += deltaX
 			accumulatedScrollY += deltaY
 			// Rounding accumulator: Int32 truncation previously swallowed
@@ -902,13 +934,75 @@ extension ParsecViewController : UIGestureRecognizerDelegate {
 				accumulatedScrollX -= Float(intX)
 				accumulatedScrollY -= Float(intY)
 			}
-		case .ended, .cancelled, .failed:
+		case .ended:
+			// Seed a decaying glide from the peak velocity (scaled the same way
+			// the live deltas were). The accumulator carries over so sub-pixel
+			// remainder isn't lost between the live phase and the glide.
+			lastScrollTranslation = .zero
+			if scrollView.zoomScale <= 1.0 {
+				startScrollMomentum(
+					velX: Float(peakScrollVelocityX) * sensitivity * direction,
+					velY: Float(peakScrollVelocityY) * sensitivity * direction
+				)
+			}
+			peakScrollVelocityX = 0
+			peakScrollVelocityY = 0
+		case .cancelled, .failed:
+			stopScrollMomentum()
 			lastScrollTranslation = .zero
 			accumulatedScrollX = 0.0
 			accumulatedScrollY = 0.0
+			peakScrollVelocityX = 0
+			peakScrollVelocityY = 0
 		default:
 			break
 		}
+	}
+
+	// MARK: - Trackpad scroll momentum (client-side inertia)
+
+	private func startScrollMomentum(velX: Float, velY: Float) {
+		stopScrollMomentum()
+		// Don't bother gliding for a near-stationary release.
+		guard hypotf(velX, velY) >= scrollMomentumStartSpeed else { return }
+		momentumVelocityX = velX
+		momentumVelocityY = velY
+		let link = CADisplayLink(target: self, selector: #selector(stepScrollMomentum(_:)))
+		link.add(to: .main, forMode: .common)
+		momentumDisplayLink = link
+	}
+
+	@objc private func stepScrollMomentum(_ link: CADisplayLink) {
+		// dt is the real duration of the upcoming frame, so the glide travels the
+		// same distance per second at 60 Hz and 120 Hz (the bug that doubled the
+		// old hardcoded `peak/60` seed on the 120 Hz iPad). Clamp out the absurd
+		// first-tick / stall values.
+		let dt = Float(link.targetTimestamp - link.timestamp)
+		guard dt > 0, dt < 0.1 else { return }
+
+		accumulatedScrollX += momentumVelocityX * dt
+		accumulatedScrollY += momentumVelocityY * dt
+		let intX = Int32(accumulatedScrollX.rounded(.toNearestOrAwayFromZero))
+		let intY = Int32(accumulatedScrollY.rounded(.toNearestOrAwayFromZero))
+		if intX != 0 || intY != 0 {
+			CParsec.sendWheelMsg(x: intX, y: intY)
+			accumulatedScrollX -= Float(intX)
+			accumulatedScrollY -= Float(intY)
+		}
+
+		let decay = powf(scrollMomentumDecayPerSecond, dt)
+		momentumVelocityX *= decay
+		momentumVelocityY *= decay
+		if hypotf(momentumVelocityX, momentumVelocityY) < scrollMomentumStopSpeed {
+			stopScrollMomentum()
+		}
+	}
+
+	private func stopScrollMomentum() {
+		momentumDisplayLink?.invalidate()
+		momentumDisplayLink = nil
+		momentumVelocityX = 0
+		momentumVelocityY = 0
 	}
 
 	@objc func handleSingleFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
