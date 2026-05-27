@@ -640,7 +640,28 @@ struct ParsecView: View
 					SettingsHandler.savedDisplayName = "\(cfg.name) \(cfg.adapterName)"
 				}
 			}
+
+			// S10: switching the streamed monitor makes the host re-init its
+			// encoder for the new display (usually a different resolution),
+			// forcing a client-side decoder reset. During that window
+			// getStatusEx briefly returns non-OK, and the poll loop pops a
+			// spurious "Disconnected" alert — suppressed only while
+			// isReconfiguring. changeResolution raises that flag; changeDisplay
+			// historically never did (D1). Bracket the switch the same way.
+			self.isReconfiguring = true
 			CParsec.updateHostVideoConfig()
+
+			// No reconnect happens here, so there's no completion callback to
+			// clear the flag — use a fixed window covering
+			// updateHostVideoConfig's 250/450 ms resend + echo cycle plus
+			// headroom. Resume the GL surface once it settles in case the
+			// decoder reset blanked it (D2 — same failure class as S01, on a
+			// path viewDidAppear/foreground hooks don't cover since no screen
+			// transition occurs here).
+			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+				self.parsecViewController.glkView?.resume()
+				self.isReconfiguring = false
+			}
 		}
 	}
 	
