@@ -11,6 +11,12 @@ struct ParsecStatusBar : View {
 	@Binding var DCAlertText: String
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
+	// Consecutive non-OK polls before we believe the session is really gone.
+	// At a 0.2s poll interval, 5 ≈ 1s of grace — long enough to ride out a
+	// transient loss/RTT spike on a jittery link (BUD recovers on its own),
+	// short enough that a genuine drop still surfaces promptly.
+	@State var consecutiveFailures: Int = 0
+	private let disconnectFailureThreshold = 5
 	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
 
 	init(isReconfiguring: Binding<Bool>, showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
@@ -110,12 +116,22 @@ struct ParsecStatusBar : View {
 				return
 			}
 
-			wasDisconnected = true
-			DCAlertText = "Disconnected (code \(status.rawValue))"
-			showDCAlert = true
+			// Debounce transient loss: a single bad poll on a jittery link is
+			// usually the BUD transport mid-recovery, not a real disconnect.
+			// Only alert after the status has been non-OK for several polls in
+			// a row; a genuine drop persists and still surfaces within ~1s.
+			consecutiveFailures += 1
+			if consecutiveFailures >= disconnectFailureThreshold {
+				wasDisconnected = true
+				DCAlertText = "Disconnected (code \(status.rawValue))"
+				showDCAlert = true
+			}
 			return
 		}
-		
+
+		// Status is OK — clear any in-flight failure streak.
+		consecutiveFailures = 0
+
 		if showMenu
 		{
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
