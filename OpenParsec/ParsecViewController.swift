@@ -698,9 +698,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 
 		heldModifierKeyCodes.remove(usage)
 
-		if wasArmed && cleanRelease && isCtrlOrShift && !(chordHasControl() && chordHasShift()) {
-			// The pair is no longer both-held → the chord completed cleanly.
-			chordArmed = false
+		// Fire only once the pair has *fully* lifted (neither Ctrl nor Shift
+		// still held). Keying on "not both-held" instead would fire on the
+		// FIRST release while the other modifier is still down — so dropping
+		// Ctrl to continue with Shift+<key> would spuriously emit Cmd+Space.
+		if wasArmed && cleanRelease && isCtrlOrShift && !chordHasControl() && !chordHasShift() {
 			fireCmdSpace()
 		}
 		// Once neither Ctrl nor Shift remains, fully reset.

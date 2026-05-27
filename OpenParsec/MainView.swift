@@ -607,6 +607,13 @@ struct MainView: View
 
 		var status = CParsec.connect(who.id)
 
+		// Invalidate any in-flight poll timer before scheduling a new one. A
+		// background-reconnect (onShouldReconnect -> connectTo) or a rapid
+		// re-tap during the connecting phase can call connectTo while a prior
+		// timer is still live; without this the old repeating timer is orphaned
+		// and both fire, racing setView(.parsec)/showBaseAlert.
+		pollTimer?.invalidate()
+
 		// Polling status
 		pollTimer = Timer.scheduledTimer(withTimeInterval:1, repeats: true)
 		{ timer in

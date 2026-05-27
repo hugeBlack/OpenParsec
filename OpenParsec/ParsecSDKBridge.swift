@@ -862,12 +862,18 @@ class ParsecSDKBridge: ParsecService
 		}
 		DispatchQueue.global().asyncAfter(deadline: .now() + delays[attempt]) { [weak self] in
 			guard let self = self, self.backgroundTaskRunning, self.configRevision == revision else { return }
-			// Confirmed by an echo (or superseded)? Stop.
-			guard self.pendingOutput != nil else { return }
-			CParsec.sendUserData(type: .setVideoConfig, message: data)
-			let empty = "".data(using: .utf8)!
-			CParsec.sendUserData(type: .getVideoConfig, message: empty)
-			self.scheduleDisplaySwitchRetry(revision: revision, data: data, attempt: attempt + 1)
+			// pendingOutput is mutated on the main queue (set in updateHostVideoConfig,
+			// cleared by the case-11 confirmation echo). It's a String?, not an atomic
+			// scalar, so read it on main to avoid racing that clear. Re-assert there if
+			// the switch is still unconfirmed — sending on main is fine (the base send
+			// at the top of updateHostVideoConfig already does).
+			DispatchQueue.main.async {
+				guard self.backgroundTaskRunning, self.configRevision == revision, self.pendingOutput != nil else { return }
+				CParsec.sendUserData(type: .setVideoConfig, message: data)
+				let empty = "".data(using: .utf8)!
+				CParsec.sendUserData(type: .getVideoConfig, message: empty)
+				self.scheduleDisplaySwitchRetry(revision: revision, data: data, attempt: attempt + 1)
+			}
 		}
 	}
 }
