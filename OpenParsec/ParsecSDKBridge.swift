@@ -345,6 +345,19 @@ class ParsecSDKBridge: ParsecService
 						self.didSetResolution = true
 						DataManager.model.resolutionX = SettingsHandler.resolution.width
 						DataManager.model.resolutionY = SettingsHandler.resolution.height
+						// S08: apply the poor-network bitrate cap on the same
+						// first echo that pushes the saved resolution. Bitrate
+						// only reaches the host via updateHostVideoConfig (the
+						// connect-time SDK config carries no encoderMaxBitrate),
+						// and the case-11 branch above otherwise adopts the
+						// host's bitrate — so without this the profile's cap
+						// would never take effect. Riding the existing one-shot
+						// push avoids a separate timer/race and leaves `output`
+						// untouched, so it can't clobber the restored display.
+						if SettingsHandler.lowLatencyMode && SettingsHandler.bitrate > 0 {
+							DataManager.model.bitrate = SettingsHandler.bitrate
+							Diagnostics.note("S08 low-latency: capping bitrate to \(SettingsHandler.bitrate) Mbps (host reported \(videoConfig.encoderMaxBitrate))")
+						}
 						self.updateHostVideoConfig()
 					}
 				}

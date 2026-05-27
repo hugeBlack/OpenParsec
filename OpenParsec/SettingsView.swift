@@ -226,11 +226,18 @@ struct SettingsView:View
 									.frame(width:80)
 									.onChange(of: lowLatencyMode) { newValue in
 										if newValue {
-											// Flip the most impactful knobs in one shot.
-											// Users can still override individually after.
-											preferredFramesPerSecond = 0
-											decoder = .h265
+											// S08 — Poor-Network profile. Strip the latency-adding
+											// knobs AND cap bitrate: on a weak uplink an uncapped
+											// encoder outruns the link, and the resulting queue
+											// (bufferbloat) is what actually makes a stream feel
+											// laggy on bad WiFi. This trades sharpness for
+											// responsiveness — each knob stays individually
+											// overridable afterward.
+											preferredFramesPerSecond = 0     // device-max present rate
+											decoder = .h265                  // more quality per capped bit
 											noOverlay = true
+											decoderCompatibility = false     // compat decode path adds latency
+											bitrate = 5                      // poor-network ceiling (Mbps)
 										}
 									}
 							}
