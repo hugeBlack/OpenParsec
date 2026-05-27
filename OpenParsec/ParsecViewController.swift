@@ -77,7 +77,18 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	override var prefersHomeIndicatorAutoHidden : Bool {
 		return true
 	}
-	
+
+	// With the pointer locked (prefersPointerLocked), iPadOS still owns a strip at
+	// the bottom edge for the home-indicator / Control-Center swipe. Trackpad motion
+	// landing in that strip is partly eaten by the system gesture and never reaches
+	// our pointer handling, which the user feels as a dead-zone — and only inside
+	// Parsec, because the pointer lock is unique to this screen. Deferring the system
+	// edge gestures hands that strip back to the app. A second deliberate swipe still
+	// reaches the system gesture, so Control-Center access is preserved.
+	override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
+		return .all
+	}
+
 	init() {
 		super.init(nibName: nil, bundle: nil)
 
@@ -289,7 +300,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		// will move it to the centre.
 		
 		setNeedsUpdateOfPrefersPointerLocked()
-		
+		setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+
 		let pointerInteraction = UIPointerInteraction(delegate: self)
 		view.addInteraction(pointerInteraction)
 		
