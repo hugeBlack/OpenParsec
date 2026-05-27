@@ -26,6 +26,7 @@ struct SettingsView:View
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
 	@AppStorage("syncKeyboardLayout") var syncKeyboardLayout: Bool = true
 	@AppStorage("layoutSyncHotkey") var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
+	@AppStorage("ctrlShiftEmulatesCmdSpace") var ctrlShiftEmulatesCmdSpace: Bool = false
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
 	@State private var crashCopied: Bool = false
 	@State private var diagCopied: Bool = false
@@ -163,6 +164,11 @@ struct SettingsView:View
                                     Choice("Alt + Shift (Windows)", LayoutSyncHotkey.altShift),
                                     Choice("Off", LayoutSyncHotkey.none)
                                 ])
+                            }
+                            CatItem("⌃⇧ → ⌘Space (Mac host)")
+                            {
+                                Toggle("", isOn:$ctrlShiftEmulatesCmdSpace)
+                                    .frame(width:80)
                             }
                             CatItem("Capture System Shortcuts")
                             {

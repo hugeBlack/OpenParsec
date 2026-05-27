@@ -60,6 +60,16 @@ struct SettingsHandler {
 	@AppStorage("syncKeyboardLayout") public static var syncKeyboardLayout: Bool = true
 	@AppStorage("layoutSyncHotkey") public static var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
 
+	// When true, pressing Ctrl+Shift *alone* (no other key in between) fires
+	// Cmd+Space at the host — the macOS "switch input source" / Spotlight chord
+	// the iPad shell otherwise swallows. Holding Ctrl+Shift and then pressing
+	// any other key (e.g. Ctrl+Shift+Arrow to extend a selection) is forwarded
+	// normally and does NOT fire the emulation. Off by default; intended for Mac
+	// hosts. Not auto-gated on host OS yet because host-OS detection (S04) still
+	// resolves to .unknown until the Int→OS mapping is discovered empirically —
+	// so this stays a deliberate manual opt-in.
+	@AppStorage("ctrlShiftEmulatesCmdSpace") public static var ctrlShiftEmulatesCmdSpace: Bool = false
+
 	@AppStorage("saveSessionSettings") public static var saveSessionSettings: Bool = true
 	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false
 	@AppStorage("savedConstantFps") public static var savedConstantFps: Bool = false

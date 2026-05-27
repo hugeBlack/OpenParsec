@@ -63,6 +63,16 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var mouseSensitivity: Float = Float(SettingsHandler.mouseSensitivity)
 	var activatedPanFingerNumber: Int = 0
 	
+	// Ctrl+Shift→Cmd+Space chord state machine (S05). `chordArmed` is true while
+	// both Ctrl and Shift are held with nothing else pressed; `chordSawOtherKey`
+	// trips the moment any non-modifier key joins the combo, so Ctrl+Shift+Arrow
+	// (host selection) does NOT emulate Cmd+Space. We track held modifiers as a
+	// small set of HID usages rather than reading event.modifierFlags so left/
+	// right Ctrl and Shift are both honored and key-up bookkeeping is exact.
+	private var heldModifierKeyCodes: Set<UIKeyboardHIDUsage> = []
+	private var chordArmed: Bool = false
+	private var chordSawOtherKey: Bool = false
+
 	var keyboardAccessoriesView : UIView?
 	var keyboardHeight : CGFloat = 0.0
 	var keyboardVisible : Bool = false
@@ -566,17 +576,127 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
 
 		for press in presses {
+			chordTrackPressBegan(press.key)
+			// Always forward the raw scancode unchanged — the Cmd+Space emulation
+			// is additive and fires only on a clean Ctrl+Shift release, so host
+			// shortcuts like Ctrl+Shift+X keep working.
 			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: true) )
 		}
 
 	}
-	
+
 	override func pressesEnded (_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		
+
 		for press in presses {
 			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: false) )
+			chordTrackPressEnded(press.key)
 		}
-		
+
+	}
+
+	override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		super.pressesCancelled(presses, with: event)
+		// A cancelled press never delivers pressesEnded, so its key-up would be
+		// lost — both for the host (stuck modifier) and for our chord bookkeeping.
+		for press in presses {
+			CParsec.sendKeyboardMessage(event: KeyBoardKeyEvent(input: press.key, isPressBegin: false))
+			chordTrackPressEnded(press.key)
+		}
+		// Any interruption invalidates an in-flight chord.
+		chordArmed = false
+		chordSawOtherKey = false
+	}
+
+	// MARK: Ctrl+Shift → Cmd+Space chord machine (S05)
+
+	private func isModifierUsage(_ usage: UIKeyboardHIDUsage) -> Bool {
+		switch usage {
+		case .keyboardLeftControl, .keyboardRightControl,
+		     .keyboardLeftShift, .keyboardRightShift,
+		     .keyboardLeftAlt, .keyboardRightAlt,
+		     .keyboardLeftGUI, .keyboardRightGUI:
+			return true
+		default:
+			return false
+		}
+	}
+
+	private func chordHasControl() -> Bool {
+		return heldModifierKeyCodes.contains(.keyboardLeftControl)
+			|| heldModifierKeyCodes.contains(.keyboardRightControl)
+	}
+
+	private func chordHasShift() -> Bool {
+		return heldModifierKeyCodes.contains(.keyboardLeftShift)
+			|| heldModifierKeyCodes.contains(.keyboardRightShift)
+	}
+
+	// Any modifier outside Ctrl/Shift (Alt or Cmd) disqualifies the chord — we
+	// only want a *clean* Ctrl+Shift, not Ctrl+Shift+Alt etc.
+	private func chordHasForeignModifier() -> Bool {
+		return heldModifierKeyCodes.contains(.keyboardLeftAlt)
+			|| heldModifierKeyCodes.contains(.keyboardRightAlt)
+			|| heldModifierKeyCodes.contains(.keyboardLeftGUI)
+			|| heldModifierKeyCodes.contains(.keyboardRightGUI)
+	}
+
+	private func chordTrackPressBegan(_ key: UIKey?) {
+		guard SettingsHandler.ctrlShiftEmulatesCmdSpace, let usage = key?.keyCode else { return }
+		if isModifierUsage(usage) {
+			heldModifierKeyCodes.insert(usage)
+			// Arm only on a clean Ctrl+Shift with no foreign modifier.
+			if chordHasControl() && chordHasShift() && !chordHasForeignModifier() {
+				chordArmed = true
+				chordSawOtherKey = false
+			} else if chordHasForeignModifier() {
+				// Alt/Cmd joined → this is a different combo, not our chord.
+				chordSawOtherKey = true
+			}
+		} else {
+			// A real key was pressed while modifiers are held → not a bare chord.
+			chordSawOtherKey = true
+		}
+	}
+
+	private func chordTrackPressEnded(_ key: UIKey?) {
+		guard let usage = key?.keyCode else { return }
+		guard SettingsHandler.ctrlShiftEmulatesCmdSpace else {
+			// Setting may have flipped off mid-hold; keep the held-set honest.
+			if isModifierUsage(usage) { heldModifierKeyCodes.remove(usage) }
+			return
+		}
+		guard isModifierUsage(usage) else { return }
+
+		let wasArmed = chordArmed
+		let cleanRelease = !chordSawOtherKey
+		// Fire when the last of the Ctrl/Shift pair lifts on a clean chord.
+		let isCtrlOrShift = (usage == .keyboardLeftControl || usage == .keyboardRightControl
+			|| usage == .keyboardLeftShift || usage == .keyboardRightShift)
+
+		heldModifierKeyCodes.remove(usage)
+
+		if wasArmed && cleanRelease && isCtrlOrShift && !(chordHasControl() && chordHasShift()) {
+			// The pair is no longer both-held → the chord completed cleanly.
+			chordArmed = false
+			fireCmdSpace()
+		}
+		// Once neither Ctrl nor Shift remains, fully reset.
+		if !chordHasControl() && !chordHasShift() {
+			chordArmed = false
+			chordSawOtherKey = false
+		}
+	}
+
+	private func fireCmdSpace() {
+		// LGUI = left Cmd. Press Cmd → tap Space → release Cmd, with the same
+		// ~50 ms modifier-hold the layout-sync chord uses so the host registers
+		// the combo intact. Note: iPadOS owns the *physical* Cmd+Space, but here
+		// we synthesize it as host scancodes, which the host honors.
+		CParsec.sendVirtualKeyboardInput(text: "LGUI", isOn: true)
+		CParsec.sendVirtualKeyboardInput(text: "SPACE")
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+			CParsec.sendVirtualKeyboardInput(text: "LGUI", isOn: false)
+		}
 	}
 	
 	@objc func keyboardWillShow(notification: NSNotification) {
