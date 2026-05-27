@@ -41,18 +41,20 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate
 
 	func sceneDidEnterBackground(_ scene: UIScene)
 	{
+		guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
+
 		var pipAttempted = false
 		if #available(iOS 15.0, *) {
-			if ParsecBackgroundManager.shared.hasActiveConnection {
-				PictureInPictureManager.shared.startPiP()
-				pipAttempted = PictureInPictureManager.shared.isPiPActive || PictureInPictureManager.shared.isStarting
-			}
+			PictureInPictureManager.shared.startPiP()
+			pipAttempted = PictureInPictureManager.shared.isPiPActive || PictureInPictureManager.shared.isStarting
 		}
 
-		if !pipAttempted && ParsecBackgroundManager.shared.hasActiveConnection {
-			ParsecBackgroundManager.shared.onShouldDisconnect?()
+		// PiP keeps the stream alive in the background; its own stop/fail
+		// callbacks own the disconnect from there. Without PiP, hold a short
+		// keep-alive window so a quick app-switch resumes instantly instead of
+		// forcing a full reconnect.
+		if !pipAttempted {
+			ParsecBackgroundManager.shared.beginBackgroundGrace()
 		}
-
-		ParsecBackgroundManager.shared.sceneDidEnterBackground()
 	}
 }
