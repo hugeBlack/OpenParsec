@@ -94,6 +94,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	private var chordArmed: Bool = false
 	private var chordSawOtherKey: Bool = false
 
+	// Key-downs we deliberately swallowed (currently only the backtick→Cmd+Space
+	// remap). Their matching key-up must be swallowed too, otherwise the host
+	// receives a lone grave release and — worse — if the user holds the key, the
+	// auto-repeat key-downs we drop but a single trailing key-up could desync.
+	private var suppressedKeyUps: Set<UIKeyboardHIDUsage> = []
+
 	var keyboardAccessoriesView : UIView?
 	var keyboardHeight : CGFloat = 0.0
 	var keyboardVisible : Bool = false
@@ -609,6 +615,18 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 
 		for press in presses {
 			chordTrackPressBegan(press.key)
+			// Backtick→Cmd+Space remap: a bare ` becomes a manual language switch.
+			// Swallow the grave key-down and synthesize Cmd+Space at the host;
+			// record the suppression so the matching key-up is swallowed too.
+			if backtickWillEmulateCmdSpace(press.key), let usage = press.key?.keyCode {
+				// Auto-repeat delivers repeated pressesBegan with no intervening
+				// key-up; fire Cmd+Space only on the first down so holding ` does
+				// not spam input-source switches at the host.
+				if suppressedKeyUps.insert(usage).inserted {
+					fireCmdSpace()
+				}
+				continue
+			}
 			// Always forward the raw scancode unchanged — the Cmd+Space emulation
 			// is additive and fires only on a clean Ctrl+Shift release, so host
 			// shortcuts like Ctrl+Shift+X keep working.
@@ -620,6 +638,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	override func pressesEnded (_ presses: Set<UIPress>, with event: UIPressesEvent?) {
 
 		for press in presses {
+			// If we swallowed this key's key-down (backtick→Cmd+Space), swallow the
+			// key-up too — the host already saw a complete Cmd+Space tap.
+			if let usage = press.key?.keyCode, suppressedKeyUps.remove(usage) != nil {
+				chordTrackPressEnded(press.key)
+				continue
+			}
 			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: false) )
 			chordTrackPressEnded(press.key)
 		}
@@ -631,12 +655,26 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		// A cancelled press never delivers pressesEnded, so its key-up would be
 		// lost — both for the host (stuck modifier) and for our chord bookkeeping.
 		for press in presses {
+			if let usage = press.key?.keyCode, suppressedKeyUps.remove(usage) != nil {
+				chordTrackPressEnded(press.key)
+				continue
+			}
 			CParsec.sendKeyboardMessage(event: KeyBoardKeyEvent(input: press.key, isPressBegin: false))
 			chordTrackPressEnded(press.key)
 		}
 		// Any interruption invalidates an in-flight chord.
 		chordArmed = false
 		chordSawOtherKey = false
+	}
+
+	// True when the backtick→Cmd+Space remap should fire for this press: the
+	// feature is enabled, the key is the grave/backtick, and NO Cmd/Ctrl/Alt/
+	// Shift is held (so Shift+` = tilde and Cmd+` still reach the host as normal
+	// keys). Caps Lock and other non-blocking flags are ignored.
+	private func backtickWillEmulateCmdSpace(_ key: UIKey?) -> Bool {
+		guard SettingsHandler.backtickEmulatesCmdSpace, let key = key else { return false }
+		guard key.keyCode == .keyboardGraveAccentAndTilde else { return false }
+		return key.modifierFlags.isDisjoint(with: [.command, .control, .alternate, .shift])
 	}
 
 	// MARK: Ctrl+Shift → Cmd+Space chord machine (S05)
@@ -776,8 +814,24 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
              scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: newOffsetY), animated: true)
         }
 		onKeyboardVisibilityChanged?(false)
+
+		// Reclaim first responder for the hidden language-sync field after ANY
+		// soft-keyboard dismissal. Previously only setKeyboardVisible(false)
+		// reclaimed it, so dismissing via the toolbar Done button, a swipe-down,
+		// the Globe key, or any system-driven hide left the hidden field resigned
+		// — at which point currentInputModeDidChangeNotification stops firing and
+		// keyboard-layout sync silently dies until the next setKeyboardVisible(false).
+		// keyboardWillHide is the common funnel for every dismiss path, so reclaim
+		// here. Deferred to the next runloop tick so we don't fight the in-progress
+		// hide; guarded on !keyboardVisible so a show that raced in keeps the VC as
+		// first responder. The field has an empty inputView, so this never re-shows
+		// the keyboard.
+		DispatchQueue.main.async { [weak self] in
+			guard let self = self, !self.keyboardVisible else { return }
+			self.languageSync?.reclaimFirstResponder()
+		}
 	}
-	
+
 }
 
 extension ParsecViewController : UIGestureRecognizerDelegate {

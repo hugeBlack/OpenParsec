@@ -70,6 +70,17 @@ struct SettingsHandler {
 	// so this stays a deliberate manual opt-in.
 	@AppStorage("ctrlShiftEmulatesCmdSpace") public static var ctrlShiftEmulatesCmdSpace: Bool = false
 
+	// When true, pressing a *bare* backtick/grave (`) — no Cmd/Ctrl/Alt/Shift —
+	// fires Cmd+Space at the host instead of sending the grave scancode. This is
+	// a manual language-switch macro: the physical Cmd+Space is swallowed by
+	// iPadOS (Spotlight) and never reaches the host, but a backtick is an
+	// ordinary key we can intercept and re-emit as host scancodes. Shift+`
+	// (tilde) and Cmd+` are untouched because any modifier disqualifies the
+	// remap. Off by default; turning it on means you can no longer type a literal
+	// backtick into the host while connected. Intended for Mac hosts whose
+	// "Select previous input source" / Spotlight is bound to ⌘Space.
+	@AppStorage("backtickEmulatesCmdSpace") public static var backtickEmulatesCmdSpace: Bool = false
+
 	@AppStorage("saveSessionSettings") public static var saveSessionSettings: Bool = true
 	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false
 	@AppStorage("savedConstantFps") public static var savedConstantFps: Bool = false

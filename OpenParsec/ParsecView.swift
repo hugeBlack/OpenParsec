@@ -19,6 +19,23 @@ struct ParsecStatusBar : View {
 	private let disconnectFailureThreshold = 5
 	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
 
+	// Translate a raw ParsecStatus error into something a user can act on. The
+	// SDK returns bare integers; the worst case is a session that drops with an
+	// opaque "-6023" the user can't interpret. Known codes get a plain-language
+	// reason; the raw code is always appended so we can still triage anything new.
+	static func disconnectMessage(forCode code: Int) -> String {
+		switch code {
+		case -6023, -6024:
+			// Parsec: "Unable To Negotiate A Successful Connection" — a network/NAT
+			// problem, not an app bug. The iPad and host couldn't open a P2P tunnel.
+			// Only these two are documented; everything else shows the raw code so
+			// we never present an unverified reason as fact.
+			return "Disconnected: couldn't reach the host (network/NAT). Check Wi-Fi, firewall, and the host's UPnP / port-forwarding.\n(code \(code))"
+		default:
+			return "Disconnected (code \(code))"
+		}
+	}
+
 	init(isReconfiguring: Binding<Bool>, showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
 		_isReconfiguring = isReconfiguring
 		_showMenu = showMenu
@@ -123,7 +140,7 @@ struct ParsecStatusBar : View {
 			consecutiveFailures += 1
 			if consecutiveFailures >= disconnectFailureThreshold {
 				wasDisconnected = true
-				DCAlertText = "Disconnected (code \(status.rawValue))"
+				DCAlertText = Self.disconnectMessage(forCode: Int(status.rawValue))
 				showDCAlert = true
 			}
 			return
