@@ -308,22 +308,102 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
 	}
-
+	
+	
+	private var repeatTimer: Timer?
+	private var repeatKeyCode: Int = -1
+	private var optCmdRemapActive = false
+	private var altKeyHeld = false
 
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		
 		for press in presses {
-			CParsec.sendKeyboardMessage(event: KeyBoardKeyEvent(input: press.key, isPressBegin: true))
+			guard let key = press.key else { continue }
+
+			if key.keyCode == .keyboardLeftAlt || key.keyCode == .keyboardRightAlt {
+				altKeyHeld = true
+			}
+
+			if !isModifierKey(key.keyCode) && (altKeyHeld || key.modifierFlags.contains(.alternate)) {
+				if !optCmdRemapActive {
+					CParsec.sendKeyboardMessage(keyCode: 226, pressed: false)
+					CParsec.sendKeyboardMessage(keyCode: 227, pressed: true)
+					optCmdRemapActive = true
+				}
+				let code = KeyCodeTranslators.uiKeyCodeToInt(key: key.keyCode)
+				CParsec.sendKeyboardMessage(keyCode: UInt32(code), pressed: true)
+				startKeyRepeat(keyCode: code)
+				continue
+			}
+
+			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: true))
+
+			if !isModifierKey(key.keyCode) {
+				startKeyRepeat(keyCode: KeyCodeTranslators.uiKeyCodeToInt(key: key.keyCode))
+			}
 		}
-		
 	}
-	
-	override func pressesEnded (_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-		
+
+	override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
 		for press in presses {
-			CParsec.sendKeyboardMessage(event: KeyBoardKeyEvent(input: press.key, isPressBegin: false))
+			guard let key = press.key else { continue }
+
+			if optCmdRemapActive {
+				if key.keyCode == .keyboardLeftAlt || key.keyCode == .keyboardRightAlt {
+					altKeyHeld = false
+					CParsec.sendKeyboardMessage(keyCode: 227, pressed: false)
+					optCmdRemapActive = false
+					continue
+				}
+				if !isModifierKey(key.keyCode) {
+					let code = KeyCodeTranslators.uiKeyCodeToInt(key: key.keyCode)
+					CParsec.sendKeyboardMessage(keyCode: UInt32(code), pressed: false)
+					if code == repeatKeyCode { stopKeyRepeat() }
+					continue
+				}
+			}
+
+			if key.keyCode == .keyboardLeftAlt || key.keyCode == .keyboardRightAlt {
+				altKeyHeld = false
+			}
+
+			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: false))
+
+			let code = KeyCodeTranslators.uiKeyCodeToInt(key: key.keyCode)
+			if code == repeatKeyCode {
+				stopKeyRepeat()
+			}
 		}
-		
+	}
+
+	private func startKeyRepeat(keyCode: Int) {
+		stopKeyRepeat()
+		repeatKeyCode = keyCode
+
+		repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
+			guard let self = self else { return }
+			self.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true) { [weak self] _ in
+				guard let self = self else { return }
+				CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: false)
+				CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: true)
+			}
+		}
+	}
+
+	private func stopKeyRepeat() {
+		repeatTimer?.invalidate()
+		repeatTimer = nil
+		repeatKeyCode = -1
+	}
+
+	private func isModifierKey(_ keyCode: UIKeyboardHIDUsage) -> Bool {
+		switch keyCode {
+		case .keyboardLeftControl, .keyboardLeftShift, .keyboardLeftAlt, .keyboardLeftGUI,
+			 .keyboardRightControl, .keyboardRightShift, .keyboardRightAlt, .keyboardRightGUI,
+			 .keyboardCapsLock:
+			return true
+		default:
+			return false
+		}
 	}
 
 	@objc func keyboardWillShow(notification: NSNotification) {

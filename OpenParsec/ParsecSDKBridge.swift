@@ -425,7 +425,7 @@ class ParsecSDKBridge: ParsecService {
 		if event.input == nil {
 			return
 		}
-		
+
 		var keyboardMessagePress = ParsecMessage()
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
@@ -433,7 +433,17 @@ class ParsecSDKBridge: ParsecService {
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
 
-	func sendGameControllerButtonMessage(controllerId: UInt32, _ button: ParsecGamepadButton, pressed: Bool) {
+	func sendKeyboardMessage(keyCode: UInt32, pressed: Bool)
+	{
+		var keyboardMessagePress = ParsecMessage()
+		keyboardMessagePress.type = MESSAGE_KEYBOARD
+		keyboardMessagePress.keyboard.code = ParsecKeycode(keyCode)
+		keyboardMessagePress.keyboard.pressed = pressed
+		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
+	}
+	
+	func sendGameControllerButtonMessage(controllerId: UInt32, _ button:ParsecGamepadButton, pressed: Bool)
+	{
 		var pmsg = ParsecMessage()
 		pmsg.type = MESSAGE_GAMEPAD_BUTTON
 		pmsg.gamepadButton.id = controllerId

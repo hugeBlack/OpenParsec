@@ -150,6 +150,7 @@ protocol ParsecService {
 	func sendMouseDelta(_ dx: Int32, _ dy: Int32)
 	func sendMousePosition(_ x: Int32, _ y: Int32)
 	func sendKeyboardMessage(event: KeyBoardKeyEvent)
+	func sendKeyboardMessage(keyCode: UInt32, pressed: Bool)
 	func sendVirtualKeyboardInput(text: String)
 	func sendVirtualKeyboardInput(text: String, isOn: Bool)
 	func sendGameControllerButtonMessage(controllerId: UInt32, _ button: ParsecGamepadButton, pressed: Bool)
@@ -245,6 +246,10 @@ class CParsec {
 		parsecImpl.sendKeyboardMessage(event: event)
 	}
 
+	static func sendKeyboardMessage(keyCode: UInt32, pressed: Bool)
+	{
+		parsecImpl.sendKeyboardMessage(keyCode: keyCode, pressed: pressed)
+	}
 
 	static func sendVirtualKeyboardInput(text: String) {
 		parsecImpl.sendVirtualKeyboardInput(text: text)
