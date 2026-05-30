@@ -433,42 +433,50 @@ struct MainView: View
 			let task = URLSession.shared.dataTask(with:request)
 			{ (data, response, error) in
 				DispatchQueue.main.async {
-					if let data = data
+					if let data = data, let http = response as? HTTPURLResponse
 					{
-						let statusCode:Int = (response as! HTTPURLResponse).statusCode
+						let statusCode:Int = http.statusCode
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 // 200 OK
 						{
-							let info:HostInfoList =  try! decoder.decode(HostInfoList.self, from:data)
-							hosts.removeAll()
-							if let datas = info.data
+							if let info = try? decoder.decode(HostInfoList.self, from:data)
 							{
-								datas.forEach
-								{ h in
-									hosts.append(IdentifiableHostInfo(id:h.peer_id, hostname:h.name, user:h.user, connections:h.players))
+								hosts.removeAll()
+								if let datas = info.data
+								{
+									datas.forEach
+									{ h in
+										hosts.append(IdentifiableHostInfo(id:h.peer_id, hostname:h.name, user:h.user, connections:h.players))
+									}
 								}
+
+								var grammar: String = "hosts"
+								if hosts.count == 1
+								{
+									grammar = "host"
+								}
+
+								hostCountStr = "\(hosts.count) \(grammar)"
+
+								let formatter = DateFormatter()
+								formatter.dateFormat = "M/d/yyyy h:mm a"
+								refreshTime = "Last refreshed at \(formatter.string(from:Date()))"
 							}
-
-							var grammar: String = "hosts"
-							if hosts.count == 1
-							{
-								grammar = "host"
-							}
-
-							hostCountStr = "\(hosts.count) \(grammar)"
-
-							let formatter = DateFormatter()
-							formatter.dateFormat = "M/d/yyyy h:mm a"
-							refreshTime = "Last refreshed at \(formatter.string(from:Date()))"
 						}
 						else if statusCode == 403 // 403 Forbidden
 						{
-							let info:ErrorInfo = try! decoder.decode(ErrorInfo.self, from:data)
-
-							baseAlertText = "Error gathering hosts: \(info.error)"
-							showBaseAlert = true
+							if let info = try? decoder.decode(ErrorInfo.self, from:data)
+							{
+								baseAlertText = "Error gathering hosts: \(info.error)"
+								showBaseAlert = true
+							}
 						}
+					}
+					else if error != nil
+					{
+						baseAlertText = "Network error gathering hosts. Check your connection and try again."
+						showBaseAlert = true
 					}
 
 					isRefreshing = false
@@ -499,22 +507,25 @@ struct MainView: View
 			let task = URLSession.shared.dataTask(with:request)
 			{ (data, response, error) in
 				DispatchQueue.main.async {
-					if let data = data
+					if let data = data, let http = response as? HTTPURLResponse
 					{
-						let statusCode:Int = (response as! HTTPURLResponse).statusCode
+						let statusCode:Int = http.statusCode
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 // 200 OK
 						{
-							let data: SelfInfoData =  try! decoder.decode(SelfInfo.self, from:data).data
-							userInfo = IdentifiableUserInfo(id:data.id, username:data.name)
+							if let selfData = try? decoder.decode(SelfInfo.self, from:data).data
+							{
+								userInfo = IdentifiableUserInfo(id:selfData.id, username:selfData.name)
+							}
 						}
 						else
 						{
-							let info:ErrorInfo = try! decoder.decode(ErrorInfo.self, from:data)
-
-							baseAlertText = "Error gathering user info: \(info.error)"
-							showBaseAlert = true
+							if let info = try? decoder.decode(ErrorInfo.self, from:data)
+							{
+								baseAlertText = "Error gathering user info: \(info.error)"
+								showBaseAlert = true
+							}
 						}
 					}
 				}
@@ -544,40 +555,40 @@ struct MainView: View
 			let task = URLSession.shared.dataTask(with:request)
 			{ (data, response, error) in
 				DispatchQueue.main.async {
-					if let data = data
+					if let data = data, let http = response as? HTTPURLResponse
 					{
-						let statusCode:Int = (response as! HTTPURLResponse).statusCode
+						let statusCode:Int = http.statusCode
 						let decoder = JSONDecoder()
-
-						print("/friendships: \(statusCode)")
-						print(String(data:data, encoding:.utf8)!)
 
 						if statusCode == 200 // 200 OK
 						{
-							let info:FriendInfoList =  try! decoder.decode(FriendInfoList.self, from:data)
-							friends.removeAll()
-							if let datas = info.data
+							if let info = try? decoder.decode(FriendInfoList.self, from:data)
 							{
-								datas.forEach
-								{ f in
-									friends.append(IdentifiableUserInfo(id:f.user_id, username:f.user_name))
+								friends.removeAll()
+								if let datas = info.data
+								{
+									datas.forEach
+									{ f in
+										friends.append(IdentifiableUserInfo(id:f.user_id, username:f.user_name))
+									}
 								}
-							}
 
-							var grammar: String = "friends"
-							if friends.count == 1
-							{
-								grammar = "friend"
-							}
+								var grammar: String = "friends"
+								if friends.count == 1
+								{
+									grammar = "friend"
+								}
 
-							friendCountStr = "\(friends.count) \(grammar)"
+								friendCountStr = "\(friends.count) \(grammar)"
+							}
 						}
 						else
 						{
-							let info:ErrorInfo = try! decoder.decode(ErrorInfo.self, from:data)
-
-							baseAlertText = "Error gathering friends: \(info.error)"
-							showBaseAlert = true
+							if let info = try? decoder.decode(ErrorInfo.self, from:data)
+							{
+								baseAlertText = "Error gathering friends: \(info.error)"
+								showBaseAlert = true
+							}
 						}
 					}
 
@@ -595,6 +606,13 @@ struct MainView: View
 		withAnimation { isConnecting = true }
 
 		var status = CParsec.connect(who.id)
+
+		// Invalidate any in-flight poll timer before scheduling a new one. A
+		// background-reconnect (onShouldReconnect -> connectTo) or a rapid
+		// re-tap during the connecting phase can call connectTo while a prior
+		// timer is still live; without this the old repeating timer is orphaned
+		// and both fire, racing setView(.parsec)/showBaseAlert.
+		pollTimer?.invalidate()
 
 		// Polling status
 		pollTimer = Timer.scheduledTimer(withTimeInterval:1, repeats: true)
@@ -628,7 +646,10 @@ struct MainView: View
 
 		CParsec.disconnect()
 
-		pollTimer!.invalidate()
+		// Q2: pollTimer is nil if Cancel is tapped before the connect poll
+		// timer schedules — the old force-unwrap crashed on that race.
+		pollTimer?.invalidate()
+		pollTimer = nil
 	}
 
 	func logout()

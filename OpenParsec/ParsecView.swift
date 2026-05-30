@@ -4,15 +4,40 @@ import Foundation
 import AVFoundation
 
 struct ParsecStatusBar : View {
+	@Binding var isReconfiguring : Bool
 	@Binding var showMenu : Bool
 	@State var metricInfo: String = "Loading..."
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
+	// Consecutive non-OK polls before we believe the session is really gone.
+	// At a 0.2s poll interval, 5 ≈ 1s of grace — long enough to ride out a
+	// transient loss/RTT spike on a jittery link (BUD recovers on its own),
+	// short enough that a genuine drop still surfaces promptly.
+	@State var consecutiveFailures: Int = 0
+	private let disconnectFailureThreshold = 5
 	let timer = Timer.publish(every: 0.2, on: .main, in: .common).autoconnect()
 
-	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
+	// Translate a raw ParsecStatus error into something a user can act on. The
+	// SDK returns bare integers; the worst case is a session that drops with an
+	// opaque "-6023" the user can't interpret. Known codes get a plain-language
+	// reason; the raw code is always appended so we can still triage anything new.
+	static func disconnectMessage(forCode code: Int) -> String {
+		switch code {
+		case -6023, -6024:
+			// Parsec: "Unable To Negotiate A Successful Connection" — a network/NAT
+			// problem, not an app bug. The iPad and host couldn't open a P2P tunnel.
+			// Only these two are documented; everything else shows the raw code so
+			// we never present an unverified reason as fact.
+			return "Disconnected: couldn't reach the host (network/NAT). Check Wi-Fi, firewall, and the host's UPnP / port-forwarding.\n(code \(code))"
+		default:
+			return "Disconnected (code \(code))"
+		}
+	}
+
+	init(isReconfiguring: Binding<Bool>, showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
+		_isReconfiguring = isReconfiguring
 		_showMenu = showMenu
 		_showDCAlert = showDCAlert
 		_DCAlertText = DCAlertText
@@ -43,10 +68,42 @@ struct ParsecStatusBar : View {
 			.onReceive(timer) { p in
 				poll()
 			}
+
+		// Reconnecting overlay — only visible during changeResolution's
+		// disconnect→reconnect dance. Mirrors MainView's connecting overlay.
+		if isReconfiguring {
+			ZStack {
+				Rectangle()
+					.fill(Color.black.opacity(0.45))
+					.edgesIgnoringSafeArea(.all)
+				VStack(spacing: 12) {
+					ProgressView()
+						.scaleEffect(1.4)
+						.progressViewStyle(CircularProgressViewStyle(tint: .white))
+					Text("Switching resolution…")
+						.foregroundColor(.white)
+						.font(.system(size: 16, weight: .medium))
+				}
+				.padding(24)
+				.background(
+					RoundedRectangle(cornerRadius: 12)
+						.fill(Color("BackgroundPrompt").opacity(0.85))
+				)
+			}
+			.zIndex(3)
+		}
 	}
-	
+
 	func poll()
 	{
+		// While we're deliberately disconnecting/reconnecting for a resolution
+		// change, getStatusEx will briefly report a non-OK status. Don't pop
+		// the "Disconnected" alert during that window — it's an intentional
+		// gap with an overlay in front of it.
+		if isReconfiguring
+		{
+			return
+		}
 		if showDCAlert
 		{
 			return // no need to poll if we aren't connected anymore
@@ -76,12 +133,22 @@ struct ParsecStatusBar : View {
 				return
 			}
 
-			wasDisconnected = true
-			DCAlertText = "Disconnected (code \(status.rawValue))"
-			showDCAlert = true
+			// Debounce transient loss: a single bad poll on a jittery link is
+			// usually the BUD transport mid-recovery, not a real disconnect.
+			// Only alert after the status has been non-OK for several polls in
+			// a row; a genuine drop persists and still surfaces within ~1s.
+			consecutiveFailures += 1
+			if consecutiveFailures >= disconnectFailureThreshold {
+				wasDisconnected = true
+				DCAlertText = Self.disconnectMessage(forCode: Int(status.rawValue))
+				showDCAlert = true
+			}
 			return
 		}
-		
+
+		// Status is OK — clear any in-flight failure streak.
+		consecutiveFailures = 0
+
 		if showMenu
 		{
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length:16)
@@ -113,6 +180,10 @@ struct ParsecView: View
 
 	@State var showKeyboard: Bool = false
 	@State var zoomEnabled: Bool = false
+	// True while changeResolution is in its disconnect→reconnect dance.
+	// Suppresses the status-bar disconnect alert and shows a small
+	// "Switching resolution…" overlay so the user knows what's happening.
+	@State var isReconfiguring: Bool = false
 
 	@State var muted: Bool = false
 	@State var preferH265: Bool = true
@@ -162,7 +233,7 @@ struct ParsecView: View
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 			
-			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
+			ParsecStatusBar(isReconfiguring: $isReconfiguring, showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
 			
 			VStack()
 			{
@@ -234,13 +305,21 @@ struct ParsecView: View
 							}
 							Menu() {
 								ForEach(resolutions, id: \.self) { resolution in
+									let isCurrent = resolution.width == dataModel.resolutionX && resolution.height == dataModel.resolutionY
 									Button(action: {
 										changeResolution(res: resolution)
 									}) {
-										if resolution.width == dataModel.resolutionX && resolution.height == dataModel.resolutionY {
-											Label(resolution.desc, systemImage: "checkmark")
-										} else {
+										// iOS 14.0–14.4's UIMenu bridge crashes when SwiftUI lowers a
+										// `if Label else Text` body inside a Menu's Button to
+										// `_ConditionalContent<Label, Text>`. A single homogeneous
+										// HStack with a conditional Image is safe and renders the
+										// same checkmark visual.
+										HStack {
 											Text(resolution.desc)
+											if isCurrent {
+												Spacer(minLength: 8)
+												Image(systemName: "checkmark")
+											}
 										}
 									}
 								}
@@ -252,14 +331,17 @@ struct ParsecView: View
 							}
 							Menu() {
 								ForEach(bitrates, id: \.self) { bitrate in
+									let isCurrent = bitrate == dataModel.bitrate
 									Button(action: {
 										changeBitRate(bitrate: bitrate)
 									}) {
-                                        if bitrate == dataModel.bitrate {
-                                            Label("\(bitrate) Mbps", systemImage: "checkmark")
-                                        } else {
-                                            Text("\(bitrate) Mbps")
-                                        }
+										HStack {
+											Text("\(bitrate) Mbps")
+											if isCurrent {
+												Spacer(minLength: 8)
+												Image(systemName: "checkmark")
+											}
+										}
 									}
 								}
 							} label: {
@@ -471,11 +553,73 @@ struct ParsecView: View
 	}
 	
 	func changeResolution(res: ParsecResolution) {
-        SettingsHandler.resolution = res
+		// Guard against spam-tap: if a previous changeResolution is still in
+		// its disconnect→reconnect dance, ignore further selections until it
+		// finishes. Otherwise two overlapping connect/disconnect cycles can
+		// race the SDK state machine.
+		if isReconfiguring { return }
+
+		SettingsHandler.resolution = res
 		DispatchQueue.main.async {
 			DataManager.model.resolutionX = res.width
 			DataManager.model.resolutionY = res.height
-			CParsec.updateHostVideoConfig()
+		}
+
+		// Parsec's host honours bitrate / FPS / output via setVideoConfig
+		// user-data, but NOT resolution — that field is only read at
+		// ParsecClientConnect time. To actually change the streaming
+		// resolution we have to disconnect + reconnect with the new
+		// ParsecClientConfig. If we don't have a peer to reconnect to
+		// (shouldn't happen mid-session), fall back to just pushing the
+		// user-data update.
+		guard let peerID = CParsec.lastConnectedPeerID else {
+			DispatchQueue.main.async {
+				CParsec.updateHostVideoConfig()
+			}
+			return
+		}
+
+		DispatchQueue.main.async {
+			// Suppress disconnect alert + show the "Switching resolution…"
+			// overlay during the gap.
+			self.isReconfiguring = true
+			// Freeze the last decoded frame on screen instead of going black:
+			// pausing the GLKViewController stops `glkView(_:drawIn:)` from
+			// being called, so the framebuffer keeps its current contents.
+			if let parsecGLK = self.parsecViewController.glkView as? ParsecGLKViewController {
+				parsecGLK.glkViewController.isPaused = true
+			}
+			CParsec.disconnect()
+		}
+		// 600 ms gives the SDK enough time to fully tear down the session
+		// (audio queue, poll loops, internal state) before we reconnect.
+		// The user previously saw "Disconnected 20" with a 100 ms gap —
+		// turns out the SDK isn't truly ready for connect() that fast.
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+			let status = CParsec.connect(peerID)
+			// connect() already installs the fresh ParsecClientConfig with the
+			// new resolution; calling applyConfig() right after would issue a
+			// redundant ParsecClientSetConfig against a just-negotiated
+			// session (sometimes racy). Skip it.
+			if let parsecGLK = self.parsecViewController.glkView as? ParsecGLKViewController {
+				parsecGLK.glkViewController.isPaused = false
+			}
+
+			// If the reconnect didn't take (host offline, network blip),
+			// surface a real error instead of leaving the user staring at
+			// a frozen frame behind the spinner.
+			if status != PARSEC_OK && status != PARSEC_CONNECTING {
+				self.isReconfiguring = false
+				self.DCAlertText = "Reconnect failed (code \(status.rawValue))"
+				self.showDCAlert = true
+				return
+			}
+
+			// Drop the overlay a beat later — give the first new frame time
+			// to arrive so the user sees content, not the spinner-over-stale.
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+				self.isReconfiguring = false
+			}
 		}
 	}
 
@@ -515,7 +659,42 @@ struct ParsecView: View
 	func changeDisplay(displayId: String) {
 		DispatchQueue.main.async {
 			DataManager.model.output = displayId
+			// Persist so the next connect can auto-restore this choice once
+			// the host enumerates displays (user-data event 12). "none" is
+			// the "Auto" pseudo-id and isn't worth remembering.
+			if displayId == "none" {
+				SettingsHandler.savedDisplayOutput = ""
+				SettingsHandler.savedDisplayName = ""
+			} else {
+				SettingsHandler.savedDisplayOutput = displayId
+				// Also persist the human-readable name so a regenerated id
+				// next session can be matched by name.
+				if let cfg = DataManager.model.displayConfigs.first(where: { $0.id == displayId }) {
+					SettingsHandler.savedDisplayName = "\(cfg.name) \(cfg.adapterName)"
+				}
+			}
+
+			// S10: switching the streamed monitor makes the host re-init its
+			// encoder for the new display (usually a different resolution),
+			// forcing a client-side decoder reset. During that window
+			// getStatusEx briefly returns non-OK, and the poll loop pops a
+			// spurious "Disconnected" alert — suppressed only while
+			// isReconfiguring. changeResolution raises that flag; changeDisplay
+			// historically never did (D1). Bracket the switch the same way.
+			self.isReconfiguring = true
 			CParsec.updateHostVideoConfig()
+
+			// No reconnect happens here, so there's no completion callback to
+			// clear the flag — use a fixed window covering
+			// updateHostVideoConfig's 250/450 ms resend + echo cycle plus
+			// headroom. Resume the GL surface once it settles in case the
+			// decoder reset blanked it (D2 — same failure class as S01, on a
+			// path viewDidAppear/foreground hooks don't cover since no screen
+			// transition occurs here).
+			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+				self.parsecViewController.glkView?.resume()
+				self.isReconfiguring = false
+			}
 		}
 	}
 	

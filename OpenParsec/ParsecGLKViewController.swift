@@ -51,6 +51,11 @@ class ParsecGLKViewController : ParsecPlayground {
 
 	private func setupGLKViewController() {
 		glkView.context = EAGLContext(api: .openGLES3)!
+		// Track the superview's bounds so the drawable can't desync / go
+		// zero-size when the view is moved between parents or the layout
+		// changes on screen return (R4). updateSize still drives explicit
+		// resolution changes; this just keeps the surface pinned otherwise.
+		glkView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 		glkViewController.view = glkView
 
 		// Use configured FPS or device max (for ProMotion displays)
@@ -71,10 +76,28 @@ class ParsecGLKViewController : ParsecPlayground {
 		return glkView?.context
 	}
 
+	// Symmetric stop: pause the CADisplayLink-driven render loop so
+	// glkView(_:drawIn:) stops being called. Used when the surface is going
+	// off screen; resume() reverses it.
 	func cleanUp() {
-
+		glkViewController.isPaused = true
 	}
-	
+
+	// Idempotent render resume. Safe to call repeatedly. Makes the EAGL
+	// context current on the main thread (where GLKViewController renders),
+	// unpauses the loop LAST (Apple's ordering rule), then forces one frame
+	// so a stale/blank framebuffer repaints immediately instead of waiting
+	// for the next streamed frame. This is the core fix for the black screen
+	// on screen return: any path that left isPaused == true (changeResolution,
+	// PiP, background) is self-healed here.
+	func resume() {
+		if let ctx = glkView?.context {
+			_ = EAGLContext.setCurrent(ctx)
+		}
+		glkViewController.isPaused = false
+		glkView?.setNeedsDisplay()
+	}
+
 	func updateSize(width: CGFloat, height: CGFloat) {
 		glkView.frame.size.width = width
 		glkView.frame.size.height = height

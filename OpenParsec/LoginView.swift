@@ -192,14 +192,10 @@ struct LoginView:View
 		{ (data, response, error) in
 			DispatchQueue.main.async {
 				isLoading = false
-				if let data = data
+				if let data = data, let http = response as? HTTPURLResponse
 				{
-					let statusCode:Int = (response as! HTTPURLResponse).statusCode
+					let statusCode:Int = http.statusCode
 					let decoder = JSONDecoder()
-
-					print("Login Information:")
-					print(statusCode)
-					print(String(data:data, encoding:.utf8)!)
 
 					if statusCode == 201 // 201 Created
 					{
@@ -216,7 +212,12 @@ struct LoginView:View
 					}
 					else if statusCode >= 400 // 4XX client errors
 					{
-						let info:ErrorInfo = try! decoder.decode(ErrorInfo.self, from:data)
+						guard let info = try? decoder.decode(ErrorInfo.self, from:data) else
+						{
+							alertText = "Login failed (HTTP \(statusCode))."
+							showAlert = true
+							return
+						}
 
 						do
 						{
@@ -243,6 +244,11 @@ struct LoginView:View
 							print("Error on trying JSON Serialization on error data!")
 						}
 					}
+				}
+				else
+				{
+					alertText = "Network error. Check your connection and try again."
+					showAlert = true
 				}
 			}
 		}

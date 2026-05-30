@@ -213,14 +213,22 @@ void audio_destroy(struct audio **ctx_out)
         if (ctx->audio_buf[x])
             AudioQueueFreeBuffer(ctx->q, ctx->audio_buf[x]);
     }
-    
+
+    // C5 fix: free the shared silence buffer while the queue is still alive
+    // and BEFORE freeing ctx. The old order was free(ctx) -> *ctx_out = NULL
+    // -> AudioQueueFreeBuffer(ctx->q, ...), which dereferenced the just-freed
+    // ctx (use-after-free) and freed the buffer on an already-disposed queue.
+    if (ctx->q && silence_buf) {
+        AudioQueueFreeBuffer(ctx->q, silence_buf);
+        silence_buf = NULL;
+    }
+
     if (ctx->q)
         AudioQueueDispose(ctx->q, true);
 
     free(ctx);
     *ctx_out = NULL;
 	isStart = false;
-	AudioQueueFreeBuffer(ctx->q, silence_buf);
 	silence_inqueue = silence_outqueue = 0;
 }
 
@@ -271,8 +279,17 @@ void audio_cb(const int16_t *pcm, uint32_t frames, void *opaque)
 		return;
 	}
 	
-    memcpy((*find_idle)->mAudioData, pcm, frames * 4);
-    (*find_idle)->mAudioDataByteSize = frames * 4;
+    // The idle buffer is a fixed BUFFER_SIZE (4096-byte) AudioQueue
+    // allocation, but `frames` is host-supplied and unbounded. Normal ~10ms
+    // chunks are well under 1024 stereo frames, so this clamp is a no-op on
+    // the happy path — but a post-stall recovery on a flaky link can deliver
+    // an oversized chunk, and `frames * 4 > BUFFER_SIZE` would memcpy past the
+    // buffer (heap overflow → crash/corruption). Clamp to what fits; playing a
+    // truncated chunk is strictly better than overrunning the allocation.
+    uint32_t bytes = frames * 4;
+    if (bytes > BUFFER_SIZE) bytes = BUFFER_SIZE;
+    memcpy((*find_idle)->mAudioData, pcm, bytes);
+    (*find_idle)->mAudioDataByteSize = bytes;
 	
 	if(!isStart)
 	{

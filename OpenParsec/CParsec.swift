@@ -118,6 +118,30 @@ enum ParsecResolution: String, CaseIterable, Hashable {
 }
 
 
+// Host operating system, derived from the case-11 video-config `hostOS` Int.
+// The Int→OS encoding is NOT documented (the ParsecSDK framework headers are
+// not vendored), so the mapping below is intentionally empty until the values
+// are confirmed empirically. Connect to a known Mac host and a known Windows
+// host and read the `hostOS=<n>` lines written by Diagnostics.note (retrievable
+// via Settings → "Copy Diagnostics" or the Files app), then fill in the cases.
+// Until then `from` returns .unknown and every OS-gated feature falls back to
+// its manual toggle — so a wrong guess can never mis-gate behaviour.
+enum HostOS {
+	case unknown
+	case macos
+	case windows
+	case linux
+
+	static func from(_ raw: Int) -> HostOS {
+		switch raw {
+		// TODO(discovery): map the observed raw values here, e.g.
+		//   case 1: return .windows
+		//   case 2: return .macos
+		default: return .unknown
+		}
+	}
+}
+
 struct MouseInfo {
 	var pngCursor: Bool = false
 	var mouseX:Int32 = 1
@@ -137,6 +161,9 @@ protocol ParsecService {
 	var hostWidth: Float { get }
 	var hostHeight: Float { get }
 	var mouseInfo: MouseInfo { get }
+	// Raw host-OS int from the case-11 video config (-1 until received). Read
+	// lock-free from input threads; a plain Int load is atomic on the device.
+	var hostOSValue: Int { get }
 	
 	func connect(_ peerID: String) -> ParsecStatus
 	func disconnect()
@@ -180,10 +207,22 @@ class CParsec
 	public static var mouseInfo: MouseInfo {
 		return parsecImpl.mouseInfo
 	}
+
+	// Resolved host OS for feature gating. .unknown until the case-11 value
+	// arrives AND the HostOS mapping is filled in from discovery.
+	public static var hostOS: HostOS {
+		return HostOS.from(parsecImpl.hostOSValue)
+	}
 	
 	
 
 	static var parsecImpl: ParsecService!
+
+	// Remember the last peer we connected to so callers like changeResolution
+	// can disconnect + reconnect with new ParsecClientConfig (resolution can
+	// only be changed via a fresh ParsecClientConnect — the in-session
+	// setVideoConfig user-data event does not move resolution on the host).
+	public static var lastConnectedPeerID: String?
 
 	static func initialize()
 	{
@@ -192,16 +231,22 @@ class CParsec
 
 	static func destroy()
 	{
-		
+
 	}
 
 	static func connect(_ peerID: String) -> ParsecStatus
 	{
-		parsecImpl.connect(peerID)
+		lastConnectedPeerID = peerID
+		return parsecImpl.connect(peerID)
 	}
 
 	static func disconnect()
 	{
+		// Clear the peer-ID memo on any disconnect path; changeResolution sets
+		// it again right before calling connect(), so the reconnect dance is
+		// unaffected — but a user-initiated disconnect (close stream button,
+		// app background, etc.) should leave us with no stale peer.
+		lastConnectedPeerID = nil
 		parsecImpl.disconnect()
 	}
 

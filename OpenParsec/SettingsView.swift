@@ -11,13 +11,26 @@ struct SettingsView:View
 	@AppStorage("cursorMode") var cursorMode: CursorMode = .touchpad
 	@AppStorage("cursorScale") var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") var mouseSensitivity: Double = 1.0
+	@AppStorage("mouseAcceleration") var mouseAcceleration: Double = 0.0
+	@AppStorage("localCursorOverlay") var localCursorOverlay: Bool = false
+	@AppStorage("scrollSensitivity") var scrollSensitivity: Double = 1.0
+	@AppStorage("naturalScrolling") var naturalScrolling: Bool = true
+	@AppStorage("captureSystemKeys") var captureSystemKeys: Bool = true
+	@AppStorage("windowsHostKeyboardRemap") var windowsHostKeyboardRemap: Bool = false
 	@AppStorage("noOverlay") var noOverlay: Bool = false
-	@AppStorage("cursorScale") var hideStatusBar: Bool = true
+	@AppStorage("hideStatusBar") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
-	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
+	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 0 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
+	@AppStorage("lowLatencyMode") var lowLatencyMode: Bool = false
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
+	@AppStorage("syncKeyboardLayout") var syncKeyboardLayout: Bool = true
+	@AppStorage("layoutSyncHotkey") var layoutSyncHotkey: LayoutSyncHotkey = .ctrlSpace
+	@AppStorage("ctrlShiftEmulatesCmdSpace") var ctrlShiftEmulatesCmdSpace: Bool = false
+	@AppStorage("backtickEmulatesCmdSpace") var backtickEmulatesCmdSpace: Bool = false
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
+	@State private var crashCopied: Bool = false
+	@State private var diagCopied: Bool = false
 	
 	let resolutionChoices: [Choice<ParsecResolution>]
 
@@ -104,12 +117,75 @@ struct SettingsView:View
 									.frame(width: 200)
 								Text(String(format: "%.1f", cursorScale))
                             }
+                            CatItem("Local Cursor Overlay")
+                            {
+                                Toggle("", isOn:$localCursorOverlay)
+                                    .frame(width:80)
+                            }
 							CatItem("Mouse Sensitivity")
 							{
 								Slider(value: $mouseSensitivity, in:0.1...4, step:0.1)
 									.frame(width: 200)
 								Text(String(format: "%.1f", mouseSensitivity))
 							}
+							CatItem("Mouse Acceleration")
+							{
+								Slider(value: $mouseAcceleration, in:0...1.5, step:0.05)
+									.frame(width: 200)
+								Text(String(format: "%.2f", mouseAcceleration))
+							}
+							CatItem("Scroll Sensitivity")
+							{
+								Slider(value: $scrollSensitivity, in:0.1...4, step:0.1)
+									.frame(width: 200)
+								Text(String(format: "%.1f", scrollSensitivity))
+							}
+							CatItem("Natural Scrolling")
+							{
+								Toggle("", isOn:$naturalScrolling)
+									.frame(width:80)
+							}
+                        }
+                        CatTitle("Keyboard")
+                        CatList()
+                        {
+                            CatItem("Sync layout with host")
+                            {
+                                Toggle("", isOn:$syncKeyboardLayout)
+                                    .frame(width:80)
+                            }
+                            CatItem("Layout switch hotkey")
+                            {
+                                MultiPicker(selection:$layoutSyncHotkey, options:
+                                [
+                                    Choice("⌃ + Space (macOS default)", LayoutSyncHotkey.ctrlSpace),
+                                    Choice("⌃ + ⇧ (macOS alt)", LayoutSyncHotkey.ctrlShift),
+                                    Choice("⌘ + Space", LayoutSyncHotkey.cmdSpace),
+                                    Choice("⌥ + Space", LayoutSyncHotkey.altSpace),
+                                    Choice("Alt + Shift (Windows)", LayoutSyncHotkey.altShift),
+                                    Choice("Off", LayoutSyncHotkey.none)
+                                ])
+                            }
+                            CatItem("⌃⇧ → ⌘Space (Mac host)")
+                            {
+                                Toggle("", isOn:$ctrlShiftEmulatesCmdSpace)
+                                    .frame(width:80)
+                            }
+                            CatItem("` key → ⌘Space (language switch)")
+                            {
+                                Toggle("", isOn:$backtickEmulatesCmdSpace)
+                                    .frame(width:80)
+                            }
+                            CatItem("Capture System Shortcuts")
+                            {
+                                Toggle("", isOn:$captureSystemKeys)
+                                    .frame(width:80)
+                            }
+                            CatItem("Windows Host Remap")
+                            {
+                                Toggle("", isOn:$windowsHostKeyboardRemap)
+                                    .frame(width:80)
+                            }
                         }
                         CatTitle("Graphics")
                         CatList()
@@ -150,6 +226,27 @@ struct SettingsView:View
 								Toggle("", isOn:$decoderCompatibility)
 									.frame(width:80)
 							}
+							CatItem("Low Latency Mode")
+							{
+								Toggle("", isOn:$lowLatencyMode)
+									.frame(width:80)
+									.onChange(of: lowLatencyMode) { newValue in
+										if newValue {
+											// S08 — Poor-Network profile. Strip the latency-adding
+											// knobs AND cap bitrate: on a weak uplink an uncapped
+											// encoder outruns the link, and the resulting queue
+											// (bufferbloat) is what actually makes a stream feel
+											// laggy on bad WiFi. This trades sharpness for
+											// responsiveness — each knob stays individually
+											// overridable afterward.
+											preferredFramesPerSecond = 0     // device-max present rate
+											decoder = .h265                  // more quality per capped bit
+											noOverlay = true
+											decoderCompatibility = false     // compat decode path adds latency
+											bitrate = 5                      // poor-network ceiling (Mbps)
+										}
+									}
+							}
                         }
                         CatTitle("Misc")
                         CatList()
@@ -173,6 +270,36 @@ struct SettingsView:View
 							{
 								Toggle("", isOn:$saveSessionSettings)
 									.frame(width:80)
+							}
+							CatItem("Last Crash Log")
+							{
+								Button(action: {
+									if let crash = CrashReporter.peek() {
+										UIPasteboard.general.string = crash
+										crashCopied = true
+									} else {
+										UIPasteboard.general.string = "(no crash recorded)"
+										crashCopied = true
+									}
+								}) {
+									Text(crashCopied ? "Copied!" : (CrashReporter.peek() == nil ? "None" : "Copy"))
+										.foregroundColor(CrashReporter.peek() == nil ? .gray : Color("AccentColor"))
+								}
+							}
+							CatItem("Diagnostics Log")
+							{
+								Button(action: {
+									if let diag = Diagnostics.peek() {
+										UIPasteboard.general.string = diag
+										diagCopied = true
+									} else {
+										UIPasteboard.general.string = "(no diagnostics recorded)"
+										diagCopied = true
+									}
+								}) {
+									Text(diagCopied ? "Copied!" : (Diagnostics.peek() == nil ? "None" : "Copy"))
+										.foregroundColor(Diagnostics.peek() == nil ? .gray : Color("AccentColor"))
+								}
 							}
 						}
 						Text(getVersionInfo())
@@ -200,7 +327,10 @@ struct SettingsView:View
 	}
 	
 	func getVersionInfo() -> String {
-		return "Version \(Bundle.main.infoDictionary!["CFBundleShortVersionString"] ?? "Unknown versino")-\(Bundle.main.infoDictionary!["GitCommitInfo"] ?? "Unknown commit")"
+		let info = Bundle.main.infoDictionary
+		let version = info?["CFBundleShortVersionString"] as? String ?? "Unknown version"
+		let commit = info?["GitCommitInfo"] as? String ?? "Unknown commit"
+		return "Version \(version)-\(commit)"
 	}
 }
 

@@ -76,7 +76,11 @@ class SharedModel: ObservableObject {
 	@Published var constantFps = false
 	@Published var output = "none"
 	@Published var displayConfigs: [ParsecDisplayConfig] = []
-	
+	// Host OS as reported in the case-11 video config. -1 = unknown / not yet
+	// received. The Int→OS encoding is empirical (see HostOS.from); this raw
+	// value is surfaced for discovery logging and feature gating.
+	@Published var hostOS: Int = -1
+
 }
 
 class DataManager {
