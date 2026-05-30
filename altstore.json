@@ -9,7 +9,7 @@
         {
             "beta": true,
             "name": "OpenParsec",
-            "bundleIdentifier": "com.aigch.OpenParsec1",
+            "bundleIdentifier": "com.aigch.OpenParsec",
             "developerName": "hugeBlack",
             "subtitle": "Open Parsec client for iOS/iPadOS",
             "localizedDescription": "An open-source Parsec client for iOS/iPadOS. This repo implements mouse & keyboard & touch screen support.",
