@@ -325,6 +325,7 @@ struct ParsecView: View {
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.onPiPStopped = { [self] in
 				if UIApplication.shared.applicationState != .active {
+					ParsecBackgroundManager.shared.glkViewController?.isPaused = true
 					CParsec.sendReleaseMessage()
 					CParsec.pause()
 					ParsecBackgroundManager.shared.isPaused = true
@@ -347,6 +348,7 @@ struct ParsecView: View {
 			}
 			PictureInPictureManager.shared.onPiPStartFailed = {
 				if UIApplication.shared.applicationState != .active {
+					ParsecBackgroundManager.shared.glkViewController?.isPaused = true
 					CParsec.sendReleaseMessage()
 					CParsec.pause()
 					ParsecBackgroundManager.shared.isPaused = true

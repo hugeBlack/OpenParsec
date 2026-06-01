@@ -34,10 +34,12 @@ class ParsecBackgroundManager {
 		lastPeerId = peerId
 		didDisconnectDueToBackground = false
 		isReconnecting = false
+		isPaused = false
 	}
 
 	func connectionDidEnd() {
 		hasActiveConnection = false
+		isPaused = false
 	}
 
 	func sceneWillResignActive() {
