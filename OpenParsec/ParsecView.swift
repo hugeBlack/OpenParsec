@@ -387,7 +387,11 @@ struct ParsecView: View {
 	func toggleMute() {
 		muted.toggle()
 		CParsec.setMuted(muted)
-		muted ? CParsec.pause(video: false, audio: true) : CParsec.resume()
+		if muted {
+			CParsec.pause(video: false, audio: true)
+		} else {
+			CParsec.resume()
+		}
 		if SettingsHandler.saveSessionSettings { SettingsHandler.savedMuted = muted }
 	}
 

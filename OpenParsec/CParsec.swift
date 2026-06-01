@@ -286,10 +286,12 @@ class CParsec {
 		parsecImpl.sendReleaseMessage()
 	}
 
+	@discardableResult
 	static func pause(video: Bool = true, audio: Bool = true) -> ParsecStatus {
 		return parsecImpl.pause(video: video, audio: audio)
 	}
 
+	@discardableResult
 	static func resume() -> ParsecStatus {
 		return parsecImpl.resume()
 	}
