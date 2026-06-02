@@ -128,6 +128,20 @@ class ParsecSDKBridge: ParsecService {
 		ParsecBackgroundManager.shared.connectionDidEnd()
 	}
 
+	func reconnect(_ peerID: String) -> ParsecStatus {
+		sendReleaseMessage()
+		audioWork?.cancel()
+		eventWork?.cancel()
+		ParsecClientDisconnect(_parsec)
+		audio_clear(&_audio)
+		ParsecBackgroundManager.shared.connectionDidEnd()
+		let status = connect(peerID)
+		if status != PARSEC_OK && status != PARSEC_CONNECTING {
+			ParsecBackgroundManager.shared.connectionDidEnd()
+		}
+		return status
+	}
+
 	func sendReleaseMessage() {
 		var msg = ParsecMessage()
 		msg.type = MESSAGE_RELEASE

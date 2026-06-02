@@ -159,6 +159,7 @@ protocol ParsecService {
 	func sendWheelMsg(x: Int32, y: Int32)
 	func sendUserData(type: ParsecUserDataType, message: Data)
 	func sendReleaseMessage()
+	func reconnect(_ peerID: String) -> ParsecStatus
 	func pause(video: Bool, audio: Bool) -> ParsecStatus
 	func resume() -> ParsecStatus
 	func updateHostVideoConfig()
@@ -284,6 +285,11 @@ class CParsec {
 
 	static func sendReleaseMessage() {
 		parsecImpl.sendReleaseMessage()
+	}
+
+	@discardableResult
+	static func reconnect(_ peerID: String) -> ParsecStatus {
+		return parsecImpl.reconnect(peerID)
 	}
 
 	@discardableResult

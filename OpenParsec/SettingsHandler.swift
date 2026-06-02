@@ -20,6 +20,8 @@ struct SettingsHandler {
 	@AppStorage("alwaysShowStatus") public static var alwaysShowStatus: Bool = false
 	@AppStorage("enablePiP") public static var enablePiP: Bool = false
 	@AppStorage("startMuted") public static var startMuted: Bool = false
+	@AppStorage("autoReconnect") public static var autoReconnect: Bool = true
+	@AppStorage("autoConnectOnLaunch") public static var autoConnectOnLaunch: Bool = false
 
 	@AppStorage("saveSessionSettings") public static var saveSessionSettings: Bool = true
 	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false
