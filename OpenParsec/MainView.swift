@@ -110,6 +110,49 @@ struct MainView: View {
 							Text(refreshTime)
 								.multilineTextAlignment(.center)
 								.opacity(0.5)
+							if let lastHost = ParsecBackgroundManager.shared.lastHostname,
+							   ParsecBackgroundManager.shared.lastPeerId != nil {
+								VStack(spacing: 0) {
+									HStack {
+										VStack(alignment: .leading, spacing: 4) {
+											Text("Last connected")
+												.font(.system(size: 12))
+												.opacity(0.5)
+											Text(lastHost)
+												.font(.system(size: 16, weight: .medium))
+										}
+										Spacer()
+										Button(action: reconnectLastHost) {
+											Text("Reconnect")
+												.foregroundColor(.white)
+												.padding(.horizontal, 12)
+												.padding(.vertical, 6)
+												.background(Color("AccentColor"))
+												.cornerRadius(8)
+										}
+										Button(action: clearLastHost) {
+											Image(systemName: "xmark")
+												.foregroundColor(Color("Foreground"))
+												.opacity(0.5)
+												.padding(8)
+										}
+									}
+									.padding()
+									HStack {
+										Toggle("Auto connect on launch", isOn: Binding(
+											get: { SettingsHandler.autoConnectOnLaunch },
+											set: { SettingsHandler.autoConnectOnLaunch = $0 }
+										))
+										.font(.system(size: 13))
+										.opacity(0.7)
+									}
+									.padding(.horizontal)
+									.padding(.bottom, 10)
+								}
+								.frame(maxWidth: 400)
+								.background(Rectangle().fill(Color("BackgroundCard")))
+								.cornerRadius(8)
+							}
 							ForEach(hosts) { i in
 								ZStack {
 									VStack {
@@ -362,6 +405,22 @@ struct MainView: View {
 				refreshHosts()
 			}
 		}
+
+		if SettingsHandler.autoConnectOnLaunch && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
+			reconnectLastHost()
+		}
+	}
+
+	func reconnectLastHost() {
+		guard let peerId = ParsecBackgroundManager.shared.lastPeerId else { return }
+		let hostname = ParsecBackgroundManager.shared.lastHostname ?? peerId
+		let user = UserInfo(id: 0, name: "", warp: false, team_id: "")
+		let stub = IdentifiableHostInfo(id: peerId, hostname: hostname, user: user, connections: 0)
+		connectTo(stub)
+	}
+
+	func clearLastHost() {
+		ParsecBackgroundManager.shared.disableAutoReconnect()
 	}
 
 	func refreshHosts() {
@@ -516,8 +575,11 @@ struct MainView: View {
 	}
 
 	func connectTo(_ who: IdentifiableHostInfo) {
+		pollTimer?.invalidate()
+		pollTimer = nil
 		CParsec.initialize()
 		connectingToName = who.hostname
+		ParsecBackgroundManager.shared.lastHostname = who.hostname
 		withAnimation { isConnecting = true }
 
 		var status = CParsec.connect(who.id)
@@ -554,6 +616,7 @@ struct MainView: View {
 	func logout() {
 		removeFromKeychain(key: GLBDataModel.shared.SessionKeyChainKey)
 		NetworkHandler.clinfo = nil
+		ParsecBackgroundManager.shared.disableAutoReconnect()
 		if let c = controller {
 			c.setView(.login)
 		}
