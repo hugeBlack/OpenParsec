@@ -21,6 +21,7 @@ struct SettingsView: View {
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
 	@AppStorage("alwaysShowStatus") var alwaysShowStatus: Bool = false
 	@AppStorage("enablePiP") var enablePiP: Bool = false
+	@AppStorage("startMuted") var startMuted: Bool = false
 
 	let resolutionChoices: [Choice<ParsecResolution>]
 
@@ -163,6 +164,10 @@ struct SettingsView: View {
 							}
 							CatItem("Picture in Picture") {
 								Toggle("", isOn: $enablePiP)
+									.frame(width: 80)
+							}
+							CatItem("Start Muted") {
+								Toggle("", isOn: $startMuted)
 									.frame(width: 80)
 							}
 							CatItem("Save Session Settings") {

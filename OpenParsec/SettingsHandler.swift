@@ -19,6 +19,7 @@ struct SettingsHandler {
 	@AppStorage("showKeyboardButton") public static var showKeyboardButton: Bool = true
 	@AppStorage("alwaysShowStatus") public static var alwaysShowStatus: Bool = false
 	@AppStorage("enablePiP") public static var enablePiP: Bool = false
+	@AppStorage("startMuted") public static var startMuted: Bool = false
 
 	@AppStorage("saveSessionSettings") public static var saveSessionSettings: Bool = true
 	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false

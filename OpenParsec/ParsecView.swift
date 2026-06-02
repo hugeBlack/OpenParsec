@@ -132,7 +132,7 @@ struct ParsecView: View {
 		self.controller = controller
 
 		let save = SettingsHandler.saveSessionSettings
-		_muted = State(initialValue: save ? SettingsHandler.savedMuted : false)
+		_muted = State(initialValue: SettingsHandler.startMuted || (save && SettingsHandler.savedMuted))
 		_zoomEnabled = State(initialValue: save ? SettingsHandler.savedZoomEnabled : false)
 		_constantFps = State(initialValue: save ? SettingsHandler.savedConstantFps : false)
 		_resolutions = State(initialValue: ParsecResolution.resolutions)
@@ -358,6 +358,7 @@ struct ParsecView: View {
 
 		CParsec.applyConfig()
 		CParsec.setMuted(muted)
+		if muted { CParsec.pause(video: false, audio: true) }
 		parsecViewController.setZoomEnabled(zoomEnabled)
 
 		if SettingsHandler.saveSessionSettings {
