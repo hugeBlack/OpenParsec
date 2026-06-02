@@ -44,8 +44,6 @@ class ParsecBackgroundManager {
 		didDisconnectDueToBackground = false
 		isReconnecting = false
 		isPaused = false
-		reconnectAttempts = 0
-		isAttemptingReconnect = false
 	}
 
 	func connectionDidEnd() {

@@ -32,6 +32,8 @@ struct MainView: View {
 
 	@State var inSettings: Bool = false
 
+	@State private var lastHostShown: String?
+
 	var busy: Bool {
 		isConnecting || isRefreshing || inSettings
 	}
@@ -110,8 +112,7 @@ struct MainView: View {
 							Text(refreshTime)
 								.multilineTextAlignment(.center)
 								.opacity(0.5)
-							if let lastHost = ParsecBackgroundManager.shared.lastHostname,
-							   ParsecBackgroundManager.shared.lastPeerId != nil {
+							if let lastHost = lastHostShown {
 								VStack(spacing: 0) {
 									HStack {
 										VStack(alignment: .leading, spacing: 4) {
@@ -394,6 +395,7 @@ struct MainView: View {
 	}
 
 	func initView() {
+		lastHostShown = ParsecBackgroundManager.shared.lastPeerId != nil ? ParsecBackgroundManager.shared.lastHostname : nil
 		refreshHosts()
 		refreshSelf()
 		refreshFriends()
@@ -421,6 +423,7 @@ struct MainView: View {
 
 	func clearLastHost() {
 		ParsecBackgroundManager.shared.disableAutoReconnect()
+		lastHostShown = nil
 	}
 
 	func refreshHosts() {
