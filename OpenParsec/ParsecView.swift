@@ -8,14 +8,17 @@ struct ParsecStatusBar: View {
 	@State var metricInfo: String = "Loading..."
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
+	@Binding var isReconnecting: Bool
+	@State var reconnectStartTime: Date = Date()
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 
-	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
+	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>) {
 		_showMenu = showMenu
 		_showDCAlert = showDCAlert
 		_DCAlertText = DCAlertText
+		_isReconnecting = isReconnecting
 		self.parsecViewController = parsecViewController
 	}
 
@@ -56,6 +59,12 @@ struct ParsecStatusBar: View {
 				return
 			}
 
+			if status == PARSEC_CONNECTING && isReconnecting {
+				if Date().timeIntervalSince(reconnectStartTime) < 15 {
+					return
+				}
+			}
+
 			// PiP: connection died (screen lock killed GPU). Kill connection+audio once,
 			// subsequent polls exit via isMarkedForReconnect above.
 			var pipActive = false
@@ -71,10 +80,33 @@ struct ParsecStatusBar: View {
 				return
 			}
 
+			if SettingsHandler.autoReconnect, let peerId = ParsecBackgroundManager.shared.lastPeerId {
+				let mgr = ParsecBackgroundManager.shared
+				if mgr.reconnectAttempts < 3 {
+					mgr.reconnectAttempts += 1
+					mgr.isAttemptingReconnect = true
+					isReconnecting = true
+					reconnectStartTime = Date()
+					parsecViewController?.resetKeyState()
+					CParsec.reconnect(peerId)
+					return
+				}
+				mgr.reconnectAttempts = 0
+				mgr.isAttemptingReconnect = false
+				isReconnecting = false
+			}
+
 			wasDisconnected = true
 			DCAlertText = "Disconnected (code \(status.rawValue))"
 			showDCAlert = true
 			return
+		}
+
+		if isReconnecting {
+			ParsecBackgroundManager.shared.reconnectAttempts = 0
+			ParsecBackgroundManager.shared.isAttemptingReconnect = false
+			isReconnecting = false
+			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 		}
 
 		if showMenu || SettingsHandler.alwaysShowStatus {
@@ -110,6 +142,7 @@ struct ParsecView: View {
 	@State var muted: Bool = false
 	@State var preferH265: Bool = true
 	@State var constantFps = false
+	@State var isReconnecting: Bool = false
 
 	@State var resolutions: [ParsecResolution]
 	@State var bitrates: [Int]
@@ -151,7 +184,19 @@ struct ParsecView: View {
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 
-			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
+			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting)
+
+			if isReconnecting {
+				VStack(spacing: 12) {
+					ActivityIndicator(isAnimating: .constant(true), style: .large, tint: .white)
+					Text("Reconnecting...")
+						.font(.system(size: 16, weight: .medium))
+						.foregroundColor(.white)
+				}
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+				.background(Color.black.opacity(0.6))
+				.zIndex(10)
+			}
 
 			VStack {
 				if !hideOverlay {
@@ -303,7 +348,25 @@ struct ParsecView: View {
 		}
 		.statusBarHidden(SettingsHandler.hideStatusBar)
 		.alert(isPresented: $showDCAlert) {
-			Alert(title: Text(DCAlertText), dismissButton: .default(Text("Close"), action: {disconnect()}))
+			Alert(title: Text(DCAlertText),
+				  primaryButton: .default(Text("Reconnect"), action: {
+					guard let peerId = ParsecBackgroundManager.shared.lastPeerId else {
+						disconnect()
+						return
+					}
+					showDCAlert = false
+					isReconnecting = true
+					ParsecBackgroundManager.shared.reconnectAttempts = 0
+					parsecViewController.resetKeyState()
+					CParsec.reconnect(peerId)
+				  }),
+				  secondaryButton: .cancel(Text("Close"), action: {disconnect()}))
+		}
+		.onChange(of: isReconnecting) { reconnecting in
+			if !reconnecting {
+				CParsec.setMuted(muted)
+				if muted { CParsec.pause(video: false, audio: true) }
+			}
 		}
 		.onAppear(perform: post)
 		.onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ParsecBackgroundDisconnect"))) { _ in

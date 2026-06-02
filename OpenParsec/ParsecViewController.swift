@@ -429,6 +429,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		repeatKeyCode = -1
 	}
 
+	func resetKeyState() {
+		stopKeyRepeat()
+		optCmdRemapActive = false
+		altKeyHeld = false
+	}
+
 	private func isModifierKey(_ keyCode: UIKeyboardHIDUsage) -> Bool {
 		switch keyCode {
 		case .keyboardLeftControl, .keyboardLeftShift, .keyboardLeftAlt, .keyboardLeftGUI,

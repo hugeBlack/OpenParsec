@@ -22,6 +22,7 @@ struct SettingsView: View {
 	@AppStorage("alwaysShowStatus") var alwaysShowStatus: Bool = false
 	@AppStorage("enablePiP") var enablePiP: Bool = false
 	@AppStorage("startMuted") var startMuted: Bool = false
+	@AppStorage("autoReconnect") var autoReconnect: Bool = true
 
 	let resolutionChoices: [Choice<ParsecResolution>]
 
@@ -168,6 +169,10 @@ struct SettingsView: View {
 							}
 							CatItem("Start Muted") {
 								Toggle("", isOn: $startMuted)
+									.frame(width: 80)
+							}
+							CatItem("Auto Reconnect") {
+								Toggle("", isOn: $autoReconnect)
 									.frame(width: 80)
 							}
 							CatItem("Save Session Settings") {
