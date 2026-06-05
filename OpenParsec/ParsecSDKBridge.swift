@@ -47,8 +47,7 @@ class ParsecSDKBridge: ParsecService {
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
 	public var pngCursor: Bool = false
-	private var audioWork: DispatchWorkItem?
-	private var eventWork: DispatchWorkItem?
+	private var pollGeneration = 0
 	var didSetResolution = false
 
 	public var mouseInfo = MouseInfo()
@@ -120,8 +119,7 @@ class ParsecSDKBridge: ParsecService {
 
 	func disconnect() {
 
-		audioWork?.cancel()
-		eventWork?.cancel()
+		pollGeneration += 1
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
 
@@ -130,8 +128,7 @@ class ParsecSDKBridge: ParsecService {
 
 	func reconnect(_ peerID: String) -> ParsecStatus {
 		sendReleaseMessage()
-		audioWork?.cancel()
-		eventWork?.cancel()
+		pollGeneration += 1
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
 		ParsecBackgroundManager.shared.connectionDidEnd()
@@ -520,20 +517,21 @@ class ParsecSDKBridge: ParsecService {
 
 	func startBackgroundTask() {
 
+		pollGeneration += 1
+		let generation = pollGeneration
+
 		let audio = DispatchWorkItem { [weak self] in
-			while let self = self, !(self.audioWork?.isCancelled ?? true) {
+			while let self = self, self.pollGeneration == generation {
 				self.pollAudio()
 			}
 		}
 
 		let event = DispatchWorkItem { [weak self] in
-			while let self = self, !(self.eventWork?.isCancelled ?? true) {
+			while let self = self, self.pollGeneration == generation {
 				self.pollEvent()
 			}
 		}
 
-		audioWork = audio
-		eventWork = event
 		DispatchQueue.global().async(execute: audio)
 		DispatchQueue.global().async(execute: event)
 	}
