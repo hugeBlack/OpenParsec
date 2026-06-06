@@ -14,7 +14,6 @@ class ParsecBackgroundManager {
 	}
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
-	var isAttemptingReconnect = false
 	var reconnectAttempts = 0
 	var isPaused = false
 	weak var glkViewController: GLKViewController?
@@ -89,6 +88,5 @@ class ParsecBackgroundManager {
 		lastPeerId = nil
 		lastHostname = nil
 		reconnectAttempts = 0
-		isAttemptingReconnect = false
 	}
 }

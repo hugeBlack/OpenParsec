@@ -84,7 +84,6 @@ struct ParsecStatusBar: View {
 				let mgr = ParsecBackgroundManager.shared
 				if mgr.reconnectAttempts < 3 {
 					mgr.reconnectAttempts += 1
-					mgr.isAttemptingReconnect = true
 					isReconnecting = true
 					reconnectStartTime = Date()
 					parsecViewController?.resetKeyState()
@@ -92,7 +91,6 @@ struct ParsecStatusBar: View {
 					return
 				}
 				mgr.reconnectAttempts = 0
-				mgr.isAttemptingReconnect = false
 				isReconnecting = false
 			}
 
@@ -104,7 +102,6 @@ struct ParsecStatusBar: View {
 
 		if isReconnecting {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
-			ParsecBackgroundManager.shared.isAttemptingReconnect = false
 			isReconnecting = false
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 		}

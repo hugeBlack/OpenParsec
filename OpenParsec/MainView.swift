@@ -544,9 +544,6 @@ struct MainView: View {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 						let decoder = JSONDecoder()
 
-						print("/friendships: \(statusCode)")
-						print(String(data: data, encoding: .utf8)!)
-
 						if statusCode == 200 { // 200 OK
 							guard let info: FriendInfoList = try? decoder.decode(FriendInfoList.self, from: data) else { return }
 							friends.removeAll()
