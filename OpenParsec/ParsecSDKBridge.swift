@@ -17,6 +17,25 @@ enum CursorMode: Int {
     case direct
 }
 
+enum DirectDragMode: Int {
+	case scroll
+	case drag
+}
+
+enum ShortcutModifier: Int {
+	case control
+	case command
+
+	var keyText: String {
+		switch self {
+		case .control:
+			return "CONTROL"
+		case .command:
+			return "LGUI"
+		}
+	}
+}
+
 enum RightClickPosition: Int {
 	case firstFinger
 	case middle
@@ -421,6 +440,21 @@ class ParsecSDKBridge: ParsecService {
 		keyboardMessagePress.keyboard.code = keyCode
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 
+	}
+
+	func sendKeyboardShortcut(modifier: ShortcutModifier, key: String) {
+		guard let modifierKeyCode = KeyCodeTranslators.parsecKeyCodeTranslator(modifier.keyText),
+			  let keyCode = KeyCodeTranslators.parsecKeyCodeTranslator(key.uppercased()) else {
+			return
+		}
+
+		sendKeyboardMessage(keyCode: modifierKeyCode.rawValue, pressed: true)
+		sendKeyboardMessage(keyCode: keyCode.rawValue, pressed: true)
+
+		DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
+			self.sendKeyboardMessage(keyCode: keyCode.rawValue, pressed: false)
+			self.sendKeyboardMessage(keyCode: modifierKeyCode.rawValue, pressed: false)
+		}
 	}
 
 	func sendKeyboardMessage(event: KeyBoardKeyEvent) {

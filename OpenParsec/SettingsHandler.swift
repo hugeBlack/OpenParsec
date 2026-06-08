@@ -7,8 +7,10 @@ struct SettingsHandler {
 	@AppStorage("bitrate") public static var bitrate: Int = 0
 	@AppStorage("decoder") public static var decoder: DecoderPref = .h264
 	@AppStorage("cursorMode") public static var cursorMode: CursorMode = .touchpad
+	@AppStorage("directDragMode") public static var directDragMode: DirectDragMode = .scroll
 	@AppStorage("cursorScale") public static var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") public static var mouseSensitivity: Double = 1.0
+	@AppStorage("shortcutModifier") public static var shortcutModifier: ShortcutModifier = .control
 	@AppStorage("noOverlay") public static var noOverlay: Bool = false
 	@AppStorage("hideStatusBar") public static var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger

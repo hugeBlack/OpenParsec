@@ -195,7 +195,7 @@ struct LoginView: View {
 								if isTFARequired {
 									presentTFAAlert = true
 								} else {
-									alertText = "Error: \(info)"
+									alertText = localized("Error: %@", String(describing: info))
 									showAlert = true
 								}
 							} else {

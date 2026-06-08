@@ -14,15 +14,26 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
 	var gamePadController: GamepadController!
 	var touchController: TouchController!
 	var u: UIImageView?
+	var directTouchIndicatorImage: UIImage?
+	var directTouchIndicatorVisible = false
 	var lastImg: CGImage?
     var lastMouseX: Int32 = -1
     var lastMouseY: Int32 = -1
     var lastCursorHidden: Bool = false
+	var lastCursorMode: CursorMode = .touchpad
 	var isPinching = false
 	var zoomEnabled = false
 	var lastLongPressPoint: CGPoint = CGPoint()
 	var accumulatedDeltaX: Float = 0.0
 	var accumulatedDeltaY: Float = 0.0
+	var accumulatedWheelY: Float = 0.0
+	let directScrollDivisor: Float = 0.5
+	let directTouchIndicatorSize: CGFloat = 22.0
+	let directLongPressDragThreshold: CGFloat = 8.0
+	var directLongPressActive = false
+	var directLongPressStartPoint: CGPoint = .zero
+	var directLongPressDidMove = false
+	var directLongPressDragging = false
 	var lastPanLocation: CGPoint = .zero
 	var lastPanTranslation: CGPoint = .zero
 
@@ -63,20 +74,33 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate {
         let currentMouseY = CParsec.mouseInfo.mouseY
         let currentHidden = CParsec.mouseInfo.cursorHidden
         let currentImg = CParsec.mouseInfo.cursorImg
+		let currentCursorMode = SettingsHandler.cursorMode
 
         // Skip if nothing changed
         if currentMouseX == lastMouseX &&
            currentMouseY == lastMouseY &&
            currentHidden == lastCursorHidden &&
-           currentImg == lastImg {
+		   currentImg == lastImg &&
+		   currentCursorMode == lastCursorMode {
             return
         }
 
         lastMouseX = currentMouseX
         lastMouseY = currentMouseY
         lastCursorHidden = currentHidden
+		lastCursorMode = currentCursorMode
 
+		if currentCursorMode == .direct {
+			if !directTouchIndicatorVisible {
+				u?.isHidden = true
+			}
+			lastImg = nil
+			return
+		}
+
+		directTouchIndicatorVisible = false
 		if currentImg != nil && !currentHidden {
+			u?.isHidden = false
 			if lastImg != currentImg {
 				u!.image = UIImage(cgImage: currentImg!)
 				lastImg = currentImg!
@@ -468,16 +492,9 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		// lock activatedPanFingerNumber in case user not releasing both finger at the same time
 		if gestureRecognizer.numberOfTouches == 0 {
 			if gestureRecognizer.state == .ended || gestureRecognizer.state == .cancelled {
-				activatedPanFingerNumber = 0
-				// Reset accumulators
-				accumulatedDeltaX = 0.0
-				accumulatedDeltaY = 0.0
-				lastPanTranslation = .zero
-
-				if SettingsHandler.cursorMode == .direct {
-					let button = ParsecMouseButton.init(rawValue: 1)
-					CParsec.sendMouseClickMessage(button, false)
-				}
+				resetPanTracking()
+				releaseDirectDragIfNeeded()
+				hideDirectTouchIndicator()
 			}
 		} else if activatedPanFingerNumber == 2 || (gestureRecognizer.numberOfTouches == 2 && activatedPanFingerNumber == 0) {
             // Native UIScrollView handles 2-finger pan for scrolling.
@@ -500,49 +517,144 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 			}
 		} else if activatedPanFingerNumber == 1 || (gestureRecognizer.numberOfTouches == 1 && activatedPanFingerNumber == 0) {
 			activatedPanFingerNumber = 1
-			// move mouse
 			if SettingsHandler.cursorMode == .direct {
-                // Map screen tap to content coordinates
-				let position = gestureRecognizer.location(in: gestureRecognizer.view)
-                // Convert to content coordinates
-				let adjustedPosition = contentView.convert(position, from: view)
-				CParsec.sendMousePosition(Int32(adjustedPosition.x), Int32(adjustedPosition.y))
+				if SettingsHandler.directDragMode == .scroll {
+					handleDirectPanAsScroll(gestureRecognizer)
+				} else {
+					handleDirectPanAsDrag(gestureRecognizer)
+				}
 			} else {
-				// Simple translation-based movement with sub-pixel accumulation
-				let currentTranslation = gestureRecognizer.translation(in: gestureRecognizer.view)
-
-				if gestureRecognizer.state == .began {
-					lastPanTranslation = .zero
-					accumulatedDeltaX = 0.0
-					accumulatedDeltaY = 0.0
-				}
-
-				// Calculate delta since last update
-				let deltaX = Float(currentTranslation.x - lastPanTranslation.x) * mouseSensitivity
-				let deltaY = Float(currentTranslation.y - lastPanTranslation.y) * mouseSensitivity
-
-				lastPanTranslation = currentTranslation
-
-				// Accumulate for sub-pixel precision
-				accumulatedDeltaX += deltaX
-				accumulatedDeltaY += deltaY
-
-				// Send movement when we have at least 1 pixel
-				let intDeltaX = Int32(accumulatedDeltaX)
-				let intDeltaY = Int32(accumulatedDeltaY)
-
-				if intDeltaX != 0 || intDeltaY != 0 {
-					CParsec.sendMouseDelta(intDeltaX, intDeltaY)
-					accumulatedDeltaX -= Float(intDeltaX)
-					accumulatedDeltaY -= Float(intDeltaY)
-				}
+				handleTouchpadPan(gestureRecognizer)
 			}
 
-			if gestureRecognizer.state == .began && SettingsHandler.cursorMode == .direct {
-				let button = ParsecMouseButton.init(rawValue: 1)
-				CParsec.sendMouseClickMessage(button, true)
-			}
+		}
+	}
 
+	func resetPanTracking() {
+		activatedPanFingerNumber = 0
+		accumulatedDeltaX = 0.0
+		accumulatedDeltaY = 0.0
+		accumulatedWheelY = 0.0
+		lastPanTranslation = .zero
+	}
+
+	func releaseDirectDragIfNeeded() {
+		guard SettingsHandler.cursorMode == .direct else { return }
+		if SettingsHandler.directDragMode == .drag || directLongPressDragging {
+			let button = ParsecMouseButton.init(rawValue: 1)
+			CParsec.sendMouseClickMessage(button, false)
+			directLongPressDragging = false
+		}
+	}
+
+	func handleDirectPanAsDrag(_ gestureRecognizer: UIPanGestureRecognizer) {
+		let location = gestureRecognizer.location(in: gestureRecognizer.view)
+		moveDirectMouse(to: location)
+
+		if gestureRecognizer.state == .began {
+			showDirectTouchIndicator(at: location)
+			let button = ParsecMouseButton.init(rawValue: 1)
+			CParsec.sendMouseClickMessage(button, true)
+		} else if gestureRecognizer.state == .changed || gestureRecognizer.state == .ended || gestureRecognizer.state == .cancelled || gestureRecognizer.state == .failed {
+			hideDirectTouchIndicator()
+		}
+	}
+
+	func handleDirectPanAsScroll(_ gestureRecognizer: UIPanGestureRecognizer) {
+		if directLongPressActive || directLongPressDragging {
+			return
+		}
+
+		if gestureRecognizer.state == .began {
+			let location = gestureRecognizer.location(in: gestureRecognizer.view)
+			showDirectTouchIndicator(at: location)
+			moveDirectMouse(to: location)
+			lastPanTranslation = .zero
+			accumulatedWheelY = 0.0
+		} else if gestureRecognizer.state == .changed || gestureRecognizer.state == .ended || gestureRecognizer.state == .cancelled || gestureRecognizer.state == .failed {
+			hideDirectTouchIndicator()
+		}
+
+		let currentTranslation = gestureRecognizer.translation(in: gestureRecognizer.view)
+		let deltaY = Float(currentTranslation.y - lastPanTranslation.y) * mouseSensitivity
+		lastPanTranslation = currentTranslation
+
+		accumulatedWheelY += deltaY / directScrollDivisor
+		let wheelY = Int32(accumulatedWheelY)
+
+		if wheelY != 0 {
+			CParsec.sendWheelMsg(x: 0, y: wheelY)
+			accumulatedWheelY -= Float(wheelY)
+		}
+	}
+
+	func handleTouchpadPan(_ gestureRecognizer: UIPanGestureRecognizer) {
+		// Simple translation-based movement with sub-pixel accumulation
+		let currentTranslation = gestureRecognizer.translation(in: gestureRecognizer.view)
+
+		if gestureRecognizer.state == .began {
+			lastPanTranslation = .zero
+			accumulatedDeltaX = 0.0
+			accumulatedDeltaY = 0.0
+		}
+
+		// Calculate delta since last update
+		let deltaX = Float(currentTranslation.x - lastPanTranslation.x) * mouseSensitivity
+		let deltaY = Float(currentTranslation.y - lastPanTranslation.y) * mouseSensitivity
+
+		lastPanTranslation = currentTranslation
+
+		// Accumulate for sub-pixel precision
+		accumulatedDeltaX += deltaX
+		accumulatedDeltaY += deltaY
+
+		// Send movement when we have at least 1 pixel
+		let intDeltaX = Int32(accumulatedDeltaX)
+		let intDeltaY = Int32(accumulatedDeltaY)
+
+		if intDeltaX != 0 || intDeltaY != 0 {
+			CParsec.sendMouseDelta(intDeltaX, intDeltaY)
+			accumulatedDeltaX -= Float(intDeltaX)
+			accumulatedDeltaY -= Float(intDeltaY)
+		}
+	}
+
+	func moveDirectMouse(to position: CGPoint) {
+		let adjustedPosition = contentView.convert(position, from: view)
+		CParsec.sendMousePosition(Int32(adjustedPosition.x), Int32(adjustedPosition.y))
+	}
+
+	func showDirectTouchIndicator(at position: CGPoint) {
+		guard SettingsHandler.cursorMode == .direct else { return }
+		if directTouchIndicatorImage == nil {
+			directTouchIndicatorImage = makeDirectTouchIndicatorImage()
+		}
+
+		let adjustedPosition = contentView.convert(position, from: view)
+		directTouchIndicatorVisible = true
+		u?.image = directTouchIndicatorImage
+		u?.isHidden = false
+		u?.frame = CGRect(x: adjustedPosition.x - directTouchIndicatorSize / 2,
+						  y: adjustedPosition.y - directTouchIndicatorSize / 2,
+						  width: directTouchIndicatorSize,
+						  height: directTouchIndicatorSize)
+	}
+
+	func hideDirectTouchIndicator() {
+		directTouchIndicatorVisible = false
+		if SettingsHandler.cursorMode == .direct {
+			u?.isHidden = true
+		}
+	}
+
+	func makeDirectTouchIndicatorImage() -> UIImage {
+		let size = CGSize(width: directTouchIndicatorSize, height: directTouchIndicatorSize)
+		let renderer = UIGraphicsImageRenderer(size: size)
+
+		return renderer.image { context in
+			let bounds = CGRect(origin: .zero, size: size)
+			UIColor.white.withAlphaComponent(0.55).setFill()
+			context.cgContext.fillEllipse(in: bounds)
 		}
 	}
 
@@ -551,6 +663,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		let location = gestureRecognizer.location(in: gestureRecognizer.view)
 		let adjustedLocation = contentView.convert(location, from: view)
 		touchController.onTap(typeOfTap: 1, location: adjustedLocation)
+		hideDirectTouchIndicator()
 	}
 
 	@objc func handleTwoFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
@@ -567,6 +680,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 
 		let adjustedLocation = contentView.convert(location, from: view)
 		touchController.onTap(typeOfTap: 3, location: adjustedLocation)
+		hideDirectTouchIndicator()
 	}
 
 	@objc func handleThreeFinderTap(_ gestureRecognizer: UITapGestureRecognizer) {
@@ -574,6 +688,11 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	}
 
 	@objc func handleLongPress(_ gestureRecognizer: UIGestureRecognizer) {
+		if SettingsHandler.cursorMode == .direct && SettingsHandler.directDragMode == .scroll {
+			handleDirectLongPressDrag(gestureRecognizer)
+			return
+		}
+
 		if SettingsHandler.cursorMode != .touchpad {
 			return
 		}
@@ -594,6 +713,52 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 			)
 			lastLongPressPoint = adjustedNewLocation
 		}
+	}
+
+	func handleDirectLongPressDrag(_ gestureRecognizer: UIGestureRecognizer) {
+		let button = ParsecMouseButton.init(rawValue: 1)
+		let location = gestureRecognizer.location(in: gestureRecognizer.view)
+
+		if gestureRecognizer.state == .began {
+			directLongPressActive = true
+			directLongPressStartPoint = location
+			directLongPressDidMove = false
+			directLongPressDragging = false
+			showDirectTouchIndicator(at: location)
+			moveDirectMouse(to: location)
+		} else if gestureRecognizer.state == .changed {
+			let deltaX = location.x - directLongPressStartPoint.x
+			let deltaY = location.y - directLongPressStartPoint.y
+			let distance = hypot(deltaX, deltaY)
+
+			if !directLongPressDragging && distance >= directLongPressDragThreshold {
+				directLongPressDidMove = true
+				directLongPressDragging = true
+				moveDirectMouse(to: directLongPressStartPoint)
+				CParsec.sendMouseClickMessage(button, true)
+			}
+
+			if directLongPressDragging {
+				moveDirectMouse(to: location)
+			}
+		} else if gestureRecognizer.state == .ended || gestureRecognizer.state == .cancelled || gestureRecognizer.state == .failed {
+			if directLongPressDragging {
+				CParsec.sendMouseClickMessage(button, false)
+			} else if gestureRecognizer.state == .ended && !directLongPressDidMove {
+				handleDirectLongPressRightClick(at: location)
+			}
+
+			directLongPressActive = false
+			directLongPressDragging = false
+			directLongPressDidMove = false
+			hideDirectTouchIndicator()
+		}
+	}
+
+	func handleDirectLongPressRightClick(at location: CGPoint) {
+		let adjustedLocation = contentView.convert(location, from: view)
+		touchController.onTap(typeOfTap: 3, location: adjustedLocation)
+		hideDirectTouchIndicator()
 	}
 
     // UIScrollViewDelegate
@@ -760,7 +925,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		let doneButton = UIButton(type: .system)
 		doneButton.frame = CGRect(x: toolbarBackground.bounds.width - 70, y: 0, width: 60, height: 44)
 		doneButton.autoresizingMask = [.flexibleLeftMargin]
-		doneButton.setTitle("Done", for: .normal)
+		doneButton.setTitle(localized("Done"), for: .normal)
 		doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
 
 		toolbarBackground.addSubview(scrollView)

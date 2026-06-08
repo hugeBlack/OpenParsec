@@ -3,6 +3,14 @@ import SwiftUI
 
 var appScheme: ColorScheme = .dark
 
+func localized(_ key: String, _ arguments: CVarArg...) -> String {
+	let format = NSLocalizedString(key, comment: "")
+	if arguments.isEmpty {
+		return format
+	}
+	return String(format: format, locale: Locale.current, arguments: arguments)
+}
+
 struct GLBData {
 	let SessionKeyChainKey = "OPStoredAuthData"
 }

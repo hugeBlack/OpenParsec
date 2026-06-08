@@ -5,7 +5,7 @@ import AVFoundation
 
 struct ParsecStatusBar: View {
 	@Binding var showMenu: Bool
-	@State var metricInfo: String = "Loading..."
+	@State var metricInfo: String = localized("Loading...")
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
 	@State var parsecViewController: ParsecViewController?
@@ -72,14 +72,25 @@ struct ParsecStatusBar: View {
 			}
 
 			wasDisconnected = true
-			DCAlertText = "Disconnected (code \(status.rawValue))"
+			DCAlertText = localized("Disconnected (code %d)", Int(status.rawValue))
 			showDCAlert = true
 			return
 		}
 
 		if showMenu {
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length: 16)
-			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
+			metricInfo = localized(
+				"Decode %@ms    Encode %@ms    Network %@ms    Bitrate %@Mbps    %@ %@x%@ %@ %@",
+				String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency),
+				String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency),
+				String(format: "%.2f", pcs.`self`.metrics.0.networkLatency),
+				String(format: "%.2f", pcs.`self`.metrics.0.bitrate),
+				pcs.decoder.0.h265 ? "H265" : "H264",
+				String(pcs.decoder.0.width),
+				String(pcs.decoder.0.height),
+				pcs.decoder.0.color444 ? "4:4:4" : "4:2:0",
+				str
+			)
 		}
 	}
 }
@@ -98,8 +109,8 @@ struct ParsecView: View {
 	var controller: ContentView?
 
 	@State var showDCAlert: Bool = false
-	@State var DCAlertText: String = "Disconnected (reason unknown)"
-	@State var metricInfo: String = "Loading..."
+	@State var DCAlertText: String = localized("Disconnected (reason unknown)")
+	@State var metricInfo: String = localized("Loading...")
 
 	@State var hideOverlay: Bool = false
 	@State var showMenu: Bool = false
@@ -204,8 +215,22 @@ struct ParsecView: View {
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
 							}
+							HStack(spacing: 3) {
+								Button(action: sendCopyShortcut) {
+									Label("Copy", systemImage: "doc.on.doc")
+										.padding(8)
+										.frame(maxWidth: .infinity)
+										.multilineTextAlignment(.center)
+								}
+								Button(action: sendPasteShortcut) {
+									Label("Paste", systemImage: "doc.on.clipboard")
+										.padding(8)
+										.frame(maxWidth: .infinity)
+										.multilineTextAlignment(.center)
+								}
+							}
 							Button(action: toggleMute) {
-								Text("Sound: \(muted ? "OFF" : "ON")")
+								Text(localized("Sound: %@", localized(muted ? "OFF" : "ON")))
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
@@ -265,13 +290,13 @@ struct ParsecView: View {
 							}
 
 							Button(action: toggleConstantFps) {
-								Text("Constant FPS: \(constantFps ? "ON" : "OFF")")
+								Text(localized("Constant FPS: %@", localized(constantFps ? "ON" : "OFF")))
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
 							}
 							Button(action: toggleZoom) {
-								Text("Zoom: \(zoomEnabled ? "ON" : "OFF")")
+								Text(localized("Zoom: %@", localized(zoomEnabled ? "ON" : "OFF")))
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
@@ -470,6 +495,14 @@ struct ParsecView: View {
 			showKeyboard.toggle()
 			parsecViewController.setKeyboardVisible(showKeyboard)
 		}
+	}
+
+	func sendCopyShortcut() {
+		CParsec.sendKeyboardShortcut(modifier: SettingsHandler.shortcutModifier, key: "C")
+	}
+
+	func sendPasteShortcut() {
+		CParsec.sendKeyboardShortcut(modifier: SettingsHandler.shortcutModifier, key: "V")
 	}
 
 	func toggleZoom() {

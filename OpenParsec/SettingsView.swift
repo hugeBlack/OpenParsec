@@ -8,8 +8,10 @@ struct SettingsView: View {
 	@AppStorage("bitrate") var bitrate: Int = 0
 	@AppStorage("decoder") var decoder: DecoderPref = .h264
 	@AppStorage("cursorMode") var cursorMode: CursorMode = .touchpad
+	@AppStorage("directDragMode") var directDragMode: DirectDragMode = .scroll
 	@AppStorage("cursorScale") var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") var mouseSensitivity: Double = 1.0
+	@AppStorage("shortcutModifier") var shortcutModifier: ShortcutModifier = .control
 	@AppStorage("noOverlay") var noOverlay: Bool = false
 	@AppStorage("hideStatusBar") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
@@ -76,12 +78,26 @@ struct SettingsView: View {
 									Choice("Direct", CursorMode.direct)
 								])
                             }
+							CatItem("Direct Drag") {
+								MultiPicker(selection: $directDragMode, options:
+								[
+									Choice("Scroll", DirectDragMode.scroll),
+									Choice("Drag", DirectDragMode.drag)
+								])
+							}
 							CatItem("Right Click Position") {
 								MultiPicker(selection: $rightClickPosition, options:
 								[
 									Choice("First Finger", RightClickPosition.firstFinger),
 									Choice("Middle", RightClickPosition.middle),
 									Choice("Second Finger", RightClickPosition.secondFinger)
+								])
+							}
+							CatItem("Shortcut Modifier") {
+								MultiPicker(selection: $shortcutModifier, options:
+								[
+									Choice("Control", ShortcutModifier.control),
+									Choice("Command", ShortcutModifier.command)
 								])
 							}
                             CatItem("Cursor Scale") {
@@ -173,7 +189,9 @@ struct SettingsView: View {
 	}
 
 	func getVersionInfo() -> String {
-		return "Version \(Bundle.main.infoDictionary!["CFBundleShortVersionString"] ?? "Unknown versino")-\(Bundle.main.infoDictionary!["GitCommitInfo"] ?? "Unknown commit")"
+		let version = String(describing: Bundle.main.infoDictionary?["CFBundleShortVersionString"] ?? localized("Unknown versino"))
+		let commit = String(describing: Bundle.main.infoDictionary?["GitCommitInfo"] ?? localized("Unknown commit"))
+		return localized("Version %@-%@", version, commit)
 	}
 }
 
