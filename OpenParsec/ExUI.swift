@@ -14,7 +14,7 @@ struct CatTitle: View {
 
 	var body: some View {
 		HStack {
-			Text(text)
+			Text(localized(text))
 			Spacer()
 		}
 		.padding(.horizontal)
@@ -60,7 +60,7 @@ struct CatItem<Content: View>: View {
 
 	var body: some View {
 		HStack {
-			Text(title)
+			Text(localized(title))
 				.lineLimit(1)
 			Spacer()
 			content()
@@ -79,7 +79,7 @@ struct Choice<T: Hashable> {
 	var value: T
 
 	init(_ label: String, _ value: T) {
-		self.label = label
+		self.label = localized(label)
 		self.value = value
 	}
 }
@@ -118,7 +118,7 @@ struct MultiPicker<SelectionValue: Hashable>: View {
 	var options: [Choice<SelectionValue>]
 
 	@State var showChoices: Bool = false
-	@State var valueText: String = "Choose..."
+	@State var valueText: String = localized("Choose...")
 
 	init(selection: Binding<SelectionValue>, options: [Choice<SelectionValue>]) {
 		self.selection = selection
@@ -163,7 +163,7 @@ struct MultiPicker<SelectionValue: Hashable>: View {
 		let buttons = options.enumerated().map { _, option in
 			Alert.Button.default(Text(option.value == selection.wrappedValue ? "    \(option.label)  ✓" : option.label), action: {select(option)})
 		}
-		return ActionSheet(title: Text("Pick your preference:"), buttons: buttons + [Alert.Button.cancel()])
+		return ActionSheet(title: Text(localized("Pick your preference:")), buttons: buttons + [Alert.Button.cancel()])
 	}
 
 	func select(_ option: Choice<SelectionValue>) {

@@ -7,13 +7,13 @@ struct MainView: View {
 	@State private var page: Page = .hosts
 
 	// Host page vars
-	@State var hostCountStr: String = "0 hosts"
-	@State var refreshTime: String = "Last refreshed at 1/1/1970 12:00 AM"
+	@State var hostCountStr: String = localized("%d hosts", 0)
+	@State var refreshTime: String = localized("Last refreshed at %@", "1/1/1970 12:00 AM")
 
 	@State var hosts: [IdentifiableHostInfo] = []
 
 	// Friend page vars
-	@State var friendCountStr: String = "0 friends"
+	@State var friendCountStr: String = localized("%d friends", 0)
 
 	@State var userInfo: IdentifiableUserInfo?
 	@State var friends: [IdentifiableUserInfo] = []
@@ -309,7 +309,7 @@ struct MainView: View {
 					VStack {
 						ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
 							.padding()
-						Text("Requesting connection to \(connectingToName)...")
+						Text(localized("Requesting connection to %@...", connectingToName))
 							.multilineTextAlignment(.center)
 						Button(action: cancelConnection) {
 							ZStack {
@@ -371,7 +371,7 @@ struct MainView: View {
 			let clinfo = NetworkHandler.clinfo
 			if clinfo == nil {
 				isRefreshing = false
-				baseAlertText = "Error gathering hosts: Invalid session"
+				baseAlertText = localized("Error gathering hosts: Invalid session")
 				showBaseAlert = true
 				return
 			}
@@ -399,20 +399,16 @@ struct MainView: View {
 								}
 							}
 
-							var grammar: String = "hosts"
-							if hosts.count == 1 {
-								grammar = "host"
-							}
-
-							hostCountStr = "\(hosts.count) \(grammar)"
+							hostCountStr = localized(hosts.count == 1 ? "%d host" : "%d hosts", hosts.count)
 
 							let formatter = DateFormatter()
+							formatter.locale = Locale.current
 							formatter.dateFormat = "M/d/yyyy h:mm a"
-							refreshTime = "Last refreshed at \(formatter.string(from: Date()))"
+							refreshTime = localized("Last refreshed at %@", formatter.string(from: Date()))
 						} else if statusCode == 403 { // 403 Forbidden
 							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
-							baseAlertText = "Error gathering hosts: \(info.error)"
+							baseAlertText = localized("Error gathering hosts: %@", info.error)
 							showBaseAlert = true
 						}
 					}
@@ -451,7 +447,7 @@ struct MainView: View {
 						} else {
 							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
-							baseAlertText = "Error gathering user info: \(info.error)"
+							baseAlertText = localized("Error gathering user info: %@", info.error)
 							showBaseAlert = true
 						}
 					}
@@ -494,16 +490,11 @@ struct MainView: View {
 								}
 							}
 
-							var grammar: String = "friends"
-							if friends.count == 1 {
-								grammar = "friend"
-							}
-
-							friendCountStr = "\(friends.count) \(grammar)"
+							friendCountStr = localized(friends.count == 1 ? "%d friend" : "%d friends", friends.count)
 						} else {
 							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
-							baseAlertText = "Error gathering friends: \(info.error)"
+							baseAlertText = localized("Error gathering friends: %@", info.error)
 							showBaseAlert = true
 						}
 					}
@@ -535,7 +526,7 @@ struct MainView: View {
 					c.setView(.parsec)
 				}
 			} else {
-				baseAlertText = "Error connecting to host (code \(status.rawValue))"
+				baseAlertText = localized("Error connecting to host (code %d)", Int(status.rawValue))
 				showBaseAlert = true
 			}
 

@@ -760,7 +760,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		let doneButton = UIButton(type: .system)
 		doneButton.frame = CGRect(x: toolbarBackground.bounds.width - 70, y: 0, width: 60, height: 44)
 		doneButton.autoresizingMask = [.flexibleLeftMargin]
-		doneButton.setTitle("Done", for: .normal)
+		doneButton.setTitle(localized("Done"), for: .normal)
 		doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
 
 		toolbarBackground.addSubview(scrollView)

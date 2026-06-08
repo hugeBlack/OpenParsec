@@ -103,7 +103,7 @@ enum ParsecResolution: String, CaseIterable, Hashable {
 	}
 
 	var desc: String {
-		return rawValue
+		return localized(rawValue)
 	}
 
 	static var resolutions: [ParsecResolution] {
