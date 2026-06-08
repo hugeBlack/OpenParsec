@@ -33,12 +33,18 @@
 "Mouse Movement" = "鼠标移动";
 "Touchpad" = "触控板";
 "Direct" = "直接";
+"Direct Drag" = "直接模式拖动";
+"Scroll" = "滚动";
+"Drag" = "拖动";
 "Right Click Position" = "右键位置";
 "First Finger" = "第一根手指";
 "Middle" = "中间";
 "Second Finger" = "第二根手指";
 "Cursor Scale" = "光标缩放";
 "Mouse Sensitivity" = "鼠标灵敏度";
+"Shortcut Modifier" = "快捷键修饰键";
+"Control" = "Control";
+"Command" = "Command";
 "Graphics" = "图形";
 "Default Resolution" = "默认分辨率";
 "Host Resolution" = "主机分辨率";
@@ -66,6 +72,8 @@
 "Decode %@ms    Encode %@ms    Network %@ms    Bitrate %@Mbps    %@ %@x%@ %@ %@" = "解码 %@ms    编码 %@ms    网络 %@ms    码率 %@Mbps    %@ %@x%@ %@ %@";
 "Close" = "关闭";
 "Hide Overlay" = "隐藏浮层";
+"Copy" = "复制";
+"Paste" = "粘贴";
 "Sound: %@" = "声音：%@";
 "OFF" = "关闭";
 "ON" = "开启";

@@ -50,12 +50,18 @@ Interactivity
 Mouse Movement
 Touchpad
 Direct
+Direct Drag
+Scroll
+Drag
 Right Click Position
 First Finger
 Middle
 Second Finger
 Cursor Scale
 Mouse Sensitivity
+Shortcut Modifier
+Control
+Command
 Graphics
 Default Resolution
 Host Resolution
@@ -78,6 +84,8 @@ Disconnected (code %d)
 Decode %@ms    Encode %@ms    Network %@ms    Bitrate %@Mbps    %@ %@x%@ %@ %@
 Close
 Hide Overlay
+Copy
+Paste
 Sound: %@
 OFF
 ON

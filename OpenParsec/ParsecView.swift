@@ -215,6 +215,20 @@ struct ParsecView: View {
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
 							}
+							HStack(spacing: 3) {
+								Button(action: sendCopyShortcut) {
+									Label("Copy", systemImage: "doc.on.doc")
+										.padding(8)
+										.frame(maxWidth: .infinity)
+										.multilineTextAlignment(.center)
+								}
+								Button(action: sendPasteShortcut) {
+									Label("Paste", systemImage: "doc.on.clipboard")
+										.padding(8)
+										.frame(maxWidth: .infinity)
+										.multilineTextAlignment(.center)
+								}
+							}
 							Button(action: toggleMute) {
 								Text(localized("Sound: %@", localized(muted ? "OFF" : "ON")))
 									.padding(8)
@@ -481,6 +495,14 @@ struct ParsecView: View {
 			showKeyboard.toggle()
 			parsecViewController.setKeyboardVisible(showKeyboard)
 		}
+	}
+
+	func sendCopyShortcut() {
+		CParsec.sendKeyboardShortcut(modifier: SettingsHandler.shortcutModifier, key: "C")
+	}
+
+	func sendPasteShortcut() {
+		CParsec.sendKeyboardShortcut(modifier: SettingsHandler.shortcutModifier, key: "V")
 	}
 
 	func toggleZoom() {
