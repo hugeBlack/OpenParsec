@@ -111,6 +111,10 @@ struct ParsecStatusBar: View {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
 			isReconnecting = false
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			// SDK forgets stream dims on reconnect, re-send them so the frame fills not corners
+			if let vc = parsecViewController {
+				CParsec.setFrame(vc.view.bounds.width, vc.view.bounds.height, UIScreen.main.scale)
+			}
 		}
 
 		if showMenu || SettingsHandler.alwaysShowStatus {
