@@ -72,6 +72,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
 	var scrollView: UIScrollView!
 	var contentView: UIView!
+	var lastLaidOutWidth: CGFloat = 0
+	var lastLaidOutHeight: CGFloat = 0
 
 	override var prefersPointerLocked: Bool {
 		return true
@@ -317,6 +319,23 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
         if keyboardVisible {
             reloadInputViews()
         }
+	}
+
+	override func viewDidLayoutSubviews() {
+		super.viewDidLayoutSubviews()
+		// glkView/contentView get sized from possibly-stale bounds in viewDidLoad and have no
+		// autoresizing, so the stream renders in a corner until a rotation re-applies the size.
+		// re-apply once layout settles; skip while zoomed so we dont stomp pan/zoom.
+		guard scrollView != nil, scrollView.zoomScale == 1.0 else { return }
+		let w = view.bounds.width
+		let h = view.bounds.height
+		guard w > 0, h > 0, w != lastLaidOutWidth || h != lastLaidOutHeight else { return }
+		lastLaidOutWidth = w
+		lastLaidOutHeight = h
+		glkView.updateSize(width: w, height: h)
+		contentView.frame.size = CGSize(width: w, height: h)
+		scrollView.contentSize = CGSize(width: w, height: h)
+		CParsec.setFrame(w, h, UIScreen.main.scale)
 	}
 
 	override func viewDidAppear(_ animated: Bool) {
