@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <AudioToolbox/AudioToolbox.h>
+#include <stdatomic.h>
 
 #define NUM_AUDIO_BUF 16
 #define BUFFER_SIZE 4096
@@ -10,12 +11,12 @@
 #define FAKE_SIZE  0
 #define ALLOW_DELAY 8
 #define LOWEST_NUM_BUFFER 3
-bool isMuted = false;
-bool isStart = false;
-int lastbuf = 0;
+_Atomic bool isMuted = false;
+_Atomic bool isStart = false;
+_Atomic int lastbuf = 0;
 
-unsigned int silence_inqueue = 0;
-unsigned int silence_outqueue = 0;
+_Atomic unsigned int silence_inqueue = 0;
+_Atomic unsigned int silence_outqueue = 0;
 
 AudioQueueBufferRef silence_buf;
 typedef struct RecycleChain {
@@ -36,8 +37,8 @@ struct audio {
 	char *mem[NUM_AUDIO_BUF * 2];
 	int loc[NUM_AUDIO_BUF];
 	RecycleChainMgr rcm;
-	int32_t fail_num;
-    int32_t in_use;
+	_Atomic int32_t fail_num;
+    _Atomic int32_t in_use;
 };
 
 static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBufferRef buffer)
