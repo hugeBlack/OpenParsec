@@ -29,6 +29,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		if ParsecBackgroundManager.shared.isPaused {
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 			CParsec.resume()
+			// drop any keys the host still thinks are held from a mid-hold background (stuck paste/cmd)
+			CParsec.sendReleaseMessage()
 			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
 				ParsecBackgroundManager.shared.isPaused = false
 			}

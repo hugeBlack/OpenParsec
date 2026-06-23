@@ -428,6 +428,13 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		}
 	}
 
+	override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		// iOS sends this instead of pressesEnded when a press is interrupted (e.g. backgrounding
+		// mid-hold) — without cleanup the host keeps keys held (stuck paste, stuck opt/cmd remap).
+		CParsec.sendReleaseMessage()
+		resetKeyState()
+	}
+
 	private func startKeyRepeat(keyCode: Int) {
 		stopKeyRepeat()
 		repeatKeyCode = keyCode
