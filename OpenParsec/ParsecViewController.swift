@@ -1016,6 +1016,32 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		}
 	}
 
+	// passthrough keyboard: send raw input, dont let iOS autocorrect / smart-substitute / inject text
+	var autocorrectionType: UITextAutocorrectionType {
+		get { .no }
+		set { }
+	}
+	var spellCheckingType: UITextSpellCheckingType {
+		get { .no }
+		set { }
+	}
+	var smartQuotesType: UITextSmartQuotesType {
+		get { .no }
+		set { }
+	}
+	var smartDashesType: UITextSmartDashesType {
+		get { .no }
+		set { }
+	}
+	var smartInsertDeleteType: UITextSmartInsertDeleteType {
+		get { .no }
+		set { }
+	}
+	var autocapitalizationType: UITextAutocapitalizationType {
+		get { .none }
+		set { }
+	}
+
 	override var canBecomeFirstResponder: Bool {
 		return true
 	}
