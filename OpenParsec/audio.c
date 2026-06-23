@@ -4,6 +4,7 @@
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <stdatomic.h>
+#include <os/lock.h>
 
 #define NUM_AUDIO_BUF 16
 #define BUFFER_SIZE 4096
@@ -39,6 +40,7 @@ struct audio {
 	RecycleChainMgr rcm;
 	_Atomic int32_t fail_num;
     _Atomic int32_t in_use;
+	os_unfair_lock clear_lock;
 };
 
 static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBufferRef buffer)
@@ -232,6 +234,7 @@ void audio_clear(struct audio **ctx_out)
     
 	//RecycleChain *rcTraverse = NULL;
     struct audio *ctx = *ctx_out;
+	os_unfair_lock_lock(&ctx->clear_lock);
     if (ctx->q)
         AudioQueueStop(ctx->q, true);
     
@@ -254,6 +257,7 @@ void audio_clear(struct audio **ctx_out)
 	ctx->in_use = 0;
 	ctx->fail_num = 0;
 	silence_inqueue = silence_outqueue = 0;
+	os_unfair_lock_unlock(&ctx->clear_lock);
 }
 
 void audio_cb(const int16_t *pcm, uint32_t frames, void *opaque)
