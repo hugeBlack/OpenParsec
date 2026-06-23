@@ -143,6 +143,7 @@ protocol ParsecService {
 	func getStatusEx(_ pcs: inout ParsecClientStatus) -> ParsecStatus
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat)
 	func renderGLFrame(timeout: UInt32)
+	func glDestroy()
 	func setMuted(_ muted: Bool)
 	func applyConfig()
 	func sendMouseMessage(_ button: ParsecMouseButton, _ x: Int32, _ y: Int32, _ pressed: Bool)
@@ -216,6 +217,10 @@ class CParsec {
 
 	static func renderGLFrame(timeout: UInt32 = 16) { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 		parsecImpl.renderGLFrame(timeout: timeout)
+	}
+
+	static func glDestroy() {
+		parsecImpl.glDestroy()
 	}
 
 	static func setMuted(_ muted: Bool) {
