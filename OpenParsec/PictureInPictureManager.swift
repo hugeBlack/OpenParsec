@@ -53,7 +53,7 @@ class PictureInPictureManager: NSObject {
 		self.glContext = glContext
 		self.glkViewController = glkViewController
 
-		try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+		try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
 		try? AVAudioSession.sharedInstance().setActive(true)
 
 		let layer = AVSampleBufferDisplayLayer()
