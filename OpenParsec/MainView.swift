@@ -94,7 +94,7 @@ struct MainView: View {
 						}
 					}
 					Spacer()
-					Button(action: { inSettings = true }, label: { Image(systemName: "gear") })
+					Button(action: { withAnimation(.easeInOut(duration: 0.24)) { inSettings = true } }, label: { Image(systemName: "gear") })
 						.padding()
 				}
 				.foregroundColor(Color("AccentColor"))

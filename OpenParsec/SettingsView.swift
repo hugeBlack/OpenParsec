@@ -45,7 +45,6 @@ struct SettingsView: View {
 					.edgesIgnoringSafeArea(.all)
 			}
 		}
-		.animation(.linear(duration: 0.24))
 
 		ZStack {
 			if visible {
@@ -197,17 +196,17 @@ struct SettingsView: View {
 				.background(Rectangle().fill(Color("BackgroundGray")))
 				.cornerRadius(8)
 				.padding()
-				.animation(.none)
 			}
 		}
         .preferredColorScheme(appScheme)
 		.scaleEffect(visible ? 1 : 0, anchor: .zero)
-		.animation(.easeInOut(duration: 0.24))
 	}
 
 	func saveAndExit() {
 		// SettingsHandler.renderer = renderer
-		visible = false
+		withAnimation(.easeInOut(duration: 0.24)) {
+			visible = false
+		}
 	}
 
 	func getVersionInfo() -> String {
