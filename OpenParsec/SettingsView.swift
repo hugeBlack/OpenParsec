@@ -176,12 +176,12 @@ struct SettingsView: View {
 								Toggle("", isOn: $autoReconnect)
 									.frame(width: 80)
 							}
-							CatItem("Error Prompts") {
-								Toggle("", isOn: $errorPrompts)
-									.frame(width: 80)
+							if autoReconnect {
+								CatItem("Reconnect Error Prompts") {
+									Toggle("", isOn: $errorPrompts)
+										.frame(width: 80)
+								}
 							}
-							.disabled(!autoReconnect)
-							.opacity(autoReconnect ? 1 : 0.4)
 							CatItem("Save Session Settings") {
 								Toggle("", isOn: $saveSessionSettings)
 									.frame(width: 80)
