@@ -234,6 +234,16 @@ struct ParsecView: View {
 				.zIndex(10)
 			}
 
+			if dataModel.isBlocked {
+				Text("Host is using the machine")
+					.foregroundColor(.white)
+					.padding(.horizontal, 16)
+					.padding(.vertical, 10)
+					.background(Color("BackgroundPrompt").opacity(0.85))
+					.cornerRadius(8)
+					.zIndex(3)
+			}
+
 			VStack {
 				if !hideOverlay {
 					HStack {

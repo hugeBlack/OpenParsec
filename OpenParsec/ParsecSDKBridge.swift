@@ -232,6 +232,10 @@ class ParsecSDKBridge: ParsecService {
 			handleUserDataEvent(event: e.userData)
 		} else if e.type == CLIENT_EVENT_STREAM {
 			print("[stream] s=\(e.stream.stream) status=\(e.stream.status.rawValue)")
+		} else if e.type == CLIENT_EVENT_BLOCKED {
+			DispatchQueue.main.async { DataManager.model.isBlocked = true }
+		} else if e.type == CLIENT_EVENT_UNBLOCKED {
+			DispatchQueue.main.async { DataManager.model.isBlocked = false }
 		}
 	}
 
