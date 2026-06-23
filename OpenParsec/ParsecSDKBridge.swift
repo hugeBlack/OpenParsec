@@ -234,6 +234,9 @@ class ParsecSDKBridge: ParsecService {
 	func handleUserDataEvent(event: ParsecClientUserDataEvent) {
 
 		let pointer = ParsecGetBuffer(_parsec, event.key)
+		if pointer == nil {
+			return
+		}
 		switch event.id {
 		case 11:
 			do {
