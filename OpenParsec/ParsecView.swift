@@ -13,13 +13,15 @@ struct ParsecStatusBar: View {
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+	let onSilentDisconnect: () -> Void
 
-	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>) {
+	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>, onSilentDisconnect: @escaping () -> Void) {
 		_showMenu = showMenu
 		_showDCAlert = showDCAlert
 		_DCAlertText = DCAlertText
 		_isReconnecting = isReconnecting
 		self.parsecViewController = parsecViewController
+		self.onSilentDisconnect = onSilentDisconnect
 	}
 
 	var body: some View {
@@ -95,8 +97,13 @@ struct ParsecStatusBar: View {
 			}
 
 			wasDisconnected = true
-			DCAlertText = "Disconnected (code \(status.rawValue))"
-			showDCAlert = true
+			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts {
+				// silent: auto-reconnect spent its retries, dont nag with an alert
+				onSilentDisconnect()
+			} else {
+				DCAlertText = "Disconnected (code \(status.rawValue))"
+				showDCAlert = true
+			}
 			return
 		}
 
@@ -181,7 +188,7 @@ struct ParsecView: View {
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 
-			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting)
+			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting, onSilentDisconnect: { disconnect() })
 
 			if isReconnecting {
 				VStack(spacing: 12) {
