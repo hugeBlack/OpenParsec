@@ -49,6 +49,7 @@ class ParsecSDKBridge: ParsecService {
 	public var pngCursor: Bool = false
 	private var pollGeneration = 0
 	var didSetResolution = false
+	private var didReleaseOnConnect = false
 
 	public var mouseInfo = MouseInfo()
 
@@ -107,6 +108,7 @@ class ParsecSDKBridge: ParsecService {
 		parsecClientCfg.pngCursor = false
 
 		self.startBackgroundTask()
+		didReleaseOnConnect = false
 
 		let status = ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
 
@@ -167,6 +169,14 @@ class ParsecSDKBridge: ParsecService {
 		let ans = ParsecClientGetStatus(_parsec, &pcs)
 		self.hostHeight = Float(pcs.decoder.0.height)
 		self.hostWidth = Float(pcs.decoder.0.width)
+
+		// on the first live OK of a session, clear any input the host still holds from before
+		// (a stuck right-button = context menu). teardown releases get dropped before they send;
+		// this one goes over a known-live socket.
+		if ans == PARSEC_OK && !didReleaseOnConnect {
+			didReleaseOnConnect = true
+			sendReleaseMessage()
+		}
 
 		return ans
 	}
