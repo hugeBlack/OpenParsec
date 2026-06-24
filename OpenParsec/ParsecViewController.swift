@@ -883,6 +883,12 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		// dont leak a right-click to the host while backgrounding (app switch) or after a disconnect
 		guard UIApplication.shared.applicationState == .active,
 			  ParsecBackgroundManager.shared.hasActiveConnection else { return }
+		// ignore taps landing in the bottom home-indicator strip — thats the app-switch / bottom-bar
+		// system-gesture zone where a stray two-finger touch (eg while typing) gets read as a right-click
+		let tapY = gestureRecognizer.location(in: view).y
+		if tapY > view.bounds.height - max(view.safeAreaInsets.bottom, 24) {
+			return
+		}
 
 		let location: CGPoint
 		switch SettingsHandler.rightClickPosition {
