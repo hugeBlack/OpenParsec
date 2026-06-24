@@ -120,6 +120,9 @@ class ParsecSDKBridge: ParsecService {
 	func disconnect() {
 
 		pollGeneration += 1
+		// release any held input (incl. mouse buttons) WHILE still connected, before teardown —
+		// otherwise a half-sent click leaves a button stuck on the host (right-button = context menu)
+		sendReleaseMessage()
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
 
