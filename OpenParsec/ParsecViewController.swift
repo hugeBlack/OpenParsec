@@ -880,6 +880,10 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	@objc func handleTwoFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
 		// A two-finger TAP is a right click; if the fingers moved (pinch/scroll) it wasn't a tap.
 		if twoFingerDidMove { return }
+		// dont leak a right-click to the host while backgrounding (app switch) or after a disconnect
+		guard UIApplication.shared.applicationState == .active,
+			  ParsecBackgroundManager.shared.hasActiveConnection else { return }
+
 		let location: CGPoint
 		switch SettingsHandler.rightClickPosition {
 		case .firstFinger:
