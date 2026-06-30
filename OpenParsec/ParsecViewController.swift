@@ -19,8 +19,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
     var lastMouseX: Int32 = -1
     var lastMouseY: Int32 = -1
     var lastCursorHidden: Bool = false
-	var isPinching = false
 	var zoomEnabled = false
+	var appliedRenderScale: CGFloat = 0       // last contentScaleFactor applied (avoids redundant reallocations)
+	let maxRenderScale: CGFloat = 6.0         // cap on drawable density
 	var clickHoldActive = false        // left button held via long-press (file drag)
 	// Flick-to-glide momentum (tuned constants, not user settings).
 	var momentumLink: CADisplayLink?
@@ -40,6 +41,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var cursorDidMoveThisTouch = false
 	var singleTouchStartScreen: CGPoint = .zero
 	let tapMoveSlop: CGFloat = 4.0          // finger movement (pts) above which a touch is a drag, not a tap
+	let staleTouchThreshold: TimeInterval = 1.5   // a touch idle this long vs an actively-moving one is a ghost
+	let staleMoveSlop: CGFloat = 24.0        // the moving finger must travel this far before a ghost is swept
 	var twoFingerDidMove = false            // true once a 2-finger gesture became a pinch/scroll (suppresses right-click)
 
 	var mouseSensitivity: Float = Float(SettingsHandler.mouseSensitivity)
@@ -54,6 +57,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var isDragging = false
 	var twoFingerResidual = false       // leftover finger after a 2-finger gesture; inert until full lift
 	var activeTouches: [UITouch] = []   // ordered; first two drive pinch / scroll
+	var touchOrigins: [UITouch: CGPoint] = [:]   // begin location per touch, for ghost-sweep movement test
 
 	enum TwoFingerMode { case undecided, zoom, scroll }
 	var twoFingerMode: TwoFingerMode = .undecided
@@ -90,7 +94,31 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		fatalError("init(coder:) has not been implemented")
 	}
 
+	func computeRenderScale() -> CGFloat {
+		let nativeScale = UIScreen.main.nativeScale
+		guard scrollView.zoomScale > 1.01, let glk = glkView as? ParsecGLKViewController else { return nativeScale }
+		let vw = glk.glkView.frame.size.width
+		let vh = glk.glkView.frame.size.height
+		let sw = CGFloat(CParsec.hostWidth)
+		let sh = CGFloat(CParsec.hostHeight)
+		guard vw > 0, vh > 0, sw > 0, sh > 0 else { return nativeScale }
+		// Match the drawable to the source so zoom stays crisp without rendering wasted pixels.
+		let needed = max(sw / vw, sh / vh)
+		return min(maxRenderScale, max(nativeScale, needed))
+	}
+
+	func updateRenderScale() {
+		let target = computeRenderScale()
+		if abs(target - appliedRenderScale) > 0.01 {
+			appliedRenderScale = target
+			DispatchQueue.main.async { [weak self] in
+				(self?.glkView as? ParsecGLKViewController)?.glkView.contentScaleFactor = target
+			}
+		}
+	}
+
 	func updateImage() {
+		updateRenderScale()
         // Optimization: Snap current valus
         let currentMouseX = CParsec.mouseInfo.mouseX
         let currentMouseY = CParsec.mouseInfo.mouseY
@@ -212,20 +240,21 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		// All gestures (cursor, pinch-zoom, two-finger scroll) are handled in the
 		// ParsecTouchInputDelegate methods below, driven by touchOverlay's raw touches.
 
-		// Remove custom Pinch logic, ScrollView handles it.
-		// But we might want to know isPinching status?
-        // Let's rely on ScrollView delegate for updates.
-
 		// Add tap gesture recognizer for single-finger touch
 		let singleFingerTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleSingleFingerTap(_:)))
 		singleFingerTapGestureRecognizer.numberOfTouchesRequired = 1
 		singleFingerTapGestureRecognizer.allowedTouchTypes = [0, 2]
+		// Let the overlay see the real touch end so no phantom finger lingers.
+		singleFingerTapGestureRecognizer.cancelsTouchesInView = false
+		singleFingerTapGestureRecognizer.delaysTouchesEnded = false
 		view.addGestureRecognizer(singleFingerTapGestureRecognizer)
 
 		// Add tap gesture recognizer for two-finger touch
 		let twoFingerTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTwoFingerTap(_:)))
 		twoFingerTapGestureRecognizer.numberOfTouchesRequired = 2
 		twoFingerTapGestureRecognizer.allowedTouchTypes = [0]
+		twoFingerTapGestureRecognizer.cancelsTouchesInView = false
+		twoFingerTapGestureRecognizer.delaysTouchesEnded = false
 		view.addGestureRecognizer(twoFingerTapGestureRecognizer)
 		//		view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
 		//		view.backgroundColor = UIColor(red: 0x66, green: 0xcc, blue: 0xff, alpha: 1.0)
@@ -233,6 +262,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		let threeFingerTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleThreeFinderTap(_:)))
 		threeFingerTapGestureRecognizer.numberOfTouchesRequired = 3
 		threeFingerTapGestureRecognizer.allowedTouchTypes = [0]
+		threeFingerTapGestureRecognizer.cancelsTouchesInView = false
+		threeFingerTapGestureRecognizer.delaysTouchesEnded = false
 		view.addGestureRecognizer(threeFingerTapGestureRecognizer)
 
 		let longPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
@@ -253,6 +284,14 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			self,
 			selector: #selector(keyboardWillHide),
 			name: UIResponder.keyboardWillHideNotification,
+			object: nil
+		)
+
+		// Backgrounding / Control Center / system alerts can orphan touches; flush on resign.
+		NotificationCenter.default.addObserver(
+			self,
+			selector: #selector(appWillResignActive),
+			name: UIApplication.willResignActiveNotification,
 			object: nil
 		)
 
@@ -300,6 +339,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		}
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+		NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
 	}
 	
 	
@@ -465,9 +505,31 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		let oldCount = activeTouches.count
 		// Rebuild from the event each time (keeping order) so a cancelled touch can't leave a stale one.
 		var ordered = activeTouches.filter { touches.contains($0) }
-		for t in touches where !ordered.contains(t) { ordered.append(t) }
+		for t in touches where !ordered.contains(t) {
+			ordered.append(t)
+			touchOrigins[t] = t.location(in: view)
+		}
+		// Sweep a ghost (an OS-dropped lift lingering as .stationary) only while another finger actively
+		// moves - a resting or just-tapped finger is never swept, so taps and held fingers stay safe.
+		var sweptGhost = false
+		if ordered.count >= 2 && !clickHoldActive,
+		   let newest = ordered.max(by: { $0.timestamp < $1.timestamp }) {
+			let origin = touchOrigins[newest] ?? newest.location(in: view)
+			let here = newest.location(in: view)
+			if hypot(here.x - origin.x, here.y - origin.y) > staleMoveSlop {
+				let fresh = ordered.filter { newest.timestamp - $0.timestamp < staleTouchThreshold }
+				if fresh.count < ordered.count { ordered = fresh; sweptGhost = true }
+			}
+		}
 		activeTouches = ordered
-		if activeTouches.count != oldCount {
+		touchOrigins = touchOrigins.filter { activeTouches.contains($0.key) }
+		if sweptGhost && activeTouches.count == 1 {
+			// Recover the surviving finger as a live cursor instead of inert two-finger residual.
+			stopMomentum()
+			twoFingerResidual = false
+			twoFingerMode = .undecided
+			startCursor()
+		} else if activeTouches.count != oldCount {
 			handleTouchCountChange(old: oldCount, new: activeTouches.count)
 		}
 		if moved { handleActiveTouchesMoved() }
@@ -507,6 +569,19 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 			CParsec.sendMouseClickMessage(ParsecMouseButton.init(rawValue: 1), false)
 			clickHoldActive = false
 		}
+	}
+
+	@objc private func appWillResignActive() { flushAllTouches() }
+
+	// Drop all touch state and release any held button so nothing sticks when backgrounded.
+	private func flushAllTouches() {
+		stopMomentum()
+		releaseClickHoldIfNeeded()
+		endCursorIfNeeded()
+		isDragging = false
+		twoFingerResidual = false
+		twoFingerMode = .undecided
+		activeTouches = []
 	}
 
 	private func startCursor() {
@@ -815,14 +890,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		// Centering is handled on cursor movement (updateImage) and at the end of a pinch.
 	}
 
-	func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
-		// A pinch-to-zoom started: pause two-finger host scrolling until it ends so the
-		// same two-finger gesture isn't interpreted as both a zoom and a scroll.
-		isPinching = true
-	}
-
 	func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
-		isPinching = false
 		centerViewportOnCursorPos()
 	}
 
