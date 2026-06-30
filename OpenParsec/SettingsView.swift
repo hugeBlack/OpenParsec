@@ -13,6 +13,8 @@ struct SettingsView: View {
 	@AppStorage("noOverlay") var noOverlay: Bool = false
 	@AppStorage("hideStatusBar") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
+	@AppStorage("reverseScrollDirection") var reverseScrollDirection: Bool = false
+	@AppStorage("scrollSensitivity") var scrollSensitivity: Double = 1.5
 	@AppStorage("preferredFramesPerSecond") var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
 	@AppStorage("decoderCompatibility") var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
 	@AppStorage("showKeyboardButton") var showKeyboardButton: Bool = true
@@ -83,6 +85,15 @@ struct SettingsView: View {
 									Choice("Middle", RightClickPosition.middle),
 									Choice("Second Finger", RightClickPosition.secondFinger)
 								])
+							}
+							CatItem("Scroll Speed") {
+								Slider(value: $scrollSensitivity, in: 0.5...5, step: 0.5)
+									.frame(width: 200)
+								Text(String(format: "%.1f", scrollSensitivity))
+							}
+							CatItem("Reverse Scroll Direction") {
+								Toggle("", isOn: $reverseScrollDirection)
+									.frame(width: 80)
 							}
                             CatItem("Cursor Scale") {
                                 Slider(value: $cursorScale, in: 0.1...4, step: 0.1)
