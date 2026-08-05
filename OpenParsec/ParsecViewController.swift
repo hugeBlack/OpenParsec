@@ -272,6 +272,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		let longPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
 		longPressGestureRecognizer.numberOfTouchesRequired = 1
 		longPressGestureRecognizer.allowedTouchTypes = [0, 2]
+		longPressGestureRecognizer.allowableMovement = 40
 		// Don't cancel the overlay's touch, so the click-hold button can be released on lift.
 		longPressGestureRecognizer.cancelsTouchesInView = false
 		view.addGestureRecognizer(longPressGestureRecognizer)
@@ -623,6 +624,11 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		cursorDidMoveThisTouch = false
 		singleTouchStartScreen = activeTouches.first?.location(in: view) ?? .zero
 		if SettingsHandler.cursorMode == .direct {
+			if let t = activeTouches.first {
+				cursorContentPos = clampToContent(contentView.convert(t.location(in: view), from: view))
+				CParsec.sendMousePosition(Int32(cursorContentPos.x), Int32(cursorContentPos.y))
+				positionCursorOverlay()
+			}
 			CParsec.sendMouseClickMessage(ParsecMouseButton.init(rawValue: 1), true)
 		}
 	}
@@ -872,6 +878,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	@objc func handleSingleFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
 		// Only click if the finger stayed put; a moved finger was a cursor nudge, not a tap.
 		if cursorDidMoveThisTouch { return }
+		if SettingsHandler.cursorMode == .direct { return }
 		let location = gestureRecognizer.location(in: gestureRecognizer.view)
 		let adjustedLocation = contentView.convert(location, from: view)
 		touchController.onTap(typeOfTap: 1, location: adjustedLocation)
