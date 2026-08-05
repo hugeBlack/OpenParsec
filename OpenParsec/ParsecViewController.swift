@@ -203,7 +203,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		}
 
 		if #available(iOS 15.0, *) {
-			if let parsecGLK = glkView as? ParsecGLKViewController,
+			if SettingsHandler.enablePiP,
+			   let parsecGLK = glkView as? ParsecGLKViewController,
 			   let eaglContext = parsecGLK.eaglContext {
 				PictureInPictureManager.shared.setup(sourceView: view, glContext: eaglContext, glkViewController: parsecGLK.glkViewController)
 			}

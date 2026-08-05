@@ -21,7 +21,7 @@ struct ParsecStatusBar: View {
 
 	var body: some View {
 		// Overlay elements
-		if showMenu {
+		if showMenu || SettingsHandler.alwaysShowStatus {
 			VStack {
 				Text(metricInfo)
 					.frame(minWidth: 200, maxWidth: .infinity, maxHeight: 20)
@@ -44,8 +44,8 @@ struct ParsecStatusBar: View {
 	}
 
 	func poll() {
-		if showDCAlert {
-			return // no need to poll if we aren't connected anymore
+		if showDCAlert || ParsecBackgroundManager.shared.isPaused {
+			return
 		}
 
 		var pcs = ParsecClientStatus()
@@ -77,7 +77,7 @@ struct ParsecStatusBar: View {
 			return
 		}
 
-		if showMenu {
+		if showMenu || SettingsHandler.alwaysShowStatus {
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length: 16)
 			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
 		}
@@ -325,13 +325,10 @@ struct ParsecView: View {
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.onPiPStopped = { [self] in
 				if UIApplication.shared.applicationState != .active {
-					// Synchronous — DispatchQueue.main.async may never execute if iOS suspends the app
-					CParsec.disconnect()
-					try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-					ParsecBackgroundManager.shared.markForReconnect()
-					DispatchQueue.main.async {
-						self.disconnect(isBackgroundDisconnect: true)
-					}
+					ParsecBackgroundManager.shared.glkViewController?.isPaused = true
+					CParsec.sendReleaseMessage()
+					CParsec.pause()
+					ParsecBackgroundManager.shared.isPaused = true
 				} else {
 					if ParsecBackgroundManager.shared.isReconnecting {
 						return
@@ -349,12 +346,12 @@ struct ParsecView: View {
 					}
 				}
 			}
-			PictureInPictureManager.shared.onPiPStartFailed = { [self] in
+			PictureInPictureManager.shared.onPiPStartFailed = {
 				if UIApplication.shared.applicationState != .active {
-					ParsecBackgroundManager.shared.markForReconnect()
-					DispatchQueue.main.async {
-						self.disconnect(isBackgroundDisconnect: true)
-					}
+					ParsecBackgroundManager.shared.glkViewController?.isPaused = true
+					CParsec.sendReleaseMessage()
+					CParsec.pause()
+					ParsecBackgroundManager.shared.isPaused = true
 				}
 			}
 		}
@@ -390,6 +387,11 @@ struct ParsecView: View {
 	func toggleMute() {
 		muted.toggle()
 		CParsec.setMuted(muted)
+		if muted {
+			CParsec.pause(video: false, audio: true)
+		} else {
+			CParsec.resume()
+		}
 		if SettingsHandler.saveSessionSettings { SettingsHandler.savedMuted = muted }
 	}
 
@@ -427,6 +429,7 @@ struct ParsecView: View {
 			PictureInPictureManager.shared.teardown()
 		}
 
+		CParsec.sendReleaseMessage()
 		CParsec.disconnect()
 		self.parsecViewController.glkView.cleanUp()
 

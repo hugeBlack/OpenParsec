@@ -1,5 +1,6 @@
 import UIKit
 import AVFoundation
+import GLKit
 
 class ParsecBackgroundManager {
 	static let shared = ParsecBackgroundManager()
@@ -8,6 +9,8 @@ class ParsecBackgroundManager {
 	private var lastPeerId: String?
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
+	var isPaused = false
+	weak var glkViewController: GLKViewController?
 
 	var onShouldReconnect: ((String) -> Void)?
 	var onShouldDisconnect: (() -> Void)?
@@ -31,10 +34,12 @@ class ParsecBackgroundManager {
 		lastPeerId = peerId
 		didDisconnectDueToBackground = false
 		isReconnecting = false
+		isPaused = false
 	}
 
 	func connectionDidEnd() {
 		hasActiveConnection = false
+		isPaused = false
 	}
 
 	func sceneWillResignActive() {
@@ -53,7 +58,7 @@ class ParsecBackgroundManager {
 	}
 
 	func sceneDidEnterBackground() {
-		if hasActiveConnection {
+		if hasActiveConnection && !isPaused {
 			var pipAttempted = false
 			if #available(iOS 15.0, *) {
 				pipAttempted = isPiPActive || PictureInPictureManager.shared.isStarting
