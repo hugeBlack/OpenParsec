@@ -47,9 +47,9 @@ class ParsecSDKBridge: ParsecService {
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
 	public var pngCursor: Bool = false
-	private var audioWork: DispatchWorkItem?
-	private var eventWork: DispatchWorkItem?
+	private var pollGeneration = 0
 	var didSetResolution = false
+	private var didReleaseOnConnect = false
 
 	public var mouseInfo = MouseInfo()
 
@@ -108,6 +108,7 @@ class ParsecSDKBridge: ParsecService {
 		parsecClientCfg.pngCursor = false
 
 		self.startBackgroundTask()
+		didReleaseOnConnect = false
 
 		let status = ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
 
@@ -120,12 +121,27 @@ class ParsecSDKBridge: ParsecService {
 
 	func disconnect() {
 
-		audioWork?.cancel()
-		eventWork?.cancel()
+		pollGeneration += 1
+		// release any held input (incl. mouse buttons) WHILE still connected, before teardown —
+		// otherwise a half-sent click leaves a button stuck on the host (right-button = context menu)
+		sendReleaseMessage()
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
 
 		ParsecBackgroundManager.shared.connectionDidEnd()
+	}
+
+	func reconnect(_ peerID: String) -> ParsecStatus {
+		sendReleaseMessage()
+		pollGeneration += 1
+		ParsecClientDisconnect(_parsec)
+		audio_clear(&_audio)
+		ParsecBackgroundManager.shared.connectionDidEnd()
+		let status = connect(peerID)
+		if status != PARSEC_OK && status != PARSEC_CONNECTING {
+			ParsecBackgroundManager.shared.connectionDidEnd()
+		}
+		return status
 	}
 
 	func sendReleaseMessage() {
@@ -153,6 +169,14 @@ class ParsecSDKBridge: ParsecService {
 		let ans = ParsecClientGetStatus(_parsec, &pcs)
 		self.hostHeight = Float(pcs.decoder.0.height)
 		self.hostWidth = Float(pcs.decoder.0.width)
+
+		// on the first live OK of a session, clear any input the host still holds from before
+		// (a stuck right-button = context menu). teardown releases get dropped before they send;
+		// this one goes over a known-live socket.
+		if ans == PARSEC_OK && !didReleaseOnConnect {
+			didReleaseOnConnect = true
+			sendReleaseMessage()
+		}
 
 		return ans
 	}
@@ -506,20 +530,21 @@ class ParsecSDKBridge: ParsecService {
 
 	func startBackgroundTask() {
 
+		pollGeneration += 1
+		let generation = pollGeneration
+
 		let audio = DispatchWorkItem { [weak self] in
-			while let self = self, !(self.audioWork?.isCancelled ?? true) {
+			while let self = self, self.pollGeneration == generation {
 				self.pollAudio()
 			}
 		}
 
 		let event = DispatchWorkItem { [weak self] in
-			while let self = self, !(self.eventWork?.isCancelled ?? true) {
+			while let self = self, self.pollGeneration == generation {
 				self.pollEvent()
 			}
 		}
 
-		audioWork = audio
-		eventWork = event
 		DispatchQueue.global().async(execute: audio)
 		DispatchQueue.global().async(execute: event)
 	}

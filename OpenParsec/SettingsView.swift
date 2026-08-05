@@ -21,6 +21,9 @@ struct SettingsView: View {
 	@AppStorage("saveSessionSettings") var saveSessionSettings: Bool = true
 	@AppStorage("alwaysShowStatus") var alwaysShowStatus: Bool = false
 	@AppStorage("enablePiP") var enablePiP: Bool = false
+	@AppStorage("startMuted") var startMuted: Bool = false
+	@AppStorage("autoReconnect") var autoReconnect: Bool = true
+	@AppStorage("errorPrompts") var errorPrompts: Bool = false
 
 	let resolutionChoices: [Choice<ParsecResolution>]
 
@@ -42,7 +45,6 @@ struct SettingsView: View {
 					.edgesIgnoringSafeArea(.all)
 			}
 		}
-		.animation(.linear(duration: 0.24))
 
 		ZStack {
 			if visible {
@@ -165,6 +167,20 @@ struct SettingsView: View {
 								Toggle("", isOn: $enablePiP)
 									.frame(width: 80)
 							}
+							CatItem("Start Muted") {
+								Toggle("", isOn: $startMuted)
+									.frame(width: 80)
+							}
+							CatItem("Auto Reconnect") {
+								Toggle("", isOn: $autoReconnect)
+									.frame(width: 80)
+							}
+							if autoReconnect {
+								CatItem("Reconnect Error Prompts") {
+									Toggle("", isOn: $errorPrompts)
+										.frame(width: 80)
+								}
+							}
 							CatItem("Save Session Settings") {
 								Toggle("", isOn: $saveSessionSettings)
 									.frame(width: 80)
@@ -180,17 +196,17 @@ struct SettingsView: View {
 				.background(Rectangle().fill(Color("BackgroundGray")))
 				.cornerRadius(8)
 				.padding()
-				.animation(.none)
 			}
 		}
         .preferredColorScheme(appScheme)
 		.scaleEffect(visible ? 1 : 0, anchor: .zero)
-		.animation(.easeInOut(duration: 0.24))
 	}
 
 	func saveAndExit() {
 		// SettingsHandler.renderer = renderer
-		visible = false
+		withAnimation(.easeInOut(duration: 0.24)) {
+			visible = false
+		}
 	}
 
 	func getVersionInfo() -> String {

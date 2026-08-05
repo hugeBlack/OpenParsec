@@ -6,9 +6,15 @@ class ParsecBackgroundManager {
 	static let shared = ParsecBackgroundManager()
 
 	private(set) var hasActiveConnection = false
-	private var lastPeerId: String?
+	private(set) var lastPeerId: String? {
+		didSet { UserDefaults.standard.set(lastPeerId, forKey: "lastConnectedPeerId") }
+	}
+	var lastHostname: String? {
+		didSet { UserDefaults.standard.set(lastHostname, forKey: "lastConnectedHostname") }
+	}
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
+	var reconnectAttempts = 0
 	var isPaused = false
 	weak var glkViewController: GLKViewController?
 
@@ -27,6 +33,8 @@ class ParsecBackgroundManager {
 	}
 
 	private init() {
+		lastPeerId = UserDefaults.standard.string(forKey: "lastConnectedPeerId")
+		lastHostname = UserDefaults.standard.string(forKey: "lastConnectedHostname")
 	}
 
 	func connectionDidStart(peerId: String) {
@@ -34,6 +42,7 @@ class ParsecBackgroundManager {
 		lastPeerId = peerId
 		didDisconnectDueToBackground = false
 		isReconnecting = false
+		reconnectAttempts = 0
 		isPaused = false
 	}
 
@@ -78,5 +87,7 @@ class ParsecBackgroundManager {
 		didDisconnectDueToBackground = false
 		isReconnecting = false
 		lastPeerId = nil
+		lastHostname = nil
+		reconnectAttempts = 0
 	}
 }

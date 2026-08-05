@@ -89,12 +89,17 @@ class GamepadController {
 		for mouse in GCMouse.mice() {
 			mice.insert(mouse)
 			mouse.mouseInput?.leftButton.pressedChangedHandler = {(_: GCControllerButtonInput, _: Float, pressed: Bool) in
+				guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
 				CParsec.sendMouseClickMessage(MOUSE_L, pressed)
 				}
 			mouse.mouseInput?.rightButton?.pressedChangedHandler = {(_: GCControllerButtonInput, _: Float, pressed: Bool) in
+				// pointer-lock toggles on the connect/disconnect view swap can synthesize a button edge
+				// with no real input — dont forward it unless a session is actually live
+				guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
 				CParsec.sendMouseClickMessage(MOUSE_R, pressed)
 				}
 			mouse.mouseInput?.middleButton?.pressedChangedHandler = {(_: GCControllerButtonInput, _: Float, pressed: Bool) in
+				guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
 				CParsec.sendMouseClickMessage(MOUSE_MIDDLE, pressed)
 				}
 			mouse.mouseInput?.mouseMovedHandler={(_: GCMouseInput, v: Float, v2: Float) in

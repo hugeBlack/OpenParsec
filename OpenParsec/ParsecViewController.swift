@@ -72,6 +72,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
 	var scrollView: UIScrollView!
 	var contentView: UIView!
+	var lastLaidOutWidth: CGFloat = 0
+	var lastLaidOutHeight: CGFloat = 0
 
 	override var prefersPointerLocked: Bool {
 		return true
@@ -319,6 +321,23 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
         }
 	}
 
+	override func viewDidLayoutSubviews() {
+		super.viewDidLayoutSubviews()
+		// glkView/contentView get sized from possibly-stale bounds in viewDidLoad and have no
+		// autoresizing, so the stream renders in a corner until a rotation re-applies the size.
+		// re-apply once layout settles; skip while zoomed so we dont stomp pan/zoom.
+		guard scrollView != nil, scrollView.zoomScale == 1.0 else { return }
+		let w = view.bounds.width
+		let h = view.bounds.height
+		guard w > 0, h > 0, w != lastLaidOutWidth || h != lastLaidOutHeight else { return }
+		lastLaidOutWidth = w
+		lastLaidOutHeight = h
+		glkView.updateSize(width: w, height: h)
+		contentView.frame.size = CGSize(width: w, height: h)
+		scrollView.contentSize = CGSize(width: w, height: h)
+		CParsec.setFrame(w, h, UIScreen.main.scale)
+	}
+
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
 		if let parent = parent {
@@ -409,6 +428,13 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		}
 	}
 
+	override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		// iOS sends this instead of pressesEnded when a press is interrupted (e.g. backgrounding
+		// mid-hold) — without cleanup the host keeps keys held (stuck paste, stuck opt/cmd remap).
+		CParsec.sendReleaseMessage()
+		resetKeyState()
+	}
+
 	private func startKeyRepeat(keyCode: Int) {
 		stopKeyRepeat()
 		repeatKeyCode = keyCode
@@ -427,6 +453,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		repeatTimer?.invalidate()
 		repeatTimer = nil
 		repeatKeyCode = -1
+	}
+
+	func resetKeyState() {
+		stopKeyRepeat()
+		optCmdRemapActive = false
+		altKeyHeld = false
 	}
 
 	private func isModifierKey(_ keyCode: UIKeyboardHIDUsage) -> Bool {
@@ -848,6 +880,16 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	@objc func handleTwoFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
 		// A two-finger TAP is a right click; if the fingers moved (pinch/scroll) it wasn't a tap.
 		if twoFingerDidMove { return }
+		// dont leak a right-click to the host while backgrounding (app switch) or after a disconnect
+		guard UIApplication.shared.applicationState == .active,
+			  ParsecBackgroundManager.shared.hasActiveConnection else { return }
+		// ignore taps landing in the bottom home-indicator strip — thats the app-switch / bottom-bar
+		// system-gesture zone where a stray two-finger touch (eg while typing) gets read as a right-click
+		let tapY = gestureRecognizer.location(in: view).y
+		if tapY > view.bounds.height - max(view.safeAreaInsets.bottom, 24) {
+			return
+		}
+
 		let location: CGPoint
 		switch SettingsHandler.rightClickPosition {
 		case .firstFinger:
@@ -982,6 +1024,32 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		set {
 
 		}
+	}
+
+	// passthrough keyboard: send raw input, dont let iOS autocorrect / smart-substitute / inject text
+	var autocorrectionType: UITextAutocorrectionType {
+		get { .no }
+		set { }
+	}
+	var spellCheckingType: UITextSpellCheckingType {
+		get { .no }
+		set { }
+	}
+	var smartQuotesType: UITextSmartQuotesType {
+		get { .no }
+		set { }
+	}
+	var smartDashesType: UITextSmartDashesType {
+		get { .no }
+		set { }
+	}
+	var smartInsertDeleteType: UITextSmartInsertDeleteType {
+		get { .no }
+		set { }
+	}
+	var autocapitalizationType: UITextAutocapitalizationType {
+		get { .none }
+		set { }
 	}
 
 	override var canBecomeFirstResponder: Bool {

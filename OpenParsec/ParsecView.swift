@@ -8,15 +8,20 @@ struct ParsecStatusBar: View {
 	@State var metricInfo: String = "Loading..."
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
+	@Binding var isReconnecting: Bool
+	@State var reconnectStartTime: Date = Date()
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+	let onSilentDisconnect: () -> Void
 
-	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController) {
+	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>, onSilentDisconnect: @escaping () -> Void) {
 		_showMenu = showMenu
 		_showDCAlert = showDCAlert
 		_DCAlertText = DCAlertText
+		_isReconnecting = isReconnecting
 		self.parsecViewController = parsecViewController
+		self.onSilentDisconnect = onSilentDisconnect
 	}
 
 	var body: some View {
@@ -56,6 +61,12 @@ struct ParsecStatusBar: View {
 				return
 			}
 
+			if status == PARSEC_CONNECTING && isReconnecting {
+				if Date().timeIntervalSince(reconnectStartTime) < 15 {
+					return
+				}
+			}
+
 			// PiP: connection died (screen lock killed GPU). Kill connection+audio once,
 			// subsequent polls exit via isMarkedForReconnect above.
 			var pipActive = false
@@ -71,15 +82,72 @@ struct ParsecStatusBar: View {
 				return
 			}
 
+			if SettingsHandler.autoReconnect, !isPermanentFailure(status), let peerId = ParsecBackgroundManager.shared.lastPeerId {
+				let mgr = ParsecBackgroundManager.shared
+				if mgr.reconnectAttempts < 3 {
+					mgr.reconnectAttempts += 1
+					isReconnecting = true
+					reconnectStartTime = Date()
+					parsecViewController?.resetKeyState()
+					CParsec.reconnect(peerId)
+					return
+				}
+				mgr.reconnectAttempts = 0
+				isReconnecting = false
+			}
+
 			wasDisconnected = true
-			DCAlertText = "Disconnected (code \(status.rawValue))"
-			showDCAlert = true
+			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !isPermanentFailure(status) {
+				// silent: auto-reconnect spent its retries, dont nag with an alert
+				onSilentDisconnect()
+			} else {
+				DCAlertText = readableStatus(status)
+				showDCAlert = true
+			}
 			return
+		}
+
+		if isReconnecting {
+			ParsecBackgroundManager.shared.reconnectAttempts = 0
+			isReconnecting = false
+			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			// SDK forgets stream dims on reconnect, re-send them so the frame fills not corners
+			if let vc = parsecViewController {
+				CParsec.setFrame(vc.view.bounds.width, vc.view.bounds.height, UIScreen.main.scale)
+			}
 		}
 
 		if showMenu || SettingsHandler.alwaysShowStatus {
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length: 16)
 			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
+		}
+	}
+
+	func isPermanentFailure(_ s: ParsecStatus) -> Bool {
+		switch s {
+		case WS_ERR_AUTH, WS_ERR_TEAM_DEACTIVATED,
+			 CONNECT_WRN_DECLINED, CONNECT_WRN_NO_PERMISSION, CONNECT_WRN_NO_ROOM,
+			 HOST_WRN_KICKED, HOST_WRN_SHUTDOWN,
+			 NETWORK_ERR_UNSUPPORTED, SERVER_ERR_DISPLAY, SERVER_ERR_RESOLUTION:
+			return true
+		default:
+			return false
+		}
+	}
+
+	func readableStatus(_ s: ParsecStatus) -> String {
+		switch s {
+		case WS_ERR_AUTH:               return "Authentication failed"
+		case WS_ERR_TEAM_DEACTIVATED:   return "Team account deactivated"
+		case CONNECT_WRN_DECLINED:      return "Host declined the connection"
+		case CONNECT_WRN_NO_PERMISSION: return "No permission to connect"
+		case CONNECT_WRN_NO_ROOM:       return "Host is full"
+		case HOST_WRN_KICKED:           return "Kicked by the host"
+		case HOST_WRN_SHUTDOWN:         return "Host shut down"
+		case NETWORK_ERR_UNSUPPORTED:   return "Network not supported"
+		case SERVER_ERR_DISPLAY:        return "Host has no display"
+		case SERVER_ERR_RESOLUTION:     return "Host resolution problem"
+		default:                        return "Disconnected (code \(s.rawValue))"
 		}
 	}
 }
@@ -110,6 +178,7 @@ struct ParsecView: View {
 	@State var muted: Bool = false
 	@State var preferH265: Bool = true
 	@State var constantFps = false
+	@State var isReconnecting: Bool = false
 
 	@State var resolutions: [ParsecResolution]
 	@State var bitrates: [Int]
@@ -132,7 +201,7 @@ struct ParsecView: View {
 		self.controller = controller
 
 		let save = SettingsHandler.saveSessionSettings
-		_muted = State(initialValue: save ? SettingsHandler.savedMuted : false)
+		_muted = State(initialValue: SettingsHandler.startMuted || (save && SettingsHandler.savedMuted))
 		_zoomEnabled = State(initialValue: save ? SettingsHandler.savedZoomEnabled : false)
 		_constantFps = State(initialValue: save ? SettingsHandler.savedConstantFps : false)
 		_resolutions = State(initialValue: ParsecResolution.resolutions)
@@ -151,7 +220,19 @@ struct ParsecView: View {
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 
-			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController)
+			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting, onSilentDisconnect: { disconnect() })
+
+			if isReconnecting {
+				VStack(spacing: 12) {
+					ActivityIndicator(isAnimating: .constant(true), style: .large, tint: .white)
+					Text("Reconnecting...")
+						.font(.system(size: 16, weight: .medium))
+						.foregroundColor(.white)
+				}
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+				.background(Color.black.opacity(0.6))
+				.zIndex(10)
+			}
 
 			VStack {
 				if !hideOverlay {
@@ -303,7 +384,25 @@ struct ParsecView: View {
 		}
 		.statusBarHidden(SettingsHandler.hideStatusBar)
 		.alert(isPresented: $showDCAlert) {
-			Alert(title: Text(DCAlertText), dismissButton: .default(Text("Close"), action: {disconnect()}))
+			Alert(title: Text(DCAlertText),
+				  primaryButton: .default(Text("Reconnect"), action: {
+					guard let peerId = ParsecBackgroundManager.shared.lastPeerId else {
+						disconnect()
+						return
+					}
+					showDCAlert = false
+					isReconnecting = true
+					ParsecBackgroundManager.shared.reconnectAttempts = 0
+					parsecViewController.resetKeyState()
+					CParsec.reconnect(peerId)
+				  }),
+				  secondaryButton: .cancel(Text("Close"), action: {disconnect()}))
+		}
+		.onChange(of: isReconnecting) { reconnecting in
+			if !reconnecting {
+				CParsec.setMuted(muted)
+				if muted { CParsec.pause(video: false, audio: true) }
+			}
 		}
 		.onAppear(perform: post)
 		.onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ParsecBackgroundDisconnect"))) { _ in
@@ -358,6 +457,7 @@ struct ParsecView: View {
 
 		CParsec.applyConfig()
 		CParsec.setMuted(muted)
+		if muted { CParsec.pause(video: false, audio: true) }
 		parsecViewController.setZoomEnabled(zoomEnabled)
 
 		if SettingsHandler.saveSessionSettings {
