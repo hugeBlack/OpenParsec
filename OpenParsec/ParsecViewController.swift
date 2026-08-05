@@ -623,6 +623,11 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		cursorDidMoveThisTouch = false
 		singleTouchStartScreen = activeTouches.first?.location(in: view) ?? .zero
 		if SettingsHandler.cursorMode == .direct {
+			if let t = activeTouches.first {
+				cursorContentPos = clampToContent(contentView.convert(t.location(in: view), from: view))
+				CParsec.sendMousePosition(Int32(cursorContentPos.x), Int32(cursorContentPos.y))
+				positionCursorOverlay()
+			}
 			CParsec.sendMouseClickMessage(ParsecMouseButton.init(rawValue: 1), true)
 		}
 	}
