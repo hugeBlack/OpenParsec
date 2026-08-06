@@ -119,7 +119,7 @@ struct ParsecStatusBar: View {
 
 		if showMenu || SettingsHandler.alwaysShowStatus {
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length: 16)
-			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
+			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    RTx \(pcs.`self`.metrics.0.fastRTs + pcs.`self`.metrics.0.slowRTs)    Queue \(pcs.`self`.metrics.0.queuedFrames)    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
 		}
 	}
 
@@ -232,6 +232,16 @@ struct ParsecView: View {
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				.background(Color.black.opacity(0.6))
 				.zIndex(10)
+			}
+
+			if dataModel.isBlocked {
+				Text("Host is using the machine")
+					.foregroundColor(.white)
+					.padding(.horizontal, 16)
+					.padding(.vertical, 10)
+					.background(Color("BackgroundPrompt").opacity(0.85))
+					.cornerRadius(8)
+					.zIndex(3)
 			}
 
 			VStack {
