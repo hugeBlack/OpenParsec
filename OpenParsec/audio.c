@@ -223,7 +223,6 @@ void audio_destroy(struct audio **ctx_out)
     free(ctx);
     *ctx_out = NULL;
 	isStart = false;
-	AudioQueueFreeBuffer(ctx->q, silence_buf);
 	silence_inqueue = silence_outqueue = 0;
 }
 
