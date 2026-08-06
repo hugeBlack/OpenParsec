@@ -119,7 +119,7 @@ class GamepadController {
 	}
 
 	@objc func didMouseDisconnectController(_ notification: Notification) {
-		let mouse = notification.object as! GCMouse
+		guard let mouse = notification.object as? GCMouse else { return }
 		mice.remove(mouse)
 	}
 
@@ -132,7 +132,7 @@ class GamepadController {
 
     @objc func didDisconnectController(_ notification: Notification) {
 
-        let controller = notification.object as! GCController
+        guard let controller = notification.object as? GCController else { return }
         controllers.remove(controller)
 
         delegate?.inputManager(self, didDisconnect: controller)

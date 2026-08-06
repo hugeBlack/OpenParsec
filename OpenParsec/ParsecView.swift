@@ -591,7 +591,7 @@ struct ParsecView: View {
 	}
 
 	func getHostUserData() {
-		let data = "".data(using: .utf8)!
+		let data = Data()
 		CParsec.sendUserData(type: .getVideoConfig, message: data)
 		CParsec.sendUserData(type: .getAdapterInfo, message: data)
 	}
