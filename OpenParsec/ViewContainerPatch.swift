@@ -28,32 +28,33 @@ fileprivate extension NSObject {
 
 /// We need to set these when the VM starts running since there is no way to do it from SwiftUI right now
 extension UIViewController {
-	private static var _childForHomeIndicatorAutoHiddenStorage: [UIViewController: UIViewController] = [:]
+	// weak both ways, a bad disconnect skips the nil clear and the vc would stay alive
+	private static let _childForHomeIndicatorAutoHiddenStorage = NSMapTable<UIViewController, UIViewController>.weakToWeakObjects()
 
 	@objc private dynamic var _childForHomeIndicatorAutoHidden: UIViewController? {
-		Self._childForHomeIndicatorAutoHiddenStorage[self]
+		Self._childForHomeIndicatorAutoHiddenStorage.object(forKey: self)
 	}
 
 	@objc dynamic func setChildForHomeIndicatorAutoHidden(_ value: UIViewController?) {
 		if let value = value {
-			Self._childForHomeIndicatorAutoHiddenStorage[self] = value
+			Self._childForHomeIndicatorAutoHiddenStorage.setObject(value, forKey: self)
 		} else {
-			Self._childForHomeIndicatorAutoHiddenStorage.removeValue(forKey: self)
+			Self._childForHomeIndicatorAutoHiddenStorage.removeObject(forKey: self)
 		}
 		setNeedsUpdateOfHomeIndicatorAutoHidden()
 	}
 
-	private static var _childViewControllerForPointerLockStorage: [UIViewController: UIViewController] = [:]
+	private static let _childViewControllerForPointerLockStorage = NSMapTable<UIViewController, UIViewController>.weakToWeakObjects()
 
 	@objc private dynamic var _childViewControllerForPointerLock: UIViewController? {
-		Self._childViewControllerForPointerLockStorage[self]
+		Self._childViewControllerForPointerLockStorage.object(forKey: self)
 	}
 
 	@objc dynamic func setChildViewControllerForPointerLock(_ value: UIViewController?) {
 		if let value = value {
-			Self._childViewControllerForPointerLockStorage[self] = value
+			Self._childViewControllerForPointerLockStorage.setObject(value, forKey: self)
 		} else {
-			Self._childViewControllerForPointerLockStorage.removeValue(forKey: self)
+			Self._childViewControllerForPointerLockStorage.removeObject(forKey: self)
 		}
 		setNeedsUpdateOfPrefersPointerLocked()
 	}
