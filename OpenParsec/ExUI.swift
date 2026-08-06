@@ -160,7 +160,7 @@ struct MultiPicker<SelectionValue: Hashable>: View {
 	}
 
 	func genActionSheet() -> ActionSheet {
-		let buttons = options.enumerated().map { _, option in
+		let buttons = options.map { option in
 			Alert.Button.default(Text(option.value == selection.wrappedValue ? "    \(option.label)  ✓" : option.label), action: {select(option)})
 		}
 		return ActionSheet(title: Text("Pick your preference:"), buttons: buttons + [Alert.Button.cancel()])
