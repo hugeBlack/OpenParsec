@@ -55,6 +55,8 @@ class ParsecSDKBridge: ParsecService {
 
 	init() {
 		print("Parsec SDK Version: " + String(ParsecSDKBridge.PARSEC_VER))
+		let runtimeVer = ParsecVersion()
+		print("Parsec SDK binary: \(runtimeVer >> 16).\(runtimeVer & 0xFFFF)")
 
 		ParsecSetLogCallback(
 			{ (level, msg, _) in
@@ -224,6 +226,8 @@ class ParsecSDKBridge: ParsecService {
 			handleCursorEvent(event: e.cursor)
 		} else if e.type == CLIENT_EVENT_USER_DATA {
 			handleUserDataEvent(event: e.userData)
+		} else if e.type == CLIENT_EVENT_STREAM {
+			print("[stream] s=\(e.stream.stream) status=\(e.stream.status.rawValue)")
 		}
 	}
 
