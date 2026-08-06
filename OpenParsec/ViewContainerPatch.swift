@@ -28,13 +28,7 @@ fileprivate extension NSObject {
 
 /// We need to set these when the VM starts running since there is no way to do it from SwiftUI right now
 extension UIViewController {
-	// Q4: these used `[UIViewController: UIViewController]`, which strongly
-	// retains BOTH the parent VC (key) and the ParsecViewController (value).
-	// If teardown's nil-clear didn't run (abnormal disconnect), the entry — and
-	// with it the GLKView + every gesture recognizer hanging off the Parsec VC —
-	// leaked for the lifetime of the process, accumulating one set per reconnect.
-	// NSMapTable.weakToWeakObjects() holds neither side, so a dropped VC
-	// deallocates and its entry auto-empties even without an explicit clear.
+	// weak both ways, a bad disconnect skips the nil clear and the vc would stay alive
 	private static let _childForHomeIndicatorAutoHiddenStorage = NSMapTable<UIViewController, UIViewController>.weakToWeakObjects()
 
 	@objc private dynamic var _childForHomeIndicatorAutoHidden: UIViewController? {
