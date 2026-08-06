@@ -72,7 +72,9 @@ class ParsecGLKViewController: ParsecPlayground {
 	}
 
 	func cleanUp() {
-
+		guard let context = eaglContext else { return }
+		EAGLContext.setCurrent(context)
+		CParsec.glDestroy()
 	}
 
 	func updateSize(width: CGFloat, height: CGFloat) {

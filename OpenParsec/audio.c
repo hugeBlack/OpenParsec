@@ -3,6 +3,8 @@
 #include <stdlib.h>
 
 #include <AudioToolbox/AudioToolbox.h>
+#include <stdatomic.h>
+#include <os/lock.h>
 
 #define NUM_AUDIO_BUF 16
 #define BUFFER_SIZE 4096
@@ -10,12 +12,12 @@
 #define FAKE_SIZE  0
 #define ALLOW_DELAY 8
 #define LOWEST_NUM_BUFFER 3
-bool isMuted = false;
-bool isStart = false;
-int lastbuf = 0;
+_Atomic bool isMuted = false;
+_Atomic bool isStart = false;
+_Atomic int lastbuf = 0;
 
-unsigned int silence_inqueue = 0;
-unsigned int silence_outqueue = 0;
+_Atomic unsigned int silence_inqueue = 0;
+_Atomic unsigned int silence_outqueue = 0;
 
 AudioQueueBufferRef silence_buf;
 typedef struct RecycleChain {
@@ -36,8 +38,9 @@ struct audio {
 	char *mem[NUM_AUDIO_BUF * 2];
 	int loc[NUM_AUDIO_BUF];
 	RecycleChainMgr rcm;
-	int32_t fail_num;
-    int32_t in_use;
+	_Atomic int32_t fail_num;
+    _Atomic int32_t in_use;
+	os_unfair_lock clear_lock;
 };
 
 static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBufferRef buffer)
@@ -231,6 +234,7 @@ void audio_clear(struct audio **ctx_out)
     
 	//RecycleChain *rcTraverse = NULL;
     struct audio *ctx = *ctx_out;
+	os_unfair_lock_lock(&ctx->clear_lock);
     if (ctx->q)
         AudioQueueStop(ctx->q, true);
     
@@ -253,6 +257,7 @@ void audio_clear(struct audio **ctx_out)
 	ctx->in_use = 0;
 	ctx->fail_num = 0;
 	silence_inqueue = silence_outqueue = 0;
+	os_unfair_lock_unlock(&ctx->clear_lock);
 }
 
 void audio_cb(const int16_t *pcm, uint32_t frames, void *opaque)
