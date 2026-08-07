@@ -1173,7 +1173,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		button.titleLabel?.contentMode = .scaleAspectFit
 
 		// Set target and action for button
-		button.addTarget(target, action: #selector(toolbarButtonClicked(_:)), for: .touchUpInside)
+		button.addTarget(self, action: #selector(toolbarButtonClicked(_:)), for: .touchUpInside)
 
 		return button
 	}
