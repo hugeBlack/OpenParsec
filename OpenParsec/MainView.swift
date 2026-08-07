@@ -597,6 +597,7 @@ struct MainView: View {
 					c.setView(.parsec)
 				}
 			} else {
+				CParsec.disconnect()
 				baseAlertText = "Error connecting to host (code \(status.rawValue))"
 				showBaseAlert = true
 			}
