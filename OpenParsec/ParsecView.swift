@@ -541,6 +541,7 @@ struct ParsecView: View {
 
 		CParsec.sendReleaseMessage()
 		CParsec.disconnect()
+		DataManager.model.output = "none"
 		self.parsecViewController.glkView.cleanUp()
 
 		parsecViewController.scrollView.zoomScale = 1.0
