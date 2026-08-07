@@ -250,13 +250,14 @@ class ParsecSDKBridge: ParsecService {
 			do {
 				let decoder = JSONDecoder()
 				let config = try decoder.decode(ParsecUserDataVideoConfig.self, from: Data(bytesNoCopy: pointer!, count: strlen(pointer!), deallocator: .none))
-				let videoConfig = config.video[0]
-
+				let videoConfig = config.video.first
 				DispatchQueue.main.async {
-					DataManager.model.resolutionX = videoConfig.resolutionX
-					DataManager.model.resolutionY = videoConfig.resolutionY
-					DataManager.model.bitrate = videoConfig.encoderMaxBitrate
-					DataManager.model.constantFps = videoConfig.fullFPS
+					if let cfg = videoConfig {
+						DataManager.model.resolutionX = cfg.resolutionX
+						DataManager.model.resolutionY = cfg.resolutionY
+						DataManager.model.bitrate = cfg.encoderMaxBitrate
+						DataManager.model.constantFps = cfg.fullFPS
+					}
 					if !self.didSetResolution {
 						self.didSetResolution = true
 						DataManager.model.resolutionX = SettingsHandler.resolution.width
