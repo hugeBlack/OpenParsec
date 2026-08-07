@@ -170,10 +170,6 @@ struct LoginView: View {
 					guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 					let decoder = JSONDecoder()
 
-					print("Login Information:")
-					print(statusCode)
-					print(String(data: data, encoding: .utf8)!)
-
 					if statusCode == 201 { // 201 Created
 						// store it and recover it from the next app opening, so people won't swear
 						NetworkHandler.clinfo = try? decoder.decode(ClientInfo.self, from: data)
