@@ -448,6 +448,8 @@ struct MainView: View {
 
 			let task = URLSession.shared.dataTask(with: request) { (data, response, _) in
 				DispatchQueue.main.async {
+					defer { isRefreshing = false }
+
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 						let decoder = JSONDecoder()
@@ -478,8 +480,6 @@ struct MainView: View {
 							showBaseAlert = true
 						}
 					}
-
-					isRefreshing = false
 				}
 			}
 			task.resume()
