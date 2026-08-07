@@ -1161,7 +1161,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 
 		// Set the image and button properties
 		button.setTitle(displayText, for: .normal)
-		button.titleLabel?.font = UIFont(name: "System", size: 10.0)
+		button.titleLabel?.font = .systemFont(ofSize: 10)
 		button.frame = CGRect(x: 0, y: 0, width: 36, height: 36)
 		button.titleLabel?.frame = CGRect(x: 0, y: 0, width: 30, height: 30)
 		if let label = button.titleLabel {
