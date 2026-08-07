@@ -33,7 +33,7 @@ class ParsecGLKViewController: ParsecPlayground {
 	var glkRenderer: ParsecGLKRenderer!
 	let updateImage: () -> Void
 
-	let viewController: UIViewController
+	weak var viewController: UIViewController?
 
 	required init(viewController: UIViewController, updateImage: @escaping () -> Void) {
 		self.viewController = viewController
@@ -43,7 +43,7 @@ class ParsecGLKViewController: ParsecPlayground {
 	public func viewDidLoad() {
 		glkView = GLKView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height))
 		glkRenderer = ParsecGLKRenderer(glkView, glkViewController, updateImage)
-		self.viewController.view.addSubview(glkView)
+		self.viewController?.view.addSubview(glkView)
 		setupGLKViewController()
 		ParsecBackgroundManager.shared.glkViewController = glkViewController
 
@@ -62,9 +62,11 @@ class ParsecGLKViewController: ParsecPlayground {
 			glkViewController.preferredFramesPerSecond = fps
 		}
 
-		self.viewController.addChild(glkViewController)
-		self.viewController.view.addSubview(glkViewController.view)
-		self.glkViewController.didMove(toParent: self.viewController)
+		if let parent = viewController {
+			parent.addChild(glkViewController)
+			parent.view.addSubview(glkViewController.view)
+			glkViewController.didMove(toParent: parent)
+		}
 	}
 
 	var eaglContext: EAGLContext? {
