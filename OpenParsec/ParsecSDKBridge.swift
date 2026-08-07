@@ -1,6 +1,9 @@
 import ParsecSDK
 import MetalKit
 import UIKit
+import os
+
+let sdkLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "sdk")
 
 enum RendererType: Int {
 	case opengl
@@ -54,13 +57,13 @@ class ParsecSDKBridge: ParsecService {
 	public var mouseInfo = MouseInfo()
 
 	init() {
-		print("Parsec SDK Version: " + String(ParsecSDKBridge.PARSEC_VER))
+		os_log("%{public}@", log: sdkLog, "Parsec SDK Version: " + String(ParsecSDKBridge.PARSEC_VER))
 		let runtimeVer = ParsecVersion()
-		print("Parsec SDK binary: \(runtimeVer >> 16).\(runtimeVer & 0xFFFF)")
+		os_log("%{public}@", log: sdkLog, "Parsec SDK binary: \(runtimeVer >> 16).\(runtimeVer & 0xFFFF)")
 
 		ParsecSetLogCallback(
 			{ (level, msg, _) in
-				print("[\(level == LOG_DEBUG ? "D" : "I")] \(String(cString: msg!))")
+				os_log("%{public}@", log: sdkLog, type: .debug, "[\(level == LOG_DEBUG ? "D" : "I")] \(String(cString: msg!))")
 			}, nil)
 
 		audio_init(&_audio)
@@ -228,7 +231,7 @@ class ParsecSDKBridge: ParsecService {
 		} else if e.type == CLIENT_EVENT_USER_DATA {
 			handleUserDataEvent(event: e.userData)
 		} else if e.type == CLIENT_EVENT_STREAM {
-			print("[stream] s=\(e.stream.stream) status=\(e.stream.status.rawValue)")
+			os_log("%{public}@", log: sdkLog, "[stream] s=\(e.stream.stream) status=\(e.stream.status.rawValue)")
 		} else if e.type == CLIENT_EVENT_BLOCKED {
 			DispatchQueue.main.async { DataManager.model.isBlocked = true }
 		} else if e.type == CLIENT_EVENT_UNBLOCKED {
