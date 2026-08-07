@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import ParsecSDK
 
 var appScheme: ColorScheme = .dark
 
@@ -78,4 +79,35 @@ class SharedModel: ObservableObject {
 
 class DataManager {
 	static let model = SharedModel()
+}
+
+extension ParsecStatus {
+	func readable(connecting: Bool = false) -> String {
+		switch self {
+		case WS_ERR_AUTH:               return "Authentication failed"
+		case WS_ERR_TEAM_DEACTIVATED:   return "Team account deactivated"
+		case CONNECT_WRN_DECLINED:      return "Host declined the connection"
+		case CONNECT_WRN_NO_PERMISSION: return "No permission to connect"
+		case CONNECT_WRN_NO_ROOM:       return "Host is full"
+		case HOST_WRN_KICKED:           return "Kicked by the host"
+		case HOST_WRN_SHUTDOWN:         return "Host shut down"
+		case NETWORK_ERR_UNSUPPORTED:   return "Network not supported"
+		case SERVER_ERR_DISPLAY:        return "Host has no display"
+		case SERVER_ERR_RESOLUTION:     return "Host resolution problem"
+		default:
+			return "\(connecting ? "Couldn't connect" : "Disconnected") (code \(rawValue))"
+		}
+	}
+
+	var isPermanentFailure: Bool {
+		switch self {
+		case WS_ERR_AUTH, WS_ERR_TEAM_DEACTIVATED,
+			 CONNECT_WRN_DECLINED, CONNECT_WRN_NO_PERMISSION, CONNECT_WRN_NO_ROOM,
+			 HOST_WRN_KICKED, HOST_WRN_SHUTDOWN,
+			 NETWORK_ERR_UNSUPPORTED, SERVER_ERR_DISPLAY, SERVER_ERR_RESOLUTION:
+			return true
+		default:
+			return false
+		}
+	}
 }

@@ -82,7 +82,7 @@ struct ParsecStatusBar: View {
 				return
 			}
 
-			if SettingsHandler.autoReconnect, !isPermanentFailure(status), let peerId = ParsecBackgroundManager.shared.lastPeerId {
+			if SettingsHandler.autoReconnect, !status.isPermanentFailure, let peerId = ParsecBackgroundManager.shared.lastPeerId {
 				let mgr = ParsecBackgroundManager.shared
 				if mgr.reconnectAttempts < 3 {
 					mgr.reconnectAttempts += 1
@@ -97,11 +97,11 @@ struct ParsecStatusBar: View {
 			}
 
 			wasDisconnected = true
-			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !isPermanentFailure(status) {
+			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !status.isPermanentFailure {
 				// silent: auto-reconnect spent its retries, dont nag with an alert
 				onSilentDisconnect()
 			} else {
-				DCAlertText = readableStatus(status)
+				DCAlertText = status.readable()
 				showDCAlert = true
 			}
 			return
@@ -123,33 +123,7 @@ struct ParsecStatusBar: View {
 		}
 	}
 
-	func isPermanentFailure(_ s: ParsecStatus) -> Bool {
-		switch s {
-		case WS_ERR_AUTH, WS_ERR_TEAM_DEACTIVATED,
-			 CONNECT_WRN_DECLINED, CONNECT_WRN_NO_PERMISSION, CONNECT_WRN_NO_ROOM,
-			 HOST_WRN_KICKED, HOST_WRN_SHUTDOWN,
-			 NETWORK_ERR_UNSUPPORTED, SERVER_ERR_DISPLAY, SERVER_ERR_RESOLUTION:
-			return true
-		default:
-			return false
-		}
-	}
 
-	func readableStatus(_ s: ParsecStatus) -> String {
-		switch s {
-		case WS_ERR_AUTH:               return "Authentication failed"
-		case WS_ERR_TEAM_DEACTIVATED:   return "Team account deactivated"
-		case CONNECT_WRN_DECLINED:      return "Host declined the connection"
-		case CONNECT_WRN_NO_PERMISSION: return "No permission to connect"
-		case CONNECT_WRN_NO_ROOM:       return "Host is full"
-		case HOST_WRN_KICKED:           return "Kicked by the host"
-		case HOST_WRN_SHUTDOWN:         return "Host shut down"
-		case NETWORK_ERR_UNSUPPORTED:   return "Network not supported"
-		case SERVER_ERR_DISPLAY:        return "Host has no display"
-		case SERVER_ERR_RESOLUTION:     return "Host resolution problem"
-		default:                        return "Disconnected (code \(s.rawValue))"
-		}
-	}
 }
 
 // CRITICAL: This class exists to PERSIST the ParsecViewController instance across SwiftUI view updates.
