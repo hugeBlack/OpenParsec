@@ -566,8 +566,6 @@ struct MainView: View {
 							showBaseAlert = true
 						}
 					}
-
-					isRefreshing = false
 				}
 			}
 			task.resume()
