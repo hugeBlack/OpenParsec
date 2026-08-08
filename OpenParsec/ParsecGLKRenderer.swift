@@ -38,11 +38,8 @@ class ParsecGLKRenderer: NSObject, GLKViewDelegate, GLKViewControllerDelegate {
 			lastScale = view.contentScaleFactor
 		}
 
-		// Calculate timeout based on configured/device frame rate
 		// timeout in ms: 16ms = ~60fps, 8ms = ~120fps
-		let fps = SettingsHandler.preferredFramesPerSecond == 0
-			? UIScreen.main.maximumFramesPerSecond
-			: SettingsHandler.preferredFramesPerSecond
+		let fps = glkViewController.framesPerSecond > 0 ? glkViewController.framesPerSecond : 60
 		let timeout = UInt32(max(1000 / fps, 8)) // minimum 8ms for 120Hz
 
 		CParsec.renderGLFrame(timeout: timeout)
