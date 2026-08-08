@@ -22,7 +22,7 @@ enum ParsecResolution: String, CaseIterable, Hashable {
 	case r1280x720_16_9 = "1280x720 (16:9)"
 	case r1024x768_4_3 = "1024x768 (4:3)"
 
-	private static var clientSize: (width: Int, height: Int) = (3480, 2160)
+	private static var clientSize: (width: Int, height: Int) = (3840, 2160)
 
 	var width: Int {
 		switch self {

@@ -124,8 +124,7 @@ class ParsecSDKBridge: ParsecService {
 	func disconnect() {
 
 		pollGeneration += 1
-		// release any held input (incl. mouse buttons) WHILE still connected, before teardown —
-		// otherwise a half-sent click leaves a button stuck on the host (right-button = context menu)
+		// must go before the disconnect, after it the release never reaches the host
 		sendReleaseMessage()
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
@@ -172,9 +171,7 @@ class ParsecSDKBridge: ParsecService {
 		self.hostHeight = Float(pcs.decoder.0.height)
 		self.hostWidth = Float(pcs.decoder.0.width)
 
-		// on the first live OK of a session, clear any input the host still holds from before
-		// (a stuck right-button = context menu). teardown releases get dropped before they send;
-		// this one goes over a known-live socket.
+		// the teardown release may not have made it out, this one goes over a socket we know is live
 		if ans == PARSEC_OK && !didReleaseOnConnect {
 			didReleaseOnConnect = true
 			sendReleaseMessage()
@@ -250,13 +247,14 @@ class ParsecSDKBridge: ParsecService {
 			do {
 				let decoder = JSONDecoder()
 				let config = try decoder.decode(ParsecUserDataVideoConfig.self, from: Data(bytesNoCopy: pointer!, count: strlen(pointer!), deallocator: .none))
-				let videoConfig = config.video[0]
-
+				let videoConfig = config.video.first
 				DispatchQueue.main.async {
-					DataManager.model.resolutionX = videoConfig.resolutionX
-					DataManager.model.resolutionY = videoConfig.resolutionY
-					DataManager.model.bitrate = videoConfig.encoderMaxBitrate
-					DataManager.model.constantFps = videoConfig.fullFPS
+					if let cfg = videoConfig {
+						DataManager.model.resolutionX = cfg.resolutionX
+						DataManager.model.resolutionY = cfg.resolutionY
+						DataManager.model.bitrate = cfg.encoderMaxBitrate
+						DataManager.model.constantFps = cfg.fullFPS
+					}
 					if !self.didSetResolution {
 						self.didSetResolution = true
 						DataManager.model.resolutionX = SettingsHandler.resolution.width

@@ -2,11 +2,6 @@ import ParsecSDK
 import UIKit
 
 class TouchController {
-	let viewController: UIViewController
-
-	init(viewController: UIViewController) {
-		self.viewController = viewController
-	}
 
 	func onTouch(typeOfTap: Int, location: CGPoint, state: UIGestureRecognizer.State) {
 

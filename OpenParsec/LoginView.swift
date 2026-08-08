@@ -163,20 +163,25 @@ struct LoginView: View {
 			"tfa": tfa
 		], options: [])
 
-		let task = URLSession.shared.dataTask(with: request) { (data, response, _) in
+		let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
 			DispatchQueue.main.async {
 				isLoading = false
 				if let data = data {
-					guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
+					guard let statusCode = (response as? HTTPURLResponse)?.statusCode else {
+						alertText = "Bad response from the server"
+						showAlert = true
+						return
+					}
 					let decoder = JSONDecoder()
-
-					print("Login Information:")
-					print(statusCode)
-					print(String(data: data, encoding: .utf8)!)
 
 					if statusCode == 201 { // 201 Created
 						// store it and recover it from the next app opening, so people won't swear
-						NetworkHandler.clinfo = try? decoder.decode(ClientInfo.self, from: data)
+						guard let info: ClientInfo = try? decoder.decode(ClientInfo.self, from: data) else {
+							alertText = "Bad response from the server"
+							showAlert = true
+							return
+						}
+						NetworkHandler.clinfo = info
 
 						saveToKeychain(data: data, key: GLBDataModel.shared.SessionKeyChainKey)
 
@@ -185,27 +190,33 @@ struct LoginView: View {
 							c.setView(.main)
 						}
 					} else if statusCode >= 400 { // 4XX client errors
-						guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
+						guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else {
+							alertText = "Login failed (HTTP \(statusCode))"
+							showAlert = true
+							return
+						}
 
-						do {
-							let json = try JSONSerialization.jsonObject(with: data, options: [])
-							if let dict = json as? [String: Any], let isTFARequired = dict["tfa_required"] as? Bool {
-								print("Code output:")
-								print(dict)
-								if isTFARequired {
-									presentTFAAlert = true
-								} else {
-									alertText = "Error: \(info)"
-									showAlert = true
-								}
+						let json = try? JSONSerialization.jsonObject(with: data, options: [])
+						if let dict = json as? [String: Any], let isTFARequired = dict["tfa_required"] as? Bool {
+							print("Code output:")
+							print(dict)
+							if isTFARequired {
+								presentTFAAlert = true
 							} else {
-								alertText = info.error
+								alertText = "Error: \(info)"
 								showAlert = true
 							}
-						} catch {
-							print("Error on trying JSON Serialization on error data!")
+						} else {
+							alertText = info.error
+							showAlert = true
 						}
+					} else {
+						alertText = "Login failed (HTTP \(statusCode))"
+						showAlert = true
 					}
+				} else {
+					alertText = error?.localizedDescription ?? "Could not reach the server"
+					showAlert = true
 				}
 			}
 		}

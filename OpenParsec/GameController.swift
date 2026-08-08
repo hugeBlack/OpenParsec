@@ -10,12 +10,6 @@ class GamepadController {
     // private var panRecognizer: UIPanGestureRecognizer!
     weak var delegate: InputManagerDelegate?
 
-	let viewController: UIViewController
-
-	init(viewController: UIViewController ) {
-		self.viewController = viewController
-	}
-
     public func viewDidLoad() {
 
         NotificationCenter.default.addObserver(self,
