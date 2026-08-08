@@ -82,7 +82,7 @@ struct ParsecStatusBar: View {
 				return
 			}
 
-			if SettingsHandler.autoReconnect, !isPermanentFailure(status), let peerId = ParsecBackgroundManager.shared.lastPeerId {
+			if SettingsHandler.autoReconnect, !status.isPermanentFailure, let peerId = ParsecBackgroundManager.shared.lastPeerId {
 				let mgr = ParsecBackgroundManager.shared
 				if mgr.reconnectAttempts < 3 {
 					mgr.reconnectAttempts += 1
@@ -97,11 +97,11 @@ struct ParsecStatusBar: View {
 			}
 
 			wasDisconnected = true
-			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !isPermanentFailure(status) {
+			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !status.isPermanentFailure {
 				// silent: auto-reconnect spent its retries, dont nag with an alert
 				onSilentDisconnect()
 			} else {
-				DCAlertText = readableStatus(status)
+				DCAlertText = status.readable()
 				showDCAlert = true
 			}
 			return
@@ -119,37 +119,11 @@ struct ParsecStatusBar: View {
 
 		if showMenu || SettingsHandler.alwaysShowStatus {
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length: 16)
-			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    RTx \(pcs.`self`.metrics.0.fastRTs + pcs.`self`.metrics.0.slowRTs)    Queue \(pcs.`self`.metrics.0.queuedFrames)    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
+			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    RTx \(pcs.`self`.metrics.0.fastRTs + pcs.`self`.metrics.0.slowRTs)    Queue \(pcs.`self`.metrics.0.queuedFrames)    Draw \(String(format: "%.0f", CParsec.drawRate))fps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
 		}
 	}
 
-	func isPermanentFailure(_ s: ParsecStatus) -> Bool {
-		switch s {
-		case WS_ERR_AUTH, WS_ERR_TEAM_DEACTIVATED,
-			 CONNECT_WRN_DECLINED, CONNECT_WRN_NO_PERMISSION, CONNECT_WRN_NO_ROOM,
-			 HOST_WRN_KICKED, HOST_WRN_SHUTDOWN,
-			 NETWORK_ERR_UNSUPPORTED, SERVER_ERR_DISPLAY, SERVER_ERR_RESOLUTION:
-			return true
-		default:
-			return false
-		}
-	}
 
-	func readableStatus(_ s: ParsecStatus) -> String {
-		switch s {
-		case WS_ERR_AUTH:               return "Authentication failed"
-		case WS_ERR_TEAM_DEACTIVATED:   return "Team account deactivated"
-		case CONNECT_WRN_DECLINED:      return "Host declined the connection"
-		case CONNECT_WRN_NO_PERMISSION: return "No permission to connect"
-		case CONNECT_WRN_NO_ROOM:       return "Host is full"
-		case HOST_WRN_KICKED:           return "Kicked by the host"
-		case HOST_WRN_SHUTDOWN:         return "Host shut down"
-		case NETWORK_ERR_UNSUPPORTED:   return "Network not supported"
-		case SERVER_ERR_DISPLAY:        return "Host has no display"
-		case SERVER_ERR_RESOLUTION:     return "Host resolution problem"
-		default:                        return "Disconnected (code \(s.rawValue))"
-		}
-	}
 }
 
 // CRITICAL: This class exists to PERSIST the ParsecViewController instance across SwiftUI view updates.
@@ -541,6 +515,8 @@ struct ParsecView: View {
 
 		CParsec.sendReleaseMessage()
 		CParsec.disconnect()
+		DataManager.model.output = "none"
+		CParsec.drawRate = 0
 		self.parsecViewController.glkView.cleanUp()
 
 		parsecViewController.scrollView.zoomScale = 1.0
