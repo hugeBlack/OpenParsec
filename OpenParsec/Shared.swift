@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import ParsecSDK
+import os
 
 var appScheme: ColorScheme = .dark
 
@@ -85,16 +86,23 @@ extension ParsecStatus {
 	func readable(connecting: Bool = false) -> String {
 		switch self {
 		case WS_ERR_AUTH:               return "Authentication failed"
+		case WS_ERR_CONNECT:            return "Can't reach Parsec"
 		case WS_ERR_TEAM_DEACTIVATED:   return "Team account deactivated"
+		case NAT_ERR_PEER_PHASE:        return "Couldn't reach the host"
+		case NETWORK_ERR_BG_TIMEOUT:    return "Timed out in the background"
+		case NETWORK_ERR_UNSUPPORTED:   return "Network not supported"
 		case CONNECT_WRN_DECLINED:      return "Host declined the connection"
 		case CONNECT_WRN_NO_PERMISSION: return "No permission to connect"
 		case CONNECT_WRN_NO_ROOM:       return "Host is full"
+		case CONNECT_WRN_CANCELED:      return "Connection canceled"
+		case CONNECT_WRN_PEER_GONE:     return "Host is offline"
 		case HOST_WRN_KICKED:           return "Kicked by the host"
 		case HOST_WRN_SHUTDOWN:         return "Host shut down"
-		case NETWORK_ERR_UNSUPPORTED:   return "Network not supported"
 		case SERVER_ERR_DISPLAY:        return "Host has no display"
 		case SERVER_ERR_RESOLUTION:     return "Host resolution problem"
+		case CAPTURE_ERR_INIT:          return "Host capture failed"
 		default:
+			os_log("%{public}@", "[status] no text for \(rawValue)")
 			return "\(connecting ? "Couldn't connect" : "Disconnected") (code \(rawValue))"
 		}
 	}
@@ -103,6 +111,7 @@ extension ParsecStatus {
 		switch self {
 		case WS_ERR_AUTH, WS_ERR_TEAM_DEACTIVATED,
 			 CONNECT_WRN_DECLINED, CONNECT_WRN_NO_PERMISSION, CONNECT_WRN_NO_ROOM,
+			 CONNECT_WRN_CANCELED,
 			 HOST_WRN_KICKED, HOST_WRN_SHUTDOWN,
 			 NETWORK_ERR_UNSUPPORTED, SERVER_ERR_DISPLAY, SERVER_ERR_RESOLUTION:
 			return true
