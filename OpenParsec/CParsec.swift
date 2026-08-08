@@ -185,6 +185,8 @@ class CParsec {
 		return parsecImpl.mouseInfo
 	}
 
+	static var drawRate: Double = 0
+
 	static var parsecImpl: ParsecService!
 
 	static func initialize() {

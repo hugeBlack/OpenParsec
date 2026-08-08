@@ -11,6 +11,9 @@ class ParsecGLKRenderer: NSObject, GLKViewDelegate, GLKViewControllerDelegate {
 	var lastImg: CGImage?
 	let updateImage: () -> Void
 
+	private var drawnFrames = 0
+	private var lastRateSample = CACurrentMediaTime()
+
 	init(_ view: GLKView, _ viewController: GLKViewController, _ updateImage: @escaping () -> Void) {
 		self.updateImage = updateImage
 		glkView = view
@@ -43,6 +46,17 @@ class ParsecGLKRenderer: NSObject, GLKViewDelegate, GLKViewControllerDelegate {
 		let timeout = UInt32(max(1000 / fps, 8)) // minimum 8ms for 120Hz
 
 		CParsec.renderGLFrame(timeout: timeout)
+
+		drawnFrames += 1
+		let now = CACurrentMediaTime()
+		let elapsed = now - lastRateSample
+		if elapsed >= 1 {
+			if elapsed <= 2 {
+				CParsec.drawRate = Double(drawnFrames) / elapsed
+			}
+			drawnFrames = 0
+			lastRateSample = now
+		}
 
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.captureFrame(
