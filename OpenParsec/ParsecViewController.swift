@@ -366,28 +366,10 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	
 	private var repeatTimer: Timer?
 	private var repeatKeyCode: Int = -1
-	private var optCmdRemapActive = false
-	private var altKeyHeld = false
 
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
 		for press in presses {
 			guard let key = press.key else { continue }
-
-			if key.keyCode == .keyboardLeftAlt || key.keyCode == .keyboardRightAlt {
-				altKeyHeld = true
-			}
-
-			if !isModifierKey(key.keyCode) && (altKeyHeld || key.modifierFlags.contains(.alternate)) {
-				if !optCmdRemapActive {
-					CParsec.sendKeyboardMessage(keyCode: 226, pressed: false)
-					CParsec.sendKeyboardMessage(keyCode: 227, pressed: true)
-					optCmdRemapActive = true
-				}
-				let code = KeyCodeTranslators.uiKeyCodeToInt(key: key.keyCode)
-				CParsec.sendKeyboardMessage(keyCode: UInt32(code), pressed: true)
-				startKeyRepeat(keyCode: code)
-				continue
-			}
 
 			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: true))
 
@@ -401,25 +383,6 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		for press in presses {
 			guard let key = press.key else { continue }
 
-			if optCmdRemapActive {
-				if key.keyCode == .keyboardLeftAlt || key.keyCode == .keyboardRightAlt {
-					altKeyHeld = false
-					CParsec.sendKeyboardMessage(keyCode: 227, pressed: false)
-					optCmdRemapActive = false
-					continue
-				}
-				if !isModifierKey(key.keyCode) {
-					let code = KeyCodeTranslators.uiKeyCodeToInt(key: key.keyCode)
-					CParsec.sendKeyboardMessage(keyCode: UInt32(code), pressed: false)
-					if code == repeatKeyCode { stopKeyRepeat() }
-					continue
-				}
-			}
-
-			if key.keyCode == .keyboardLeftAlt || key.keyCode == .keyboardRightAlt {
-				altKeyHeld = false
-			}
-
 			CParsec.sendKeyboardMessage(event:KeyBoardKeyEvent(input: press.key, isPressBegin: false))
 
 			let code = KeyCodeTranslators.uiKeyCodeToInt(key: key.keyCode)
@@ -431,7 +394,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
 		// iOS sends this instead of pressesEnded when a press is interrupted (e.g. backgrounding
-		// mid-hold) — without cleanup the host keeps keys held (stuck paste, stuck opt/cmd remap).
+		// mid-hold) — without cleanup the host keeps keys held (stuck paste, stuck modifier).
 		CParsec.sendReleaseMessage()
 		resetKeyState()
 	}
@@ -458,8 +421,6 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	func resetKeyState() {
 		stopKeyRepeat()
-		optCmdRemapActive = false
-		altKeyHeld = false
 	}
 
 	private func isModifierKey(_ keyCode: UIKeyboardHIDUsage) -> Bool {
@@ -1249,9 +1210,15 @@ protocol ParsecTouchInputDelegate: AnyObject {
 class TouchOverlayView: UIView {
 	weak var inputDelegate: ParsecTouchInputDelegate?
 
-	// Forward the live touch set (excluding ended/cancelled) on every event.
+	// Forward the live touch set (excluding ended/cancelled) on every event. External mouse /
+	// trackpad input arrives as indirect-pointer touches but is handled entirely by GCMouse, so it's
+	// dropped here — otherwise it warps the direct-mode cursor and fights touchpad-mode drags.
 	private func forward(_ event: UIEvent?, moved: Bool) {
-		let active = (event?.allTouches ?? []).filter { $0.phase != .ended && $0.phase != .cancelled }
+		let active = (event?.allTouches ?? []).filter { touch in
+			guard touch.phase != .ended && touch.phase != .cancelled else { return false }
+			if #available(iOS 13.4, *), touch.type == .indirectPointer { return false }
+			return true
+		}
 		inputDelegate?.parsecTouchesUpdated(active, moved: moved)
 	}
 	override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
