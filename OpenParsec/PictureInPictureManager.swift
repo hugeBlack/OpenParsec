@@ -259,8 +259,13 @@ class PictureInPictureManager: NSObject {
 
 	private func feedSampleBuffer() {
 		guard let pixelBuffer = pixelBuffer,
-			  let displayLayer = sampleBufferDisplayLayer,
-			  displayLayer.isReadyForMoreMediaData else { return }
+			  let displayLayer = sampleBufferDisplayLayer else { return }
+
+		if displayLayer.status == .failed {
+			displayLayer.flush()
+			cachedFormatDescription = nil
+		}
+		guard displayLayer.isReadyForMoreMediaData else { return }
 
 		if cachedFormatDescription == nil {
 			CMVideoFormatDescriptionCreateForImageBuffer(
@@ -291,6 +296,12 @@ class PictureInPictureManager: NSObject {
 		)
 
 		guard let buffer = sampleBuffer else { return }
+		CMSetAttachment(
+			buffer,
+			key: kCMSampleAttachmentKey_DisplayImmediately,
+			value: kCFBooleanTrue,
+			attachmentMode: kCMAttachmentMode_ShouldNotPropagate
+		)
 		displayLayer.enqueue(buffer)
 	}
 
