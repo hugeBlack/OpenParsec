@@ -24,6 +24,9 @@ class PictureInPictureManager: NSObject {
 	private var glContext: EAGLContext?
 
 	private var cachedFormatDescription: CMVideoFormatDescription?
+	private var displayImmediatelyAfterRecovery = false
+	private let displayLayerFailureLock = NSLock()
+	private var terminalDisplayLayerFailure = false
 
 	private(set) var isPiPActive = false
 	private var isSetup = false
@@ -68,6 +71,7 @@ class PictureInPictureManager: NSObject {
 
 		self.sampleBufferDisplayLayer = layer
 		self.pipSourceView = containerView
+		resetDisplayLayerFailureState()
 
 		let contentSource = AVPictureInPictureController.ContentSource(
 			sampleBufferDisplayLayer: layer,
@@ -261,9 +265,13 @@ class PictureInPictureManager: NSObject {
 		guard let pixelBuffer = pixelBuffer,
 			  let displayLayer = sampleBufferDisplayLayer else { return }
 
-		if displayLayer.status == .failed {
+		if displayLayer.requiresFlushToResumeDecoding {
 			displayLayer.flush()
 			cachedFormatDescription = nil
+			displayImmediatelyAfterRecovery = true
+		} else if displayLayer.status == .failed {
+			handleTerminalDisplayLayerFailure(displayLayer)
+			return
 		}
 		guard displayLayer.isReadyForMoreMediaData else { return }
 
@@ -296,19 +304,61 @@ class PictureInPictureManager: NSObject {
 		)
 
 		guard let buffer = sampleBuffer else { return }
-		CMSetAttachment(
-			buffer,
-			key: kCMSampleAttachmentKey_DisplayImmediately,
-			value: kCFBooleanTrue,
-			attachmentMode: kCMAttachmentMode_ShouldNotPropagate
-		)
+		if displayImmediatelyAfterRecovery {
+			CMSetAttachment(
+				buffer,
+				key: kCMSampleAttachmentKey_DisplayImmediately,
+				value: kCFBooleanTrue,
+				attachmentMode: kCMAttachmentMode_ShouldNotPropagate
+			)
+			displayImmediatelyAfterRecovery = false
+		}
 		displayLayer.enqueue(buffer)
+	}
+
+	private func handleTerminalDisplayLayerFailure(_ displayLayer: AVSampleBufferDisplayLayer) {
+		displayLayerFailureLock.lock()
+		let shouldHandle = !terminalDisplayLayerFailure
+		terminalDisplayLayerFailure = true
+		displayLayerFailureLock.unlock()
+		guard shouldHandle else { return }
+
+		let errorDescription = displayLayer.error.map { String(describing: $0) } ?? "none"
+		NSLog(
+			"[OpenParsec PiP] Display layer failed (status: %ld, error: %@)",
+			displayLayer.status.rawValue,
+			errorDescription
+		)
+		DispatchQueue.main.async { [weak self, weak displayLayer] in
+			guard let self, let displayLayer,
+				  self.sampleBufferDisplayLayer === displayLayer else { return }
+			self.isStarting = false
+			if self.isPiPActive {
+				self.pipController?.stopPictureInPicture()
+			} else {
+				self.onPiPStartFailed?()
+			}
+		}
+	}
+
+	private func resetDisplayLayerFailureState() {
+		displayLayerFailureLock.lock()
+		terminalDisplayLayerFailure = false
+		displayLayerFailureLock.unlock()
+		displayImmediatelyAfterRecovery = false
 	}
 
 	// MARK: - PiP Control
 
 	func startPiP() {
 		guard isSetup, let controller = pipController, !isPiPActive, !isStarting else { return }
+		displayLayerFailureLock.lock()
+		let canStart = !terminalDisplayLayerFailure
+		displayLayerFailureLock.unlock()
+		guard canStart else {
+			onPiPStartFailed?()
+			return
+		}
 
 		isStarting = true
 		attemptStartPiP(controller: controller, retryCount: 0)
@@ -360,6 +410,7 @@ class PictureInPictureManager: NSObject {
 		lastValidStreamWidth = 0
 		lastValidStreamHeight = 0
 		cachedFormatDescription = nil
+		resetDisplayLayerFailureState()
 		onPiPStopped = nil
 		onPiPStartFailed = nil
 		onRestoreUserInterface = nil
