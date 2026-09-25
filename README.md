@@ -24,6 +24,19 @@ You can toggle if you want to use 2 fingers to scroll or zoom in the overlay men
 ## Mouse & keyboard
 USB mouse & keyboard are supported. 
 
+For a Windows host using Korean Microsoft IME, enable **Settings > Interactivity >
+Windows Korean Keyboard**, then reconnect. This setting is off by default. It
+uses physical keyboard events to translate Right Alt, Hangul/한영, Ctrl+Space,
+and Shift+Space into a Right Alt tap. Set the Windows Korean keyboard to
+**101-key Type 1**. A touch **한/영** button is also available while streaming.
+
+Hardware language shortcuts release their accompanying modifiers immediately;
+release and re-press Ctrl/Shift before using another shortcut. This mode overrides
+Option Key as Command and repurposes Right Alt, so leave it off when using AltGr.
+The optional **Backtick (~) as 한/영** setting also remaps the real backtick key.
+iPadOS can reserve shortcuts before they reach the app; if local composition
+interferes, try an English hardware input source on the iPad.
+
 ## Game Controllers
 When streaming, press any trigger button in your controller and parsec will recognize it. Make sure to configure the host properly (install virtual USB driver etc.) before using game controllers.
 

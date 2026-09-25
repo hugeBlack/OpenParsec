@@ -258,6 +258,21 @@ struct ParsecView: View {
 							Spacer()
 						}
 					}
+					if SettingsHandler.koreanKeyboard {
+						HStack {
+							Button(action: { parsecViewController.toggleKoreanInput() }) {
+								Text("한/영")
+									.font(.system(size: 16, weight: .semibold))
+									.foregroundColor(Color("Foreground"))
+									.padding(10)
+									.background(Color("BackgroundPrompt").opacity(0.75))
+									.cornerRadius(8)
+							}
+							.accessibilityLabel("Toggle Korean input on Windows")
+							.padding(.leading)
+							Spacer()
+						}
+					}
 
 				}
 				if showMenu {

@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import ParsecSDK
 import QuartzCore
+import GameController
 
 protocol ParsecPlayground {
 	init(viewController: UIViewController, updateImage: @escaping () -> Void)
@@ -69,6 +70,10 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var keyboardAccessoriesView: UIView?
 	var keyboardHeight: CGFloat = 0.0
 	var keyboardVisible: Bool = false
+	private var koreanKeyboard = KoreanKeyboardRouter()
+	private var hardwareKeyboard: GCKeyboard?
+	private var keyboardObservers: [NSObjectProtocol] = []
+	private var lastHardwareKeyTime: TimeInterval = 0
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
 	var scrollView: UIScrollView!
 	var contentView: UIView!
@@ -341,6 +346,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
+		startHardwareKeyboard()
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(self)
 			parent.setChildViewControllerForPointerLock(self)
@@ -353,6 +359,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewWillDisappear(_ animated: Bool) {
 		super.viewWillDisappear(animated)
+		stopHardwareKeyboard()
 		stopMomentum()
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
@@ -369,7 +376,74 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	private var optCmdRemapActive = false
 	private var altKeyHeld = false
 
+	// GameController reports physical keys independently of the iPad text layout.
+	// While it is attached, UIKit must not forward the same hardware events again.
+	private func startHardwareKeyboard() {
+		guard SettingsHandler.koreanKeyboard, keyboardObservers.isEmpty else { return }
+		for name in [Notification.Name.GCKeyboardDidConnect, .GCKeyboardDidDisconnect] {
+			keyboardObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+				self?.attachHardwareKeyboard()
+			})
+		}
+		attachHardwareKeyboard()
+	}
+
+	private func attachHardwareKeyboard() {
+		hardwareKeyboard?.keyboardInput?.keyChangedHandler = nil
+		resetKeyState()
+		hardwareKeyboard = GCKeyboard.coalesced
+		hardwareKeyboard?.handlerQueue = .main
+		hardwareKeyboard?.keyboardInput?.keyChangedHandler = { [weak self] _, _, key, pressed in
+			guard let self = self, UIApplication.shared.applicationState == .active,
+				ParsecBackgroundManager.shared.hasActiveConnection else { return }
+			self.lastHardwareKeyTime = ProcessInfo.processInfo.systemUptime
+			self.handleKoreanKey(code: Int(key.rawValue), pressed: pressed)
+		}
+	}
+
+	private func stopHardwareKeyboard() {
+		hardwareKeyboard?.keyboardInput?.keyChangedHandler = nil
+		hardwareKeyboard = nil
+		keyboardObservers.forEach { NotificationCenter.default.removeObserver($0) }
+		keyboardObservers.removeAll()
+		resetKeyState()
+	}
+
+	private func sendKoreanEvents(_ events: [KoreanKeyboardRouter.Event]) {
+		for event in events {
+			CParsec.sendKeyboardMessage(keyCode: UInt32(event.code), pressed: event.pressed)
+		}
+		let nextRepeat = koreanKeyboard.repeatKey ?? -1
+		if nextRepeat != repeatKeyCode {
+			if nextRepeat >= 0 { startKeyRepeat(keyCode: nextRepeat) }
+			else { stopKeyRepeat() }
+		}
+	}
+
+	private func handleKoreanKey(code: Int, pressed: Bool, spaceShortcut: Bool = false) {
+		let events = koreanKeyboard.handle(code: code, pressed: pressed,
+			mapBacktick: SettingsHandler.koreanBacktick, spaceShortcut: spaceShortcut)
+		sendKoreanEvents(events)
+	}
+
+	func toggleKoreanInput() {
+		guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
+		let events = koreanKeyboard.toggle()
+		sendKoreanEvents(events)
+	}
+
 	override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		if SettingsHandler.koreanKeyboard {
+			guard hardwareKeyboard?.keyboardInput == nil else { return }
+			// UIKit fallback: process modifiers first if several keys arrive together.
+			let keys = presses.compactMap { $0.key }.sorted { isModifierKey($0.keyCode) && !isModifierKey($1.keyCode) }
+			for key in keys {
+				let flags = key.modifierFlags.intersection([.shift, .control, .alternate, .command])
+				handleKoreanKey(code: key.keyCode.rawValue, pressed: true,
+					spaceShortcut: flags == .shift || flags == .control)
+			}
+			return
+		}
 		for press in presses {
 			guard let key = press.key else { continue }
 
@@ -398,6 +472,13 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+		if SettingsHandler.koreanKeyboard {
+			guard hardwareKeyboard?.keyboardInput == nil else { return }
+			for press in presses {
+				if let key = press.key { handleKoreanKey(code: key.keyCode.rawValue, pressed: false) }
+			}
+			return
+		}
 		for press in presses {
 			guard let key = press.key else { continue }
 
@@ -457,6 +538,10 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	func resetKeyState() {
+		let releases = koreanKeyboard.reset()
+		for event in releases {
+			CParsec.sendKeyboardMessage(keyCode: UInt32(event.code), pressed: false)
+		}
 		stopKeyRepeat()
 		optCmdRemapActive = false
 		altKeyHeld = false
@@ -605,7 +690,10 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		}
 	}
 
-	@objc private func appWillResignActive() { flushAllTouches() }
+	@objc private func appWillResignActive() {
+		flushAllTouches()
+		resetKeyState()
+	}
 
 	// Drop all touch state and release any held button so nothing sticks when backgrounded.
 	private func flushAllTouches() {
@@ -1064,10 +1152,14 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 	}
 
 	func insertText(_ text: String) {
+		// Ignore text synthesized from an already-forwarded physical key. Software
+		// keyboard input still works when the hardware keyboard is idle.
+		if hardwareKeyboard != nil && ProcessInfo.processInfo.systemUptime - lastHardwareKeyTime < 0.15 { return }
 		CParsec.sendVirtualKeyboardInput(text: text)
 	}
 
 	func deleteBackward() {
+		if hardwareKeyboard != nil && ProcessInfo.processInfo.systemUptime - lastHardwareKeyTime < 0.15 { return }
 		CParsec.sendVirtualKeyboardInput(text: "BACKSPACE")
 	}
 

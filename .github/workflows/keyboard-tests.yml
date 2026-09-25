@@ -1,0 +1,28 @@
+name: Keyboard event tests
+
+on:
+  push:
+    paths:
+      - 'OpenParsec/KoreanKeyboardRouter.swift'
+      - 'Tests/**'
+      - '.github/workflows/keyboard-tests.yml'
+  pull_request:
+    paths:
+      - 'OpenParsec/KoreanKeyboardRouter.swift'
+      - 'Tests/**'
+      - '.github/workflows/keyboard-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keyboard-tests:
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test keyboard event sequences
+        run: |
+          swiftc OpenParsec/KoreanKeyboardRouter.swift Tests/main.swift -o "$RUNNER_TEMP/keyboard-tests"
+          "$RUNNER_TEMP/keyboard-tests"

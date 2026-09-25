@@ -11,6 +11,8 @@ struct SettingsView: View {
 	@AppStorage("cursorScale") var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") var mouseSensitivity: Double = 1.0
 	@AppStorage("optionAsCommand") var optionAsCommand: Bool = false
+	@AppStorage("koreanKeyboard") var koreanKeyboard: Bool = false
+	@AppStorage("koreanBacktick") var koreanBacktick: Bool = false
 	@AppStorage("noOverlay") var noOverlay: Bool = false
 	@AppStorage("hideStatusBar") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
@@ -114,6 +116,18 @@ struct SettingsView: View {
 								Toggle("", isOn: $optionAsCommand)
 									.frame(width: 80)
 							}
+                            CatItem("Windows Korean Keyboard") {
+                                Toggle("", isOn: $koreanKeyboard).frame(width: 80)
+                            }
+                            if koreanKeyboard {
+                                Text("Right Alt, 한/영, Shift+Space and Ctrl+Space toggle the host IME. Use Korean 101-key Type 1 on Windows. Overrides Option as Command during streaming.")
+                                    .font(.footnote).padding(8)
+                                CatItem("Backtick (~) as 한/영") {
+                                    Toggle("", isOn: $koreanBacktick).frame(width: 80)
+                                }
+                                Text("Enable only if your keyboard sends ~ for 한/영. This also remaps the real backtick key. Reconnect after changing keyboard settings.")
+                                    .font(.footnote).padding(8)
+                            }
                         }
                         CatTitle("Graphics")
                         CatList {
