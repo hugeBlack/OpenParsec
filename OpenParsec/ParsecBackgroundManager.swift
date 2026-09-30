@@ -42,7 +42,6 @@ class ParsecBackgroundManager {
 		lastPeerId = peerId
 		didDisconnectDueToBackground = false
 		isReconnecting = false
-		reconnectAttempts = 0
 		isPaused = false
 	}
 
