@@ -456,8 +456,9 @@ struct ParsecView: View {
 
 		hideOverlay = SettingsHandler.noOverlay
 
+        let keyboardShown = $showKeyboard
         parsecViewController.onKeyboardVisibilityChanged = { visible in
-            showKeyboard = visible
+            keyboardShown.wrappedValue = visible
         }
 
 		parsecViewController.setKeyboardVisible(showKeyboard)

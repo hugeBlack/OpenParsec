@@ -86,7 +86,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	init() {
 		super.init(nibName: nil, bundle: nil)
 
-		self.glkView = ParsecGLKViewController(viewController: self, updateImage: updateImage)
+		self.glkView = ParsecGLKViewController(viewController: self, updateImage: { [weak self] in self?.updateImage() })
 
 		self.gamePadController = GamepadController()
 		self.touchController = TouchController()
