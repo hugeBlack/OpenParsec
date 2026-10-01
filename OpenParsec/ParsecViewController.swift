@@ -970,6 +970,13 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	func setZoomEnabled(_ enabled: Bool) {
 		// Pinch is driven manually in touchOverlay; just gate it with this flag.
 		zoomEnabled = enabled
+		guard !enabled, scrollView.zoomScale > 1.0 else { return }
+		UIView.animate(withDuration: 0.25, animations: {
+			self.scrollView.zoomScale = 1.0
+			self.scrollView.contentOffset = .zero
+		}, completion: { _ in
+			self.positionCursorOverlay()
+		})
 	}
 
 }
