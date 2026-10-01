@@ -382,6 +382,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			if SettingsHandler.optionAsCommand && !isModifierKey(key.keyCode) && (altKeyHeld || key.modifierFlags.contains(.alternate)) {
 				if !optCmdRemapActive {
 					CParsec.sendKeyboardMessage(keyCode: 226, pressed: false)
+					CParsec.sendKeyboardMessage(keyCode: 230, pressed: false)
 					CParsec.sendKeyboardMessage(keyCode: 227, pressed: true)
 					optCmdRemapActive = true
 				}
