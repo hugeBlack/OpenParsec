@@ -140,6 +140,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
         lastCursorHidden = currentHidden
 
 		if currentImg != nil && !currentHidden {
+			u?.isHidden = false
 			if lastImg != currentImg {
 				u!.image = UIImage(cgImage: currentImg!)
 				lastImg = currentImg!
@@ -166,7 +167,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 				}
 			}
 		} else {
-			u?.image = nil
+			u?.isHidden = true
 		}
 	}
 
