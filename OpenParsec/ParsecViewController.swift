@@ -341,6 +341,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
+		UIApplication.shared.isIdleTimerDisabled = true
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(self)
 			parent.setChildViewControllerForPointerLock(self)
@@ -353,6 +354,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewWillDisappear(_ animated: Bool) {
 		super.viewWillDisappear(animated)
+		UIApplication.shared.isIdleTimerDisabled = false
 		stopMomentum()
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
