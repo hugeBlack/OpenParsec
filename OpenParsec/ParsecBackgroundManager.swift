@@ -38,12 +38,16 @@ class ParsecBackgroundManager {
 		lastHostname = UserDefaults.standard.string(forKey: "lastConnectedHostname")
 	}
 
-	func connectionDidStart(peerId: String) {
+	func connectionDidStart() {
 		hasActiveConnection = true
-		lastPeerId = peerId
 		didDisconnectDueToBackground = false
 		isReconnecting = false
 		isPaused = false
+	}
+
+	func connectionDidGoLive(peerId: String, hostname: String) {
+		lastPeerId = peerId
+		lastHostname = hostname
 	}
 
 	func connectionDidEnd() {

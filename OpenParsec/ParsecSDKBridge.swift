@@ -118,7 +118,7 @@ class ParsecSDKBridge: ParsecService {
 		let status = ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
 
 		if status == PARSEC_OK || status == PARSEC_CONNECTING {
-			ParsecBackgroundManager.shared.connectionDidStart(peerId: peerID)
+			ParsecBackgroundManager.shared.connectionDidStart()
 		}
 
 		return status

@@ -578,7 +578,6 @@ struct MainView: View {
 		CParsec.initialize()
 		ParsecBackgroundManager.shared.reconnectAttempts = 0
 		connectingToName = who.hostname
-		ParsecBackgroundManager.shared.lastHostname = who.hostname
 		withAnimation { isConnecting = true }
 
 		var status = CParsec.connect(who.id)
@@ -592,6 +591,7 @@ struct MainView: View {
 			withAnimation { isConnecting = false }
 
 			if status == PARSEC_OK {
+				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: who.hostname)
 				if let c = controller {
 					c.setView(.parsec)
 				}
