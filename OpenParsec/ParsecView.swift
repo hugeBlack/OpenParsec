@@ -198,9 +198,19 @@ struct ParsecView: View {
 			if isReconnecting {
 				VStack(spacing: 12) {
 					ActivityIndicator(isAnimating: .constant(true), style: .large, tint: .white)
-					Text("Reconnecting...")
+					Text("Reconnecting to \(ParsecBackgroundManager.shared.lastHostname ?? "the host")...")
 						.font(.system(size: 16, weight: .medium))
 						.foregroundColor(.white)
+					Button(action: { disconnect() }) {
+						Text("Disconnect")
+							.font(.system(size: 15, weight: .semibold))
+							.foregroundColor(.white)
+							.padding(.horizontal, 20)
+							.padding(.vertical, 8)
+							.background(Color.white.opacity(0.2))
+							.cornerRadius(8)
+					}
+					.padding(.top, 4)
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				.background(Color.black.opacity(0.6))
