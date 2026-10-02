@@ -25,6 +25,7 @@ struct MainView: View {
 	@State var showLogoutAlert: Bool = false
 
 	@State var isConnecting: Bool = false
+	@State var waitingForApproval: Bool = false
 	@State var connectingToName: String = ""
 	@State var pollTimer: Timer?
 
@@ -353,7 +354,7 @@ struct MainView: View {
 					VStack {
 						ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
 							.padding()
-						Text("Requesting connection to \(connectingToName)...")
+						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : "Requesting connection to \(connectingToName)...")
 							.multilineTextAlignment(.center)
 						Button(action: cancelConnection) {
 							ZStack {
@@ -581,6 +582,7 @@ struct MainView: View {
 		withAnimation { isConnecting = true }
 
 		var status = CParsec.connect(who.id)
+		var approvalStarted: Date?
 
 		// Polling status
 		pollTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
@@ -588,7 +590,17 @@ struct MainView: View {
 
 			if status == PARSEC_CONNECTING { return } // wait
 
-			withAnimation { isConnecting = false }
+			if status == CONNECT_WRN_APPROVAL {
+				let started = approvalStarted ?? Date()
+				approvalStarted = started
+				if !waitingForApproval { withAnimation { waitingForApproval = true } }
+				if Date().timeIntervalSince(started) < 60 { return }
+			}
+
+			withAnimation {
+				isConnecting = false
+				waitingForApproval = false
+			}
 
 			if status == PARSEC_OK {
 				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: who.hostname)
@@ -606,7 +618,10 @@ struct MainView: View {
 	}
 
 	func cancelConnection() {
-		withAnimation { isConnecting = false }
+		withAnimation {
+			isConnecting = false
+			waitingForApproval = false
+		}
 
 		CParsec.disconnect()
 

@@ -66,6 +66,12 @@ struct ParsecStatusBar: View {
 				}
 			}
 
+			if status == CONNECT_WRN_APPROVAL && isReconnecting {
+				if Date().timeIntervalSince(ParsecBackgroundManager.shared.reconnectStartTime) < 60 {
+					return
+				}
+			}
+
 			// PiP: connection died (screen lock killed GPU). Kill connection+audio once,
 			// subsequent polls exit via isMarkedForReconnect above.
 			var pipActive = false

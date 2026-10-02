@@ -101,6 +101,20 @@ extension ParsecStatus {
 		case SERVER_ERR_DISPLAY:        return "Host has no display"
 		case SERVER_ERR_RESOLUTION:     return "Host resolution problem"
 		case CAPTURE_ERR_INIT:          return "Host capture failed"
+		case CONNECT_WRN_APPROVAL:      return "Host didn't approve the connection"
+		case CONNECT_WRN_UNCONFIRMED:   return "Confirm your Parsec account email first"
+		case PARSEC_CONNECTING:         return "Still connecting to the host"
+		case PARSEC_NOT_RUNNING:        return "Connection didn't start"
+		case NETWORK_WRN_TIMEOUT:       return "Network timed out"
+		case NETWORK_ERR_SHUTDOWN:      return "Host ended the connection"
+		case NETWORK_ERR_INTERRUPTED:   return "Connection was interrupted"
+		case WS_ERR_GOING_AWAY, WS_ERR_CLOSE: return "Parsec closed the connection"
+		case WS_ERR_READ, WS_ERR_WRITE: return "Lost the connection to Parsec"
+		case NAT_ERR_NO_CANDIDATES:     return "No network path to the host"
+		case NAT_ERR_STUN_PHASE:        return "Couldn't reach Parsec's network service"
+		case SERVER_ERR_NO_USER:        return "No one is signed in on the host"
+		case SERVER_ERR_MAX_RESOLUTION: return "Host can't stream at this resolution"
+		case SERVER_ERR_CLIENT_GONE, SERVER_ERR_CLIENT_ABORT: return "Host dropped the connection"
 		default:
 			os_log("%{public}@", "[status] no text for \(rawValue)")
 			return "\(connecting ? "Couldn't connect" : "Disconnected") (code \(rawValue))"
@@ -113,7 +127,8 @@ extension ParsecStatus {
 			 CONNECT_WRN_DECLINED, CONNECT_WRN_NO_PERMISSION, CONNECT_WRN_NO_ROOM,
 			 CONNECT_WRN_CANCELED,
 			 HOST_WRN_KICKED, HOST_WRN_SHUTDOWN,
-			 NETWORK_ERR_UNSUPPORTED, SERVER_ERR_DISPLAY, SERVER_ERR_RESOLUTION:
+			 NETWORK_ERR_UNSUPPORTED, SERVER_ERR_DISPLAY, SERVER_ERR_RESOLUTION,
+			 CONNECT_WRN_UNCONFIRMED, SERVER_ERR_NO_USER:
 			return true
 		default:
 			return false
