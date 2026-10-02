@@ -15,6 +15,7 @@ class ParsecBackgroundManager {
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
 	var reconnectAttempts = 0
+	var reconnectStartTime = Date()
 	var isPaused = false
 	weak var glkViewController: GLKViewController?
 

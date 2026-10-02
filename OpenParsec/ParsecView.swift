@@ -9,7 +9,6 @@ struct ParsecStatusBar: View {
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
 	@Binding var isReconnecting: Bool
-	@State var reconnectStartTime: Date = Date()
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
@@ -62,7 +61,7 @@ struct ParsecStatusBar: View {
 			}
 
 			if status == PARSEC_CONNECTING && isReconnecting {
-				if Date().timeIntervalSince(reconnectStartTime) < 15 {
+				if Date().timeIntervalSince(ParsecBackgroundManager.shared.reconnectStartTime) < 15 {
 					return
 				}
 			}
@@ -87,7 +86,7 @@ struct ParsecStatusBar: View {
 				if mgr.reconnectAttempts < 3 {
 					mgr.reconnectAttempts += 1
 					isReconnecting = true
-					reconnectStartTime = Date()
+					mgr.reconnectStartTime = Date()
 					parsecViewController?.resetKeyState()
 					CParsec.reconnect(peerId)
 					return
@@ -377,6 +376,7 @@ struct ParsecView: View {
 					showDCAlert = false
 					isReconnecting = true
 					ParsecBackgroundManager.shared.reconnectAttempts = 0
+					ParsecBackgroundManager.shared.reconnectStartTime = Date()
 					parsecViewController.resetKeyState()
 					CParsec.reconnect(peerId)
 				  }),
