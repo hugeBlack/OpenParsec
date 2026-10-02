@@ -32,6 +32,7 @@ struct MainView: View {
 	@State var isRefreshing: Bool = false
 
 	@State var inSettings: Bool = false
+	@State var sessionExpired: Bool = false
 
 	@State private var lastHostShown: String?
 
@@ -110,6 +111,26 @@ struct MainView: View {
 					// Hosts page
 					ScrollView(.vertical) {
 						VStack {
+							if sessionExpired {
+								HStack {
+									Text("Your Parsec session expired")
+										.foregroundColor(Color("Foreground"))
+									Spacer()
+									Button(action: logout) {
+										Text("Sign in")
+											.fontWeight(.semibold)
+											.foregroundColor(Color("AccentColor"))
+											.frame(minWidth: 44, minHeight: 44)
+											.contentShape(Rectangle())
+									}
+								}
+								.padding(.horizontal, 12)
+								.padding(.vertical, 2)
+								.background(Rectangle().fill(Color("BackgroundPrompt")))
+								.cornerRadius(8)
+								.frame(maxWidth: 400)
+								.padding(.horizontal)
+							}
 							Text(refreshTime)
 								.multilineTextAlignment(.center)
 								.opacity(0.5)
@@ -453,9 +474,14 @@ struct MainView: View {
 
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
+						if statusCode == 401 {
+							sessionExpired = true
+							return
+						}
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
+							sessionExpired = false
 							guard let info: HostInfoList = try? decoder.decode(HostInfoList.self, from: data) else { return }
 							hosts.removeAll()
 							if let datas = info.data {
@@ -506,6 +532,10 @@ struct MainView: View {
 				DispatchQueue.main.async {
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
+						if statusCode == 401 {
+							sessionExpired = true
+							return
+						}
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
@@ -543,6 +573,10 @@ struct MainView: View {
 				DispatchQueue.main.async {
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
+						if statusCode == 401 {
+							sessionExpired = true
+							return
+						}
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
