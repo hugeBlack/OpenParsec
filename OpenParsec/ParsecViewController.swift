@@ -284,6 +284,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			name: UIResponder.keyboardWillShowNotification,
 			object: nil
 		)
+		NotificationCenter.default.addObserver(
+			self,
+			selector: #selector(inputWasReleased),
+			name: NSNotification.Name("ParsecInputReleased"),
+			object: nil
+		)
 
 		NotificationCenter.default.addObserver(
 			self,
@@ -317,6 +323,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		CParsec.setFrame(w, h, UIScreen.main.scale)
 
         // Reset accessory view to ensure correct width in new orientation
+        clearToolbarModifiers(sendToHost: true)
         keyboardAccessoriesView = nil
         if keyboardVisible {
             reloadInputViews()
@@ -1187,6 +1194,26 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		button.addTarget(self, action: #selector(toolbarButtonClicked(_:)), for: .touchUpInside)
 
 		return button
+	}
+
+	@objc private func inputWasReleased() {
+		clearToolbarModifiers(sendToHost: false)
+	}
+
+	private func clearToolbarModifiers(sendToHost: Bool) {
+		guard let bar = keyboardAccessoriesView else { return }
+		for button in toolbarButtons(in: bar) where button.isOn {
+			button.isOn = false
+			button.backgroundColor = .black
+			if sendToHost {
+				CParsec.sendVirtualKeyboardInput(text: button.keyText, isOn: false)
+			}
+		}
+	}
+
+	private func toolbarButtons(in view: UIView) -> [KeyboardButton] {
+		let own = (view as? KeyboardButton).map { [$0] } ?? []
+		return own + view.subviews.flatMap { toolbarButtons(in: $0) }
 	}
 
 	@objc func toolbarButtonClicked(_ sender: KeyboardButton) {

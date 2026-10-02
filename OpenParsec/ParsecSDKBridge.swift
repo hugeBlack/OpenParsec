@@ -152,6 +152,10 @@ class ParsecSDKBridge: ParsecService {
 		var msg = ParsecMessage()
 		msg.type = MESSAGE_RELEASE
 		ParsecClientSendMessage(_parsec, &msg)
+		isVirtualShiftOn = false
+		DispatchQueue.main.async {
+			NotificationCenter.default.post(name: NSNotification.Name("ParsecInputReleased"), object: nil)
+		}
 	}
 
 	@discardableResult
