@@ -46,6 +46,7 @@ class ParsecSDKBridge: ParsecService {
 
 	public var clientWidth: Float = 1920
 	public var clientHeight: Float = 1080
+	private var hasFrame = false
 
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
@@ -191,10 +192,32 @@ class ParsecSDKBridge: ParsecService {
 
 		ParsecClientSetDimensions(_parsec, UInt8(DEFAULT_STREAM), UInt32(width), UInt32(height), Float(scale))
 
+		let oldSize = CGSize(width: CGFloat(clientWidth), height: CGFloat(clientHeight))
 		clientWidth = Float(width)
 		clientHeight = Float(height)
-		mouseInfo.mouseX = Int32(width / 2)
-		mouseInfo.mouseY = Int32(height / 2)
+		guard hasFrame, oldSize.width > 0, oldSize.height > 0 else {
+			hasFrame = true
+			mouseInfo.mouseX = Int32(width / 2)
+			mouseInfo.mouseY = Int32(height / 2)
+			return
+		}
+		let moved = carryCursor(CGPoint(x: CGFloat(mouseInfo.mouseX), y: CGFloat(mouseInfo.mouseY)), from: oldSize, to: CGSize(width: width, height: height))
+		mouseInfo.mouseX = Int32(moved.x.rounded())
+		mouseInfo.mouseY = Int32(moved.y.rounded())
+	}
+
+	private func carryCursor(_ point: CGPoint, from old: CGSize, to new: CGSize) -> CGPoint {
+		let host = CGSize(width: CGFloat(hostWidth), height: CGFloat(hostHeight))
+		guard host.width > 0, host.height > 0 else {
+			return CGPoint(x: point.x * new.width / old.width, y: point.y * new.height / old.height)
+		}
+		let oldScale = min(old.width / host.width, old.height / host.height)
+		let newScale = min(new.width / host.width, new.height / host.height)
+		let hostX = (point.x - (old.width - host.width * oldScale) / 2) / oldScale
+		let hostY = (point.y - (old.height - host.height * oldScale) / 2) / oldScale
+		let x = hostX * newScale + (new.width - host.width * newScale) / 2
+		let y = hostY * newScale + (new.height - host.height * newScale) / 2
+		return CGPoint(x: min(max(x, 0), new.width), y: min(max(y, 0), new.height))
 	}
 
 	// timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
