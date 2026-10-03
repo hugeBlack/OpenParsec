@@ -27,6 +27,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var momentumLink: CADisplayLink?
 	var cursorMomentumActive = false
 	var scrollMomentumActive = false
+	var edgeScrollActive = false
+	var edgeScrollPoint: CGPoint = .zero
+	var edgeScrollLastTick: CFTimeInterval = 0
+	let edgeScrollMargin: CGFloat = 44.0
+	let edgeScrollMaxSpeed: CGFloat = 900.0
 	var cursorVelocity: CGPoint = .zero     // content points / sec
 	var scrollVelocity: Float = 0.0         // wheel units / sec
 	var lastCursorMoveTime: CFTimeInterval = 0
@@ -150,10 +155,15 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			// input-driven). When idle, follow the host's reported cursor so host- or keyboard-
 			// driven moves are reflected and any prediction drift is corrected.
 			if !isDragging && !clickHoldActive && !cursorMomentumActive {
+				let fingerSet = SettingsHandler.cursorMode == .direct
+					&& abs(cursorContentPos.x - CGFloat(currentMouseX)) < 1
+					&& abs(cursorContentPos.y - CGFloat(currentMouseY)) < 1
 				cursorContentPos = CGPoint(x: CGFloat(currentMouseX), y: CGFloat(currentMouseY))
 				positionCursorOverlay()
 				if scrollView.zoomScale > 1.0 {
-					centerViewportOnCursorPos()
+					if !fingerSet {
+						centerViewportOnCursorPos()
+					}
 				} else if keyboardVisible && scrollView.contentInset.bottom > 0 {
 					// Not zoomed: keep the cursor above the on-screen keyboard.
 					let margin: CGFloat = 50.0
@@ -581,6 +591,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	}
 
 	private func handleTouchCountChange(old: Int, new: Int) {
+		edgeScrollActive = false
 		if new > old { stopMomentum() }   // any new finger cancels an in-progress glide
 		if new == 0 {
 			let flingCursor = (old == 1) && isDragging && !twoFingerResidual && !clickHoldActive
@@ -714,7 +725,16 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		// Command the host to the ABSOLUTE predicted position (not a delta) so the host cursor can't
 		// crawl behind network round-trips - clicks always land where the cursor is drawn.
 		CParsec.sendMousePosition(Int32(cursorContentPos.x), Int32(cursorContentPos.y))
-		centerViewportOnCursorPos()
+		if SettingsHandler.cursorMode == .direct {
+			edgeScrollPoint = loc
+			if cursorDidMoveThisTouch && edgeScrollVelocity(at: loc) != .zero {
+				if !edgeScrollActive { edgeScrollLastTick = 0 }
+				edgeScrollActive = true
+				ensureMomentumLink()
+			}
+		} else {
+			centerViewportOnCursorPos()
+		}
 		positionCursorOverlay()
 	}
 
@@ -788,6 +808,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	func stopMomentum() {
 		cursorMomentumActive = false
 		scrollMomentumActive = false
+		edgeScrollActive = false
 		cursorVelocity = .zero
 		scrollVelocity = 0
 		momentumLink?.invalidate()
@@ -831,6 +852,16 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 				scrollMomentumActive = false
 			} else {
 				stillActive = true
+			}
+		}
+
+		if edgeScrollActive {
+			let elapsed = edgeScrollLastTick > 0 ? min(CGFloat(link.timestamp - edgeScrollLastTick), 0.1) : dt
+			edgeScrollLastTick = link.timestamp
+			if stepEdgeScroll(elapsed) {
+				stillActive = true
+			} else {
+				edgeScrollActive = false
 			}
 		}
 
@@ -972,6 +1003,37 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		targetX = min(max(0, targetX), maxX)
 		targetY = min(max(0, targetY), maxY)
 		scrollView.setContentOffset(CGPoint(x: targetX, y: targetY), animated: false)
+	}
+
+	private func edgeScrollVelocity(at p: CGPoint) -> CGPoint {
+		guard scrollView.zoomScale > 1.0 else { return .zero }
+		let visibleHeight = view.bounds.height - (keyboardVisible ? keyboardHeight : 0.0)
+		func axis(_ v: CGFloat, _ length: CGFloat) -> CGFloat {
+			if v < edgeScrollMargin {
+				return -min(1, (edgeScrollMargin - v) / edgeScrollMargin) * edgeScrollMaxSpeed
+			}
+			if v > length - edgeScrollMargin {
+				return min(1, (v - (length - edgeScrollMargin)) / edgeScrollMargin) * edgeScrollMaxSpeed
+			}
+			return 0
+		}
+		return CGPoint(x: axis(p.x, view.bounds.width), y: axis(p.y, visibleHeight))
+	}
+
+	private func stepEdgeScroll(_ dt: CGFloat) -> Bool {
+		let v = edgeScrollVelocity(at: edgeScrollPoint)
+		guard v != .zero, !CParsec.mouseInfo.mousePositionRelative else { return false }
+		let bottomInset = keyboardVisible ? keyboardHeight : 0.0
+		let maxX = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+		let maxY = max(0, scrollView.contentSize.height - scrollView.bounds.height + bottomInset)
+		let off = scrollView.contentOffset
+		let next = CGPoint(x: min(max(0, off.x + v.x * dt), maxX), y: min(max(0, off.y + v.y * dt), maxY))
+		guard next != off else { return false }
+		scrollView.setContentOffset(next, animated: false)
+		cursorContentPos = clampToContent(contentView.convert(edgeScrollPoint, from: view))
+		CParsec.sendMousePosition(Int32(cursorContentPos.x), Int32(cursorContentPos.y))
+		positionCursorOverlay()
+		return true
 	}
 
 	func setZoomEnabled(_ enabled: Bool) {
