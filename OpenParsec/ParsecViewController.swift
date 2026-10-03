@@ -163,6 +163,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 				if scrollView.zoomScale > 1.0 {
 					if !fingerSet {
 						centerViewportOnCursorPos()
+						positionCursorOverlay()
 					}
 				} else if keyboardVisible && scrollView.contentInset.bottom > 0 {
 					// Not zoomed: keep the cursor above the on-screen keyboard.
