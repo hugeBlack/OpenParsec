@@ -81,22 +81,20 @@ static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBu
 		ctx->rcm.last_to_queue = ctx->rcm.last_to_queue->next;
 	}
 	
-	if (deltaBuf + ctx->silence_inqueue < LOWEST_NUM_BUFFER + ctx->silence_outqueue)
+	int silencePending = (int)(ctx->silence_inqueue - ctx->silence_outqueue);
+	if (silencePending < 0)
 	{
-		int numAddBuffer = ((ctx->silence_inqueue >= ctx->silence_outqueue) ? (LOWEST_NUM_BUFFER - deltaBuf - (int)(ctx->silence_inqueue-ctx->silence_outqueue)) : (LOWEST_NUM_BUFFER - deltaBuf - (int)((unsigned int)(0xFFFFFFFF)-ctx->silence_outqueue + ctx->silence_inqueue + 1)));
-		if (numAddBuffer > LOWEST_NUM_BUFFER)
-		{
-			numAddBuffer = LOWEST_NUM_BUFFER - deltaBuf;
-		}
-		else
-		{
-			ctx->silence_inqueue = ctx->silence_outqueue = 0;
-		}
+		ctx->silence_outqueue = ctx->silence_inqueue;
+		silencePending = 0;
+	}
+	if (deltaBuf + silencePending < LOWEST_NUM_BUFFER)
+	{
+		int numAddBuffer = LOWEST_NUM_BUFFER - deltaBuf - silencePending;
 		for (int i=0; i<numAddBuffer; ++i)
 		{
 			AudioQueueEnqueueBuffer(ctx->q, ctx->silence_buf, 0, NULL);
 		}
-		if (numAddBuffer > 0) ctx->silence_inqueue += numAddBuffer;
+		ctx->silence_inqueue += numAddBuffer;
 	}
 	
 	//RecycleChain *tmp = ctx->rcm.last_to_queue->next;
