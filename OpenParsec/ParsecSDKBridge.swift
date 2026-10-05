@@ -161,11 +161,16 @@ class ParsecSDKBridge: ParsecService {
 
 	@discardableResult
 	func pause(video: Bool = true, audio: Bool = true) -> ParsecStatus {
-		return ParsecClientPause(_parsec, video, audio)
+		let status = ParsecClientPause(_parsec, video, audio)
+		if audio {
+			audio_hold(true, _audioPtr)
+		}
+		return status
 	}
 
 	@discardableResult
 	func resume() -> ParsecStatus {
+		audio_hold(false, _audioPtr)
 		return ParsecClientPause(_parsec, false, false)
 	}
 
