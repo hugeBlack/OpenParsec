@@ -4,6 +4,7 @@ import CoreVideo
 import OpenGLES
 import GLKit
 import CoreMedia
+import os
 
 private let kGL_BGRA: GLenum = 0x80E1
 
@@ -24,9 +25,8 @@ class PictureInPictureManager: NSObject {
 	private var glContext: EAGLContext?
 
 	private var cachedFormatDescription: CMVideoFormatDescription?
-	private var displayImmediatelyAfterRecovery = false
-	private let displayLayerFailureLock = NSLock()
-	private var terminalDisplayLayerFailure = false
+	private var displayLayerFlushes = 0
+	private var displayLayerGaveUp = false
 
 	private(set) var isPiPActive = false
 	private var isSetup = false
@@ -265,13 +265,18 @@ class PictureInPictureManager: NSObject {
 		guard let pixelBuffer = pixelBuffer,
 			  let displayLayer = sampleBufferDisplayLayer else { return }
 
-		if displayLayer.requiresFlushToResumeDecoding {
+		if displayLayer.status == .failed {
+			guard !displayLayerGaveUp else { return }
+			guard displayLayerFlushes < 3 else {
+				displayLayerGaveUp = true
+				handleTerminalDisplayLayerFailure(displayLayer)
+				return
+			}
+			displayLayerFlushes += 1
 			displayLayer.flush()
 			cachedFormatDescription = nil
-			displayImmediatelyAfterRecovery = true
-		} else if displayLayer.status == .failed {
-			handleTerminalDisplayLayerFailure(displayLayer)
-			return
+		} else if displayLayer.status == .rendering {
+			displayLayerFlushes = 0
 		}
 		guard displayLayer.isReadyForMoreMediaData else { return }
 
@@ -304,31 +309,11 @@ class PictureInPictureManager: NSObject {
 		)
 
 		guard let buffer = sampleBuffer else { return }
-		if displayImmediatelyAfterRecovery {
-			CMSetAttachment(
-				buffer,
-				key: kCMSampleAttachmentKey_DisplayImmediately,
-				value: kCFBooleanTrue,
-				attachmentMode: kCMAttachmentMode_ShouldNotPropagate
-			)
-			displayImmediatelyAfterRecovery = false
-		}
 		displayLayer.enqueue(buffer)
 	}
 
 	private func handleTerminalDisplayLayerFailure(_ displayLayer: AVSampleBufferDisplayLayer) {
-		displayLayerFailureLock.lock()
-		let shouldHandle = !terminalDisplayLayerFailure
-		terminalDisplayLayerFailure = true
-		displayLayerFailureLock.unlock()
-		guard shouldHandle else { return }
-
-		let errorDescription = displayLayer.error.map { String(describing: $0) } ?? "none"
-		NSLog(
-			"[OpenParsec PiP] Display layer failed (status: %ld, error: %@)",
-			displayLayer.status.rawValue,
-			errorDescription
-		)
+		os_log("%{public}@", log: sdkLog, "[pip] display layer failed, status \(displayLayer.status.rawValue), error \(displayLayer.error.map { String(describing: $0) } ?? "none")")
 		DispatchQueue.main.async { [weak self, weak displayLayer] in
 			guard let self, let displayLayer,
 				  self.sampleBufferDisplayLayer === displayLayer else { return }
@@ -342,23 +327,15 @@ class PictureInPictureManager: NSObject {
 	}
 
 	private func resetDisplayLayerFailureState() {
-		displayLayerFailureLock.lock()
-		terminalDisplayLayerFailure = false
-		displayLayerFailureLock.unlock()
-		displayImmediatelyAfterRecovery = false
+		displayLayerFlushes = 0
+		displayLayerGaveUp = false
 	}
 
 	// MARK: - PiP Control
 
 	func startPiP() {
 		guard isSetup, let controller = pipController, !isPiPActive, !isStarting else { return }
-		displayLayerFailureLock.lock()
-		let canStart = !terminalDisplayLayerFailure
-		displayLayerFailureLock.unlock()
-		guard canStart else {
-			onPiPStartFailed?()
-			return
-		}
+		resetDisplayLayerFailureState()
 
 		isStarting = true
 		attemptStartPiP(controller: controller, retryCount: 0)
