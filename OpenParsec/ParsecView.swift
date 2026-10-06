@@ -122,9 +122,9 @@ struct ParsecStatusBar: View {
 					return
 				}
 				mgr.reconnectAttempts = 0
-				isReconnecting = false
 			}
 
+			isReconnecting = false
 			wasDisconnected = true
 			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !status.isPermanentFailure {
 				// silent: auto-reconnect spent its retries, dont nag with an alert
