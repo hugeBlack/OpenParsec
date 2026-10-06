@@ -110,6 +110,10 @@ struct ParsecStatusBar: View {
 			if SettingsHandler.autoReconnect, !status.isPermanentFailure, let peerId = ParsecBackgroundManager.shared.lastPeerId {
 				let mgr = ParsecBackgroundManager.shared
 				if mgr.reconnectAttempts < 3 {
+					let gap: TimeInterval = mgr.reconnectAttempts == 0 ? 0 : mgr.reconnectAttempts == 1 ? 2 : 5
+					if Date().timeIntervalSince(mgr.reconnectStartTime) < gap {
+						return
+					}
 					mgr.reconnectAttempts += 1
 					isReconnecting = true
 					mgr.reconnectStartTime = Date()
