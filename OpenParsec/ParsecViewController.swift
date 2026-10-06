@@ -27,6 +27,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var momentumLink: CADisplayLink?
 	var cursorMomentumActive = false
 	var scrollMomentumActive = false
+	var edgeScrollActive = false
+	var edgeScrollPoint: CGPoint = .zero
+	var edgeScrollLastTick: CFTimeInterval = 0
+	let edgeScrollMargin: CGFloat = 44.0
+	let edgeScrollMaxSpeed: CGFloat = 900.0
 	var cursorVelocity: CGPoint = .zero     // content points / sec
 	var scrollVelocity: Float = 0.0         // wheel units / sec
 	var lastCursorMoveTime: CFTimeInterval = 0
@@ -86,7 +91,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	init() {
 		super.init(nibName: nil, bundle: nil)
 
-		self.glkView = ParsecGLKViewController(viewController: self, updateImage: updateImage)
+		self.glkView = ParsecGLKViewController(viewController: self, updateImage: { [weak self] in self?.updateImage() })
 
 		self.gamePadController = GamepadController()
 		self.touchController = TouchController()
@@ -140,6 +145,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
         lastCursorHidden = currentHidden
 
 		if currentImg != nil && !currentHidden {
+			u?.isHidden = false
 			if lastImg != currentImg {
 				u!.image = UIImage(cgImage: currentImg!)
 				lastImg = currentImg!
@@ -149,10 +155,16 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			// input-driven). When idle, follow the host's reported cursor so host- or keyboard-
 			// driven moves are reflected and any prediction drift is corrected.
 			if !isDragging && !clickHoldActive && !cursorMomentumActive {
+				let fingerSet = SettingsHandler.cursorMode == .direct
+					&& abs(cursorContentPos.x - CGFloat(currentMouseX)) < 1
+					&& abs(cursorContentPos.y - CGFloat(currentMouseY)) < 1
 				cursorContentPos = CGPoint(x: CGFloat(currentMouseX), y: CGFloat(currentMouseY))
 				positionCursorOverlay()
 				if scrollView.zoomScale > 1.0 {
-					centerViewportOnCursorPos()
+					if !fingerSet {
+						centerViewportOnCursorPos()
+						positionCursorOverlay()
+					}
 				} else if keyboardVisible && scrollView.contentInset.bottom > 0 {
 					// Not zoomed: keep the cursor above the on-screen keyboard.
 					let margin: CGFloat = 50.0
@@ -166,7 +178,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 				}
 			}
 		} else {
-			u?.image = nil
+			u?.isHidden = true
 		}
 	}
 
@@ -283,6 +295,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			name: UIResponder.keyboardWillShowNotification,
 			object: nil
 		)
+		NotificationCenter.default.addObserver(
+			self,
+			selector: #selector(inputWasReleased),
+			name: NSNotification.Name("ParsecInputReleased"),
+			object: nil
+		)
 
 		NotificationCenter.default.addObserver(
 			self,
@@ -316,6 +334,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		CParsec.setFrame(w, h, UIScreen.main.scale)
 
         // Reset accessory view to ensure correct width in new orientation
+        clearToolbarModifiers(sendToHost: true)
         keyboardAccessoriesView = nil
         if keyboardVisible {
             reloadInputViews()
@@ -341,6 +360,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
+		UIApplication.shared.isIdleTimerDisabled = true
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(self)
 			parent.setChildViewControllerForPointerLock(self)
@@ -353,6 +373,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewWillDisappear(_ animated: Bool) {
 		super.viewWillDisappear(animated)
+		UIApplication.shared.isIdleTimerDisabled = false
 		stopMomentum()
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
@@ -380,6 +401,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			if SettingsHandler.optionAsCommand && !isModifierKey(key.keyCode) && (altKeyHeld || key.modifierFlags.contains(.alternate)) {
 				if !optCmdRemapActive {
 					CParsec.sendKeyboardMessage(keyCode: 226, pressed: false)
+					CParsec.sendKeyboardMessage(keyCode: 230, pressed: false)
 					CParsec.sendKeyboardMessage(keyCode: 227, pressed: true)
 					optCmdRemapActive = true
 				}
@@ -570,6 +592,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	}
 
 	private func handleTouchCountChange(old: Int, new: Int) {
+		edgeScrollActive = false
 		if new > old { stopMomentum() }   // any new finger cancels an in-progress glide
 		if new == 0 {
 			let flingCursor = (old == 1) && isDragging && !twoFingerResidual && !clickHoldActive
@@ -703,7 +726,16 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		// Command the host to the ABSOLUTE predicted position (not a delta) so the host cursor can't
 		// crawl behind network round-trips - clicks always land where the cursor is drawn.
 		CParsec.sendMousePosition(Int32(cursorContentPos.x), Int32(cursorContentPos.y))
-		centerViewportOnCursorPos()
+		if SettingsHandler.cursorMode == .direct {
+			edgeScrollPoint = loc
+			if cursorDidMoveThisTouch && edgeScrollVelocity(at: loc) != .zero {
+				if !edgeScrollActive { edgeScrollLastTick = 0 }
+				edgeScrollActive = true
+				ensureMomentumLink()
+			}
+		} else {
+			centerViewportOnCursorPos()
+		}
 		positionCursorOverlay()
 	}
 
@@ -777,6 +809,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	func stopMomentum() {
 		cursorMomentumActive = false
 		scrollMomentumActive = false
+		edgeScrollActive = false
 		cursorVelocity = .zero
 		scrollVelocity = 0
 		momentumLink?.invalidate()
@@ -820,6 +853,16 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 				scrollMomentumActive = false
 			} else {
 				stillActive = true
+			}
+		}
+
+		if edgeScrollActive {
+			let elapsed = edgeScrollLastTick > 0 ? min(CGFloat(link.timestamp - edgeScrollLastTick), 0.1) : dt
+			edgeScrollLastTick = link.timestamp
+			if stepEdgeScroll(elapsed) {
+				stillActive = true
+			} else {
+				edgeScrollActive = false
 			}
 		}
 
@@ -890,12 +933,6 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		// dont leak a right-click to the host while backgrounding (app switch) or after a disconnect
 		guard UIApplication.shared.applicationState == .active,
 			  ParsecBackgroundManager.shared.hasActiveConnection else { return }
-		// ignore taps landing in the bottom home-indicator strip — thats the app-switch / bottom-bar
-		// system-gesture zone where a stray two-finger touch (eg while typing) gets read as a right-click
-		let tapY = gestureRecognizer.location(in: view).y
-		if tapY > view.bounds.height - max(view.safeAreaInsets.bottom, 24) {
-			return
-		}
 
 		let location: CGPoint
 		switch SettingsHandler.rightClickPosition {
@@ -963,9 +1000,47 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		scrollView.setContentOffset(CGPoint(x: targetX, y: targetY), animated: false)
 	}
 
+	private func edgeScrollVelocity(at p: CGPoint) -> CGPoint {
+		guard scrollView.zoomScale > 1.0 else { return .zero }
+		let visibleHeight = view.bounds.height - (keyboardVisible ? keyboardHeight : 0.0)
+		func axis(_ v: CGFloat, _ length: CGFloat) -> CGFloat {
+			if v < edgeScrollMargin {
+				return -min(1, (edgeScrollMargin - v) / edgeScrollMargin) * edgeScrollMaxSpeed
+			}
+			if v > length - edgeScrollMargin {
+				return min(1, (v - (length - edgeScrollMargin)) / edgeScrollMargin) * edgeScrollMaxSpeed
+			}
+			return 0
+		}
+		return CGPoint(x: axis(p.x, view.bounds.width), y: axis(p.y, visibleHeight))
+	}
+
+	private func stepEdgeScroll(_ dt: CGFloat) -> Bool {
+		let v = edgeScrollVelocity(at: edgeScrollPoint)
+		guard v != .zero, !CParsec.mouseInfo.mousePositionRelative else { return false }
+		let bottomInset = keyboardVisible ? keyboardHeight : 0.0
+		let maxX = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+		let maxY = max(0, scrollView.contentSize.height - scrollView.bounds.height + bottomInset)
+		let off = scrollView.contentOffset
+		let next = CGPoint(x: min(max(0, off.x + v.x * dt), maxX), y: min(max(0, off.y + v.y * dt), maxY))
+		guard next != off else { return false }
+		scrollView.setContentOffset(next, animated: false)
+		cursorContentPos = clampToContent(contentView.convert(edgeScrollPoint, from: view))
+		CParsec.sendMousePosition(Int32(cursorContentPos.x), Int32(cursorContentPos.y))
+		positionCursorOverlay()
+		return true
+	}
+
 	func setZoomEnabled(_ enabled: Bool) {
 		// Pinch is driven manually in touchOverlay; just gate it with this flag.
 		zoomEnabled = enabled
+		guard !enabled, scrollView.zoomScale > 1.0 else { return }
+		UIView.animate(withDuration: 0.25, animations: {
+			self.scrollView.zoomScale = 1.0
+			self.scrollView.contentOffset = .zero
+		}, completion: { _ in
+			self.positionCursorOverlay()
+		})
 	}
 
 }
@@ -1176,6 +1251,26 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		button.addTarget(self, action: #selector(toolbarButtonClicked(_:)), for: .touchUpInside)
 
 		return button
+	}
+
+	@objc private func inputWasReleased() {
+		clearToolbarModifiers(sendToHost: false)
+	}
+
+	private func clearToolbarModifiers(sendToHost: Bool) {
+		guard let bar = keyboardAccessoriesView else { return }
+		for button in toolbarButtons(in: bar) where button.isOn {
+			button.isOn = false
+			button.backgroundColor = .black
+			if sendToHost {
+				CParsec.sendVirtualKeyboardInput(text: button.keyText, isOn: false)
+			}
+		}
+	}
+
+	private func toolbarButtons(in view: UIView) -> [KeyboardButton] {
+		let own = (view as? KeyboardButton).map { [$0] } ?? []
+		return own + view.subviews.flatMap { toolbarButtons(in: $0) }
 	}
 
 	@objc func toolbarButtonClicked(_ sender: KeyboardButton) {

@@ -15,6 +15,7 @@ class ParsecBackgroundManager {
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
 	var reconnectAttempts = 0
+	var reconnectStartTime = Date()
 	var isPaused = false
 	weak var glkViewController: GLKViewController?
 
@@ -37,13 +38,16 @@ class ParsecBackgroundManager {
 		lastHostname = UserDefaults.standard.string(forKey: "lastConnectedHostname")
 	}
 
-	func connectionDidStart(peerId: String) {
+	func connectionDidStart() {
 		hasActiveConnection = true
-		lastPeerId = peerId
 		didDisconnectDueToBackground = false
 		isReconnecting = false
-		reconnectAttempts = 0
 		isPaused = false
+	}
+
+	func connectionDidGoLive(peerId: String, hostname: String) {
+		lastPeerId = peerId
+		lastHostname = hostname
 	}
 
 	func connectionDidEnd() {

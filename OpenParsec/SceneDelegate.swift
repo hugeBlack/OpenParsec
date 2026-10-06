@@ -22,6 +22,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		}
 	}
 
+	private var pendingUnpause: DispatchWorkItem?
+
 	func sceneDidBecomeActive(_ scene: UIScene) {
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.stopPiP()
@@ -29,9 +31,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		if ParsecBackgroundManager.shared.isPaused {
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 			CParsec.resume()
-			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-				ParsecBackgroundManager.shared.isPaused = false
-			}
+			pendingUnpause?.cancel()
+			let unpause = DispatchWorkItem { ParsecBackgroundManager.shared.isPaused = false }
+			pendingUnpause = unpause
+			DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: unpause)
 		}
 		// drop any input the host still thinks is held, a stuck modifier survives the resume
 		if ParsecBackgroundManager.shared.hasActiveConnection {
@@ -51,12 +54,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	}
 
 	func sceneDidEnterBackground(_ scene: UIScene) {
+		pendingUnpause?.cancel()
+		pendingUnpause = nil
 		var pipAttempted = false
 		if #available(iOS 15.0, *) {
 			if ParsecBackgroundManager.shared.hasActiveConnection && SettingsHandler.enablePiP {
 				PictureInPictureManager.shared.startPiP()
 				pipAttempted = PictureInPictureManager.shared.isPiPActive || PictureInPictureManager.shared.isStarting
 			}
+		}
+
+		if pipAttempted {
+			ParsecBackgroundManager.shared.isPaused = false
 		}
 
 		if !pipAttempted && ParsecBackgroundManager.shared.hasActiveConnection {

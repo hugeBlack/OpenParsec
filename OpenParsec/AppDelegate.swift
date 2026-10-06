@@ -5,6 +5,7 @@ import AVFoundation
 class AppDelegate: UIResponder, UIApplicationDelegate {
 	func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 		// Override point for customization after application launch.
+		signal(SIGPIPE, SIG_IGN)
 		UTMViewControllerPatches.patchAll()
 		// dont interrupt music / other apps audio, mix instead
 		try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])

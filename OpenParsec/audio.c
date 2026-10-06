@@ -13,6 +13,7 @@
 #define ALLOW_DELAY 8
 #define LOWEST_NUM_BUFFER 3
 _Atomic bool isMuted = false;
+_Atomic bool isHeld = false;
 _Atomic bool isStart = false;
 _Atomic int lastbuf = 0;
 
@@ -80,22 +81,20 @@ static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBu
 		ctx->rcm.last_to_queue = ctx->rcm.last_to_queue->next;
 	}
 	
-	if (deltaBuf + ctx->silence_inqueue < LOWEST_NUM_BUFFER + ctx->silence_outqueue)
+	int silencePending = (int)(ctx->silence_inqueue - ctx->silence_outqueue);
+	if (silencePending < 0)
 	{
-		int numAddBuffer = ((ctx->silence_inqueue >= ctx->silence_outqueue) ? (LOWEST_NUM_BUFFER - deltaBuf - (int)(ctx->silence_inqueue-ctx->silence_outqueue)) : (LOWEST_NUM_BUFFER - deltaBuf - (int)((unsigned int)(0xFFFFFFFF)-ctx->silence_outqueue + ctx->silence_inqueue + 1)));
-		if (numAddBuffer > LOWEST_NUM_BUFFER)
-		{
-			numAddBuffer = LOWEST_NUM_BUFFER - deltaBuf;
-		}
-		else
-		{
-			ctx->silence_inqueue = ctx->silence_outqueue = 0;
-		}
+		ctx->silence_outqueue = ctx->silence_inqueue;
+		silencePending = 0;
+	}
+	if (deltaBuf + silencePending < LOWEST_NUM_BUFFER)
+	{
+		int numAddBuffer = LOWEST_NUM_BUFFER - deltaBuf - silencePending;
 		for (int i=0; i<numAddBuffer; ++i)
 		{
 			AudioQueueEnqueueBuffer(ctx->q, ctx->silence_buf, 0, NULL);
 		}
-		if (numAddBuffer > 0) ctx->silence_inqueue += numAddBuffer;
+		ctx->silence_inqueue += numAddBuffer;
 	}
 	
 	//RecycleChain *tmp = ctx->rcm.last_to_queue->next;
@@ -192,6 +191,7 @@ void audio_init(struct audio **ctx_out)
 		}
     }
 	isStart = false;
+	isHeld = false;
 	ctx->fail_num = 0;
 	ctx->in_use = 0;
 	
@@ -259,7 +259,7 @@ void audio_clear(struct audio **ctx_out)
 
 void audio_cb(const int16_t *pcm, uint32_t frames, void *opaque)
 {
-    if ( frames == 0 || opaque == NULL || isMuted )
+    if ( frames == 0 || opaque == NULL || isMuted || isHeld )
 		return;
 	
 	struct audio *ctx = (struct audio *) opaque;
@@ -318,4 +318,13 @@ void audio_mute(bool muted, const void *opaque)
 		AudioQueuePause(ctx->q);
 		audio_clear(&ctx);
 	}
+}
+
+void audio_hold(bool held, const void *opaque)
+{
+	isHeld = held;
+	if (!held || opaque == NULL) return;
+
+	struct audio *ctx = (struct audio *) opaque;
+	audio_clear(&ctx);
 }

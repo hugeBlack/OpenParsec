@@ -9,7 +9,6 @@ struct ParsecStatusBar: View {
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
 	@Binding var isReconnecting: Bool
-	@State var reconnectStartTime: Date = Date()
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
@@ -62,7 +61,13 @@ struct ParsecStatusBar: View {
 			}
 
 			if status == PARSEC_CONNECTING && isReconnecting {
-				if Date().timeIntervalSince(reconnectStartTime) < 15 {
+				if Date().timeIntervalSince(ParsecBackgroundManager.shared.reconnectStartTime) < 15 {
+					return
+				}
+			}
+
+			if status == CONNECT_WRN_APPROVAL && isReconnecting {
+				if Date().timeIntervalSince(ParsecBackgroundManager.shared.reconnectStartTime) < 60 {
 					return
 				}
 			}
@@ -87,7 +92,7 @@ struct ParsecStatusBar: View {
 				if mgr.reconnectAttempts < 3 {
 					mgr.reconnectAttempts += 1
 					isReconnecting = true
-					reconnectStartTime = Date()
+					mgr.reconnectStartTime = Date()
 					parsecViewController?.resetKeyState()
 					CParsec.reconnect(peerId)
 					return
@@ -199,9 +204,19 @@ struct ParsecView: View {
 			if isReconnecting {
 				VStack(spacing: 12) {
 					ActivityIndicator(isAnimating: .constant(true), style: .large, tint: .white)
-					Text("Reconnecting...")
+					Text("Reconnecting to \(ParsecBackgroundManager.shared.lastHostname ?? "the host")...")
 						.font(.system(size: 16, weight: .medium))
 						.foregroundColor(.white)
+					Button(action: { disconnect() }) {
+						Text("Disconnect")
+							.font(.system(size: 15, weight: .semibold))
+							.foregroundColor(.white)
+							.padding(.horizontal, 20)
+							.padding(.vertical, 8)
+							.background(Color.white.opacity(0.2))
+							.cornerRadius(8)
+					}
+					.padding(.top, 4)
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				.background(Color.black.opacity(0.6))
@@ -377,6 +392,7 @@ struct ParsecView: View {
 					showDCAlert = false
 					isReconnecting = true
 					ParsecBackgroundManager.shared.reconnectAttempts = 0
+					ParsecBackgroundManager.shared.reconnectStartTime = Date()
 					parsecViewController.resetKeyState()
 					CParsec.reconnect(peerId)
 				  }),
@@ -456,8 +472,9 @@ struct ParsecView: View {
 
 		hideOverlay = SettingsHandler.noOverlay
 
+        let keyboardShown = $showKeyboard
         parsecViewController.onKeyboardVisibilityChanged = { visible in
-            showKeyboard = visible
+            keyboardShown.wrappedValue = visible
         }
 
 		parsecViewController.setKeyboardVisible(showKeyboard)

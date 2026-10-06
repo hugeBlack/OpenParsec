@@ -25,12 +25,14 @@ struct MainView: View {
 	@State var showLogoutAlert: Bool = false
 
 	@State var isConnecting: Bool = false
+	@State var waitingForApproval: Bool = false
 	@State var connectingToName: String = ""
 	@State var pollTimer: Timer?
 
 	@State var isRefreshing: Bool = false
 
 	@State var inSettings: Bool = false
+	@State var sessionExpired: Bool = false
 
 	@State private var lastHostShown: String?
 
@@ -109,6 +111,26 @@ struct MainView: View {
 					// Hosts page
 					ScrollView(.vertical) {
 						VStack {
+							if sessionExpired {
+								HStack {
+									Text("Your Parsec session expired")
+										.foregroundColor(Color("Foreground"))
+									Spacer()
+									Button(action: logout) {
+										Text("Sign in")
+											.fontWeight(.semibold)
+											.foregroundColor(Color("AccentColor"))
+											.frame(minWidth: 44, minHeight: 44)
+											.contentShape(Rectangle())
+									}
+								}
+								.padding(.horizontal, 12)
+								.padding(.vertical, 2)
+								.background(Rectangle().fill(Color("BackgroundPrompt")))
+								.cornerRadius(8)
+								.frame(maxWidth: 400)
+								.padding(.horizontal)
+							}
 							Text(refreshTime)
 								.multilineTextAlignment(.center)
 								.opacity(0.5)
@@ -353,7 +375,7 @@ struct MainView: View {
 					VStack {
 						ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
 							.padding()
-						Text("Requesting connection to \(connectingToName)...")
+						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : "Requesting connection to \(connectingToName)...")
 							.multilineTextAlignment(.center)
 						Button(action: cancelConnection) {
 							ZStack {
@@ -452,9 +474,14 @@ struct MainView: View {
 
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
+						if statusCode == 401 {
+							sessionExpired = true
+							return
+						}
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
+							sessionExpired = false
 							guard let info: HostInfoList = try? decoder.decode(HostInfoList.self, from: data) else { return }
 							hosts.removeAll()
 							if let datas = info.data {
@@ -505,6 +532,10 @@ struct MainView: View {
 				DispatchQueue.main.async {
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
+						if statusCode == 401 {
+							sessionExpired = true
+							return
+						}
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
@@ -542,6 +573,10 @@ struct MainView: View {
 				DispatchQueue.main.async {
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
+						if statusCode == 401 {
+							sessionExpired = true
+							return
+						}
 						let decoder = JSONDecoder()
 
 						if statusCode == 200 { // 200 OK
@@ -576,11 +611,12 @@ struct MainView: View {
 		pollTimer?.invalidate()
 		pollTimer = nil
 		CParsec.initialize()
+		ParsecBackgroundManager.shared.reconnectAttempts = 0
 		connectingToName = who.hostname
-		ParsecBackgroundManager.shared.lastHostname = who.hostname
 		withAnimation { isConnecting = true }
 
 		var status = CParsec.connect(who.id)
+		var approvalStarted: Date?
 
 		// Polling status
 		pollTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
@@ -588,9 +624,20 @@ struct MainView: View {
 
 			if status == PARSEC_CONNECTING { return } // wait
 
-			withAnimation { isConnecting = false }
+			if status == CONNECT_WRN_APPROVAL {
+				let started = approvalStarted ?? Date()
+				approvalStarted = started
+				if !waitingForApproval { withAnimation { waitingForApproval = true } }
+				if Date().timeIntervalSince(started) < 60 { return }
+			}
+
+			withAnimation {
+				isConnecting = false
+				waitingForApproval = false
+			}
 
 			if status == PARSEC_OK {
+				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: who.hostname)
 				if let c = controller {
 					c.setView(.parsec)
 				}
@@ -605,7 +652,10 @@ struct MainView: View {
 	}
 
 	func cancelConnection() {
-		withAnimation { isConnecting = false }
+		withAnimation {
+			isConnecting = false
+			waitingForApproval = false
+		}
 
 		CParsec.disconnect()
 
