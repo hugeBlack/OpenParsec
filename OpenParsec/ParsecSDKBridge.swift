@@ -74,7 +74,9 @@ class ParsecSDKBridge: ParsecService {
 		do {
 			let reservedCfg = ["ssHost": "kessel-ws.parsec.app"]
 			let json = JSONEncoder()
-			try json.encode(reservedCfg).withUnsafeBytes { (jsonStrBPtr: UnsafeRawBufferPointer) in
+			var jsonData = try json.encode(reservedCfg)
+			jsonData.append(0)
+			jsonData.withUnsafeBytes { (jsonStrBPtr: UnsafeRawBufferPointer) in
 				guard let jsonStrPtr = jsonStrBPtr.baseAddress else {
 					return
 				}
