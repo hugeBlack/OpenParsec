@@ -31,6 +31,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		if ParsecBackgroundManager.shared.isPaused {
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 			CParsec.resume()
+			ParsecBackgroundManager.shared.resumedAt = Date()
 			pendingUnpause?.cancel()
 			let unpause = DispatchWorkItem { ParsecBackgroundManager.shared.isPaused = false }
 			pendingUnpause = unpause
