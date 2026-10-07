@@ -51,7 +51,20 @@ class ParsecSDKBridge: ParsecService {
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
 	public var pngCursor: Bool = false
-	private var pollGeneration = 0
+	private let generationLock = NSLock()
+	private var currentGeneration = 0
+	private var pollGeneration: Int {
+		get {
+			generationLock.lock()
+			defer { generationLock.unlock() }
+			return currentGeneration
+		}
+		set {
+			generationLock.lock()
+			currentGeneration = newValue
+			generationLock.unlock()
+		}
+	}
 	var didSetResolution = false
 	private var didReleaseOnConnect = false
 
