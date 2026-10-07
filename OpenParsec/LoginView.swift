@@ -129,7 +129,8 @@ struct LoginView: View {
 	}
 
 	func saveToKeychain(data: Data, key: String) {
-		let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key, kSecValueData as String: data]
+		SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key] as CFDictionary)
+		let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key, kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock]
 		let status = SecItemAdd(query as CFDictionary, nil)
 		guard status == errSecSuccess else {
 			print("Error saving to Keychain: \(status)")
