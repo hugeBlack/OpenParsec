@@ -126,6 +126,14 @@ struct LoginView: View {
 		.alert(isPresented: $showAlert) {
 			Alert(title: Text("Login Failed"), message: Text(alertText))
 		}
+		.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in retryRestore() }
+		.onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in retryRestore() }
+	}
+
+	func retryRestore() {
+		if !isLoading && !presentTFAAlert, let c = controller {
+			c.retryRestore()
+		}
 	}
 
 	func saveToKeychain(data: Data, key: String) {

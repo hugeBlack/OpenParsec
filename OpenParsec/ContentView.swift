@@ -31,6 +31,12 @@ struct ContentView: View {
 		.background(Rectangle().fill(Color.black).edgesIgnoringSafeArea(.all))
 	}
 
+	func retryRestore() {
+		if curView == .login && NetworkHandler.clinfo == nil {
+			initApp()
+		}
+	}
+
 	func initApp() {
 
 		// Check to see if we have old session data
