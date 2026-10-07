@@ -242,14 +242,16 @@ class ParsecSDKBridge: ParsecService {
 	 ParsecClientMetalRenderFrame(_parsec, UInt8(DEFAULT_STREAM), &queue, texturePtr, nil, nil, timeout)
 	 }*/
 
-	func pollAudio(timeout: UInt32 = 16) { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
-		ParsecClientPollAudio(_parsec, audio_cb, timeout, _audioPtr)
+	@discardableResult
+	func pollAudio(timeout: UInt32 = 16) -> ParsecStatus { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
+		return ParsecClientPollAudio(_parsec, audio_cb, timeout, _audioPtr)
 	}
 
 	var getFirstCursor = false
 	var mousePositionRelative = false
 
-	func pollEvent(timeout: UInt32 = 16) { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
+	@discardableResult
+	func pollEvent(timeout: UInt32 = 16) -> Bool { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 		var e: ParsecClientEvent!
 		var _event = ParsecClientEvent()
 		var pollSuccess = false
@@ -258,7 +260,7 @@ class ParsecSDKBridge: ParsecService {
 			e = _eventPtr.pointee
 		})
 		if !pollSuccess {
-			return
+			return ParsecClientGetStatus(_parsec, nil) == PARSEC_NOT_RUNNING
 		}
 		if e.type == CLIENT_EVENT_CURSOR {
 			handleCursorEvent(event: e.cursor)
@@ -271,6 +273,7 @@ class ParsecSDKBridge: ParsecService {
 		} else if e.type == CLIENT_EVENT_UNBLOCKED {
 			DispatchQueue.main.async { DataManager.model.isBlocked = false }
 		}
+		return false
 	}
 
 	func handleUserDataEvent(event: ParsecClientUserDataEvent) {
@@ -587,13 +590,17 @@ class ParsecSDKBridge: ParsecService {
 
 		let audio = DispatchWorkItem { [weak self] in
 			while let self = self, self.pollGeneration == generation {
-				self.pollAudio()
+				if self.pollAudio() == PARSEC_NOT_RUNNING {
+					usleep(50_000)
+				}
 			}
 		}
 
 		let event = DispatchWorkItem { [weak self] in
 			while let self = self, self.pollGeneration == generation {
-				self.pollEvent()
+				if self.pollEvent() {
+					usleep(50_000)
+				}
 			}
 		}
 
