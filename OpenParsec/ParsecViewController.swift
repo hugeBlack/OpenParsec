@@ -497,7 +497,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	@objc func keyboardWillShow(notification: NSNotification) {
 		if let keyboardFrame = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
-            let height = keyboardFrame.height
+			let keyboardFrameInView = view.convert(keyboardFrame, from: nil)
+			let scrollFrameInView = scrollView.convert(scrollView.bounds, to: view)
+			let intersection = scrollFrameInView.intersection(keyboardFrameInView)
+			let coversBottomEdge = !intersection.isNull && intersection.maxY >= scrollFrameInView.maxY - 1
+			let height = coversBottomEdge ? intersection.height : 0
 			keyboardHeight = height
             keyboardVisible = true
 
