@@ -260,11 +260,10 @@ class ParsecSDKBridge: ParsecService {
 		return ParsecClientPollAudio(_parsec, audio_cb, timeout, _audioPtr)
 	}
 
-	var getFirstCursor = false
 	var mousePositionRelative = false
 
 	@discardableResult
-	func pollEvent(timeout: UInt32 = 16) -> Bool { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
+	func pollEvent(timeout: UInt32 = 16, sawCursor: inout Bool) -> Bool { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 		var e: ParsecClientEvent!
 		var _event = ParsecClientEvent()
 		var pollSuccess = false
@@ -276,7 +275,7 @@ class ParsecSDKBridge: ParsecService {
 			return ParsecClientGetStatus(_parsec, nil) == PARSEC_NOT_RUNNING
 		}
 		if e.type == CLIENT_EVENT_CURSOR {
-			handleCursorEvent(event: e.cursor)
+			handleCursorEvent(event: e.cursor, sawCursor: &sawCursor)
 		} else if e.type == CLIENT_EVENT_USER_DATA {
 			handleUserDataEvent(event: e.userData)
 		} else if e.type == CLIENT_EVENT_STREAM {
@@ -337,13 +336,13 @@ class ParsecSDKBridge: ParsecService {
 
 	}
 
-	func handleCursorEvent(event: ParsecClientCursorEvent) {
+	func handleCursorEvent(event: ParsecClientCursorEvent, sawCursor: inout Bool) {
 		let prevHidden = mouseInfo.cursorHidden
 		mouseInfo.cursorHidden = event.cursor.hidden
 		mouseInfo.mousePositionRelative = event.cursor.relative
 
-		if event.cursor.imageUpdate || !getFirstCursor {
-			getFirstCursor = true
+		if event.cursor.imageUpdate || !sawCursor {
+			sawCursor = true
 			let imgKey = event.key
 			let pointer = ParsecGetBuffer(_parsec, imgKey)
 			if pointer == nil {
@@ -610,8 +609,9 @@ class ParsecSDKBridge: ParsecService {
 		}
 
 		let event = DispatchWorkItem { [weak self] in
+			var sawCursor = false
 			while let self = self, self.pollGeneration == generation {
-				if self.pollEvent() {
+				if self.pollEvent(sawCursor: &sawCursor) {
 					usleep(50_000)
 				}
 			}
