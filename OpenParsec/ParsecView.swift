@@ -9,16 +9,19 @@ struct ParsecStatusBar: View {
 	@Binding var showDCAlert: Bool
 	@Binding var DCAlertText: String
 	@Binding var isReconnecting: Bool
+	@Binding var connectionLost: Bool
+	@State var networkFailureSince: Date?
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 	let onSilentDisconnect: () -> Void
 
-	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>, onSilentDisconnect: @escaping () -> Void) {
+	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>, connectionLost: Binding<Bool>, onSilentDisconnect: @escaping () -> Void) {
 		_showMenu = showMenu
 		_showDCAlert = showDCAlert
 		_DCAlertText = DCAlertText
 		_isReconnecting = isReconnecting
+		_connectionLost = connectionLost
 		self.parsecViewController = parsecViewController
 		self.onSilentDisconnect = onSilentDisconnect
 	}
@@ -53,7 +56,29 @@ struct ParsecStatusBar: View {
 		}
 
 		var pcs = ParsecClientStatus()
-		let status = CParsec.getStatusEx(&pcs)
+		var status = CParsec.getStatusEx(&pcs)
+
+		var pipActive = false
+		if #available(iOS 15.0, *) {
+			pipActive = PictureInPictureManager.shared.isPiPActive
+		}
+
+		if status == PARSEC_OK && pcs.networkFailure && !isReconnecting && !pipActive {
+			if networkFailureSince == nil { networkFailureSince = Date() }
+			let lost = Date().timeIntervalSince(networkFailureSince!)
+			let justResumed = Date().timeIntervalSince(ParsecBackgroundManager.shared.resumedAt ?? .distantPast) < 10
+			connectionLost = true
+			if lost >= 3 || justResumed {
+				networkFailureSince = nil
+				connectionLost = false
+				ParsecBackgroundManager.shared.resumedAt = nil
+				status = NETWORK_ERR_INTERRUPTED
+				appNote("[stream] network failure held, treating it as a lost connection")
+			}
+		} else {
+			networkFailureSince = nil
+			connectionLost = false
+		}
 
 		if status != PARSEC_OK {
 			if ParsecBackgroundManager.shared.isMarkedForReconnect {
@@ -74,11 +99,8 @@ struct ParsecStatusBar: View {
 
 			// PiP: connection died (screen lock killed GPU). Kill connection+audio once,
 			// subsequent polls exit via isMarkedForReconnect above.
-			var pipActive = false
-			if #available(iOS 15.0, *) {
-				pipActive = PictureInPictureManager.shared.isPiPActive
-			}
 			if pipActive {
+				appNote("[stream] lost during picture in picture, status \(status.rawValue), reconnect owed")
 				CParsec.disconnect()
 				try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 				ParsecBackgroundManager.shared.connectionDidEnd()
@@ -90,7 +112,12 @@ struct ParsecStatusBar: View {
 			if SettingsHandler.autoReconnect, !status.isPermanentFailure, let peerId = ParsecBackgroundManager.shared.lastPeerId {
 				let mgr = ParsecBackgroundManager.shared
 				if mgr.reconnectAttempts < 3 {
+					let gap: TimeInterval = mgr.reconnectAttempts == 0 ? 0 : mgr.reconnectAttempts == 1 ? 2 : 5
+					if Date().timeIntervalSince(mgr.reconnectStartTime) < gap {
+						return
+					}
 					mgr.reconnectAttempts += 1
+					appNote("[reconnect] attempt \(mgr.reconnectAttempts) after status \(status.rawValue)")
 					isReconnecting = true
 					mgr.reconnectStartTime = Date()
 					parsecViewController?.resetKeyState()
@@ -98,11 +125,13 @@ struct ParsecStatusBar: View {
 					return
 				}
 				mgr.reconnectAttempts = 0
-				isReconnecting = false
 			}
 
+			isReconnecting = false
 			wasDisconnected = true
-			if SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !status.isPermanentFailure {
+			let silent = SettingsHandler.autoReconnect && !SettingsHandler.errorPrompts && !status.isPermanentFailure
+			appNote("[stream] ended, status \(status.rawValue), \(silent ? "silent" : "alert")")
+			if silent {
 				// silent: auto-reconnect spent its retries, dont nag with an alert
 				onSilentDisconnect()
 			} else {
@@ -115,6 +144,7 @@ struct ParsecStatusBar: View {
 		if isReconnecting {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
 			isReconnecting = false
+			appNote("[reconnect] live again")
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 			// SDK forgets stream dims on reconnect, re-send them so the frame fills not corners
 			if let vc = parsecViewController {
@@ -158,6 +188,7 @@ struct ParsecView: View {
 	@State var preferH265: Bool = true
 	@State var constantFps = false
 	@State var isReconnecting: Bool = false
+	@State var connectionLost: Bool = false
 
 	@State var resolutions: [ParsecResolution]
 	@State var bitrates: [Int]
@@ -199,12 +230,12 @@ struct ParsecView: View {
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 
-			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting, onSilentDisconnect: { disconnect() })
+			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting, connectionLost: $connectionLost, onSilentDisconnect: { disconnect() })
 
-			if isReconnecting {
+			if isReconnecting || connectionLost {
 				VStack(spacing: 12) {
 					ActivityIndicator(isAnimating: .constant(true), style: .large, tint: .white)
-					Text("Reconnecting to \(ParsecBackgroundManager.shared.lastHostname ?? "the host")...")
+					Text(isReconnecting ? ParsecBackgroundManager.shared.lastHostname.map { "Reconnecting to \($0)..." } ?? "Reconnecting..." : "Connection lost...")
 						.font(.system(size: 16, weight: .medium))
 						.foregroundColor(.white)
 					Button(action: { disconnect() }) {
@@ -522,6 +553,7 @@ struct ParsecView: View {
 	}*/
 
 	func disconnect(isBackgroundDisconnect: Bool = false) {
+		appNote("[stream] disconnect\(isBackgroundDisconnect ? " in the background" : "")")
 		if !isBackgroundDisconnect {
 			ParsecBackgroundManager.shared.disableAutoReconnect()
 		}

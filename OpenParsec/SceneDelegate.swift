@@ -31,6 +31,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		if ParsecBackgroundManager.shared.isPaused {
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
 			CParsec.resume()
+			ParsecBackgroundManager.shared.resumedAt = Date()
 			pendingUnpause?.cancel()
 			let unpause = DispatchWorkItem { ParsecBackgroundManager.shared.isPaused = false }
 			pendingUnpause = unpause
@@ -75,6 +76,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 			ParsecBackgroundManager.shared.isPaused = true
 		}
 
+		if ParsecBackgroundManager.shared.hasActiveConnection {
+			appNote("[background] picture in picture \(pipAttempted ? "starting" : "off"), stream \(pipAttempted ? "running" : "paused")")
+		}
 		ParsecBackgroundManager.shared.sceneDidEnterBackground()
 	}
 }

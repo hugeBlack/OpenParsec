@@ -4,6 +4,11 @@ import UIKit
 import os
 
 let sdkLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "sdk")
+let appLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "app")
+
+func appNote(_ text: String) {
+	os_log("%{public}@", log: appLog, text)
+}
 
 enum RendererType: Int {
 	case opengl
@@ -51,7 +56,20 @@ class ParsecSDKBridge: ParsecService {
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
 	public var pngCursor: Bool = false
-	private var pollGeneration = 0
+	private let generationLock = NSLock()
+	private var currentGeneration = 0
+	private var pollGeneration: Int {
+		get {
+			generationLock.lock()
+			defer { generationLock.unlock() }
+			return currentGeneration
+		}
+		set {
+			generationLock.lock()
+			currentGeneration = newValue
+			generationLock.unlock()
+		}
+	}
 	var didSetResolution = false
 	private var didReleaseOnConnect = false
 
@@ -242,14 +260,15 @@ class ParsecSDKBridge: ParsecService {
 	 ParsecClientMetalRenderFrame(_parsec, UInt8(DEFAULT_STREAM), &queue, texturePtr, nil, nil, timeout)
 	 }*/
 
-	func pollAudio(timeout: UInt32 = 16) { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
-		ParsecClientPollAudio(_parsec, audio_cb, timeout, _audioPtr)
+	@discardableResult
+	func pollAudio(timeout: UInt32 = 16) -> ParsecStatus { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
+		return ParsecClientPollAudio(_parsec, audio_cb, timeout, _audioPtr)
 	}
 
-	var getFirstCursor = false
 	var mousePositionRelative = false
 
-	func pollEvent(timeout: UInt32 = 16) { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
+	@discardableResult
+	func pollEvent(timeout: UInt32 = 16, sawCursor: inout Bool) -> Bool { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 		var e: ParsecClientEvent!
 		var _event = ParsecClientEvent()
 		var pollSuccess = false
@@ -258,10 +277,10 @@ class ParsecSDKBridge: ParsecService {
 			e = _eventPtr.pointee
 		})
 		if !pollSuccess {
-			return
+			return ParsecClientGetStatus(_parsec, nil) != PARSEC_OK
 		}
 		if e.type == CLIENT_EVENT_CURSOR {
-			handleCursorEvent(event: e.cursor)
+			handleCursorEvent(event: e.cursor, sawCursor: &sawCursor)
 		} else if e.type == CLIENT_EVENT_USER_DATA {
 			handleUserDataEvent(event: e.userData)
 		} else if e.type == CLIENT_EVENT_STREAM {
@@ -271,6 +290,7 @@ class ParsecSDKBridge: ParsecService {
 		} else if e.type == CLIENT_EVENT_UNBLOCKED {
 			DispatchQueue.main.async { DataManager.model.isBlocked = false }
 		}
+		return false
 	}
 
 	func handleUserDataEvent(event: ParsecClientUserDataEvent) {
@@ -321,13 +341,13 @@ class ParsecSDKBridge: ParsecService {
 
 	}
 
-	func handleCursorEvent(event: ParsecClientCursorEvent) {
+	func handleCursorEvent(event: ParsecClientCursorEvent, sawCursor: inout Bool) {
 		let prevHidden = mouseInfo.cursorHidden
 		mouseInfo.cursorHidden = event.cursor.hidden
 		mouseInfo.mousePositionRelative = event.cursor.relative
 
-		if event.cursor.imageUpdate || !getFirstCursor {
-			getFirstCursor = true
+		if event.cursor.imageUpdate || !sawCursor {
+			sawCursor = true
 			let imgKey = event.key
 			let pointer = ParsecGetBuffer(_parsec, imgKey)
 			if pointer == nil {
@@ -587,13 +607,18 @@ class ParsecSDKBridge: ParsecService {
 
 		let audio = DispatchWorkItem { [weak self] in
 			while let self = self, self.pollGeneration == generation {
-				self.pollAudio()
+				if self.pollAudio() == PARSEC_NOT_RUNNING {
+					usleep(50_000)
+				}
 			}
 		}
 
 		let event = DispatchWorkItem { [weak self] in
+			var sawCursor = false
 			while let self = self, self.pollGeneration == generation {
-				self.pollEvent()
+				if self.pollEvent(sawCursor: &sawCursor) {
+					usleep(50_000)
+				}
 			}
 		}
 
