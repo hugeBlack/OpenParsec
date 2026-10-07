@@ -277,7 +277,7 @@ class ParsecSDKBridge: ParsecService {
 			e = _eventPtr.pointee
 		})
 		if !pollSuccess {
-			return ParsecClientGetStatus(_parsec, nil) == PARSEC_NOT_RUNNING
+			return ParsecClientGetStatus(_parsec, nil) != PARSEC_OK
 		}
 		if e.type == CLIENT_EVENT_CURSOR {
 			handleCursorEvent(event: e.cursor, sawCursor: &sawCursor)
