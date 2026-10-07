@@ -4,6 +4,7 @@ import CoreVideo
 import OpenGLES
 import GLKit
 import CoreMedia
+import os
 
 private let kGL_BGRA: GLenum = 0x80E1
 
@@ -24,6 +25,8 @@ class PictureInPictureManager: NSObject {
 	private var glContext: EAGLContext?
 
 	private var cachedFormatDescription: CMVideoFormatDescription?
+	private var displayLayerFlushes = 0
+	private var displayLayerGaveUp = false
 
 	private(set) var isPiPActive = false
 	private var isSetup = false
@@ -68,6 +71,7 @@ class PictureInPictureManager: NSObject {
 
 		self.sampleBufferDisplayLayer = layer
 		self.pipSourceView = containerView
+		resetDisplayLayerFailureState()
 
 		let contentSource = AVPictureInPictureController.ContentSource(
 			sampleBufferDisplayLayer: layer,
@@ -259,8 +263,22 @@ class PictureInPictureManager: NSObject {
 
 	private func feedSampleBuffer() {
 		guard let pixelBuffer = pixelBuffer,
-			  let displayLayer = sampleBufferDisplayLayer,
-			  displayLayer.isReadyForMoreMediaData else { return }
+			  let displayLayer = sampleBufferDisplayLayer else { return }
+
+		if displayLayer.status == .failed {
+			guard !displayLayerGaveUp else { return }
+			guard displayLayerFlushes < 3 else {
+				displayLayerGaveUp = true
+				handleTerminalDisplayLayerFailure(displayLayer)
+				return
+			}
+			displayLayerFlushes += 1
+			displayLayer.flush()
+			cachedFormatDescription = nil
+		} else if displayLayer.status == .rendering {
+			displayLayerFlushes = 0
+		}
+		guard displayLayer.isReadyForMoreMediaData else { return }
 
 		if cachedFormatDescription == nil {
 			CMVideoFormatDescriptionCreateForImageBuffer(
@@ -294,10 +312,30 @@ class PictureInPictureManager: NSObject {
 		displayLayer.enqueue(buffer)
 	}
 
+	private func handleTerminalDisplayLayerFailure(_ displayLayer: AVSampleBufferDisplayLayer) {
+		os_log("%{public}@", log: sdkLog, "[pip] display layer failed, status \(displayLayer.status.rawValue), error \(displayLayer.error.map { String(describing: $0) } ?? "none")")
+		DispatchQueue.main.async { [weak self, weak displayLayer] in
+			guard let self, let displayLayer,
+				  self.sampleBufferDisplayLayer === displayLayer else { return }
+			self.isStarting = false
+			if self.isPiPActive {
+				self.pipController?.stopPictureInPicture()
+			} else {
+				self.onPiPStartFailed?()
+			}
+		}
+	}
+
+	private func resetDisplayLayerFailureState() {
+		displayLayerFlushes = 0
+		displayLayerGaveUp = false
+	}
+
 	// MARK: - PiP Control
 
 	func startPiP() {
 		guard isSetup, let controller = pipController, !isPiPActive, !isStarting else { return }
+		resetDisplayLayerFailureState()
 
 		isStarting = true
 		attemptStartPiP(controller: controller, retryCount: 0)
@@ -349,6 +387,7 @@ class PictureInPictureManager: NSObject {
 		lastValidStreamWidth = 0
 		lastValidStreamHeight = 0
 		cachedFormatDescription = nil
+		resetDisplayLayerFailureState()
 		onPiPStopped = nil
 		onPiPStartFailed = nil
 		onRestoreUserInterface = nil
