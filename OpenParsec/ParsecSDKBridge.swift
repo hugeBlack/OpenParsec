@@ -4,6 +4,11 @@ import UIKit
 import os
 
 let sdkLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "sdk")
+let appLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "app")
+
+func appNote(_ text: String) {
+	os_log("%{public}@", log: appLog, text)
+}
 
 enum RendererType: Int {
 	case opengl

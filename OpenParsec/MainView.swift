@@ -616,6 +616,7 @@ struct MainView: View {
 		withAnimation { isConnecting = true }
 
 		var status = CParsec.connect(who.id)
+		appNote("[connect] started, status \(status.rawValue)")
 		var approvalStarted: Date?
 
 		// Polling status
@@ -635,6 +636,7 @@ struct MainView: View {
 				isConnecting = false
 				waitingForApproval = false
 			}
+			appNote("[connect] result \(status.rawValue)")
 
 			if status == PARSEC_OK {
 				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: who.hostname)
@@ -652,6 +654,7 @@ struct MainView: View {
 	}
 
 	func cancelConnection() {
+		appNote("[connect] cancelled")
 		withAnimation {
 			isConnecting = false
 			waitingForApproval = false

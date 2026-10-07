@@ -76,6 +76,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 			ParsecBackgroundManager.shared.isPaused = true
 		}
 
+		if ParsecBackgroundManager.shared.hasActiveConnection {
+			appNote("[background] picture in picture \(pipAttempted ? "starting" : "off"), stream \(pipAttempted ? "running" : "paused")")
+		}
 		ParsecBackgroundManager.shared.sceneDidEnterBackground()
 	}
 }
