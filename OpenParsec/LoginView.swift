@@ -44,7 +44,7 @@ struct LoginView: View {
 					.autocapitalization(/*@START_MENU_TOKEN@*/.none/*@END_MENU_TOKEN@*/)
 					.keyboardType(.emailAddress)
 					.textContentType(.emailAddress)
-				SecureField("Password", text: $inputPassword)
+				SecureField("Password", text: $inputPassword, onCommit: { authenticate() })
 					.padding()
 					.background(Rectangle().fill(Color("BackgroundField")))
 					.cornerRadius(8)
