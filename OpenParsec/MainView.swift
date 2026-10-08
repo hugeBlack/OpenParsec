@@ -517,7 +517,8 @@ struct MainView: View {
 							hostCountStr = "\(hosts.count) \(grammar)"
 
 							let formatter = DateFormatter()
-							formatter.dateFormat = "M/d/yyyy h:mm a"
+							formatter.dateStyle = .short
+							formatter.timeStyle = .short
 							refreshTime = "Last refreshed at \(formatter.string(from: Date()))"
 						} else if statusCode == 403, let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) { // 403 Forbidden
 							refreshError = "Couldn't refresh hosts: \(info.error)"
