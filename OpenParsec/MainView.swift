@@ -265,6 +265,11 @@ struct MainView: View {
 								.frame(maxWidth: 400)
 								.background(Rectangle().fill(Color("BackgroundCard")))
 								.cornerRadius(8)
+								.contextMenu {
+									Button(action: { UIPasteboard.general.string = i.hostname }) {
+										Label("Copy Name", systemImage: "doc.on.doc")
+									}
+								}
 							}
 						}
 						.padding()
