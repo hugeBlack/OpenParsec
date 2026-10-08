@@ -166,7 +166,7 @@ struct MainView: View {
 									.multilineTextAlignment(.center)
 									.opacity(0.5)
 							}
-							if let lastHost = lastHostShown {
+							if let lastHost = lastHostShown, !isConnecting {
 								VStack(spacing: 0) {
 									HStack {
 										VStack(alignment: .leading, spacing: 4) {
