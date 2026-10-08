@@ -147,7 +147,7 @@ def update_json_file_nightly(json_file, nightly_release):
 
     with open("OpenParsec/Info.plist", 'rb') as infile:
         info_plist = plistlib.load(infile)
-    full_version = info_plist["CFBundleVersion"]
+    full_version = info_plist["CFBundleShortVersionString"]
     tag = nightly_release["tag_name"]
     version = re.search(r"(\d+\.\d+\.\d+)", full_version).group(1)
     version_date = nightly_release["published_at"]
@@ -157,6 +157,7 @@ def update_json_file_nightly(json_file, nightly_release):
     nightly_link = os.environ.get("NIGHTLY_LINK", "")
     commit_sha = os.environ.get("commit_sha", "")[:7]
     commit_msg = os.environ.get("commit_msg", "").strip()
+    build_number = os.environ.get("BUILD_NUMBER", "")
 
     description = f"""\
 Nightly build from [{commit_sha}](https://github.com/hugeBlack/OpenParsec/commit/{commit_sha}):\
@@ -188,6 +189,9 @@ This is a nightly release [created automatically with GitHub Actions workflow]({
         "commit": commit_sha,
         "headline": commit_msg
     }
+    if build_number:
+        version_entry["buildVersion"] = build_number
+        version_entry["buildNumber"] = build_number
 
     app["versions"].clear()
     app["versions"].append(version_entry)
@@ -214,7 +218,7 @@ This is a nightly release [created automatically with GitHub Actions workflow]({
 
 
 def main():
-    repo_url = "hugeBlack/OpenParsec"
+    repo_url = os.environ.get("GITHUB_REPOSITORY", "hugeBlack/OpenParsec")
     is_nightly = "NIGHTLY_LINK" in os.environ
 
     try:

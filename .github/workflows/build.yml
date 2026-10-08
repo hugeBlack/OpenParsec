@@ -10,6 +10,10 @@ on:
         type: boolean
         required: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build using xcodebuild command
@@ -52,6 +56,8 @@ jobs:
           file_to_build=`ls -A | grep -i \\.xcworkspace\$ || ls -A | grep -i \\.xcodeproj\$`
           file_to_build=`echo $file_to_build | awk '{$1=$1;print}'`
           echo "file_to_build=$file_to_build" >> $GITHUB_OUTPUT
+      - name: Set Build Number
+        run: /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" OpenParsec/Info.plist
       - name: Archive
         env:
           scheme: ${{ steps.scheme.outputs.scheme }}
@@ -132,6 +138,7 @@ jobs:
           NIGHTLY_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
           commit_sha: ${{ env.COMMIT_SHA }}
           commit_msg: ${{ env.COMMIT_MSG }}
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           python update_json.py
       - name: Nightly Release
