@@ -11,6 +11,7 @@ struct SettingsView: View {
 	@AppStorage("cursorScale") var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") var mouseSensitivity: Double = 1.0
 	@AppStorage("optionAsCommand") var optionAsCommand: Bool = false
+	@AppStorage("menuSwipeEdge") var menuSwipeEdge: MenuSwipeEdge = .left
 	@AppStorage("noOverlay") var noOverlay: Bool = false
 	@AppStorage("hideStatusBar") var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") var rightClickPosition: RightClickPosition = .firstFinger
@@ -113,6 +114,13 @@ struct SettingsView: View {
 							CatItem("Option Key as Command") {
 								Toggle("", isOn: $optionAsCommand)
 									.frame(width: 80)
+							}
+							CatItem("Menu Edge Swipe") {
+								MultiPicker(selection: $menuSwipeEdge, options:
+								[
+									Choice("Left Edge", MenuSwipeEdge.left),
+									Choice("Right Edge", MenuSwipeEdge.right)
+								])
 							}
                         }
                         CatTitle("Graphics")
