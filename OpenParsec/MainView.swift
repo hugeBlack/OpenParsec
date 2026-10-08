@@ -8,7 +8,7 @@ struct MainView: View {
 
 	// Host page vars
 	@State var hostCountStr: String = "0 hosts"
-	@State var refreshTime: String = "Last refreshed at 1/1/1970 12:00 AM"
+	@State var refreshTime: String = ""
 
 	@State var hosts: [IdentifiableHostInfo] = []
 
@@ -30,6 +30,7 @@ struct MainView: View {
 	@State var pollTimer: Timer?
 
 	@State var isRefreshing: Bool = false
+	@State var refreshError: String?
 
 	@State var inSettings: Bool = false
 	@State var sessionExpired: Bool = false
@@ -37,7 +38,7 @@ struct MainView: View {
 	@State private var lastHostShown: String?
 
 	var busy: Bool {
-		isConnecting || isRefreshing || inSettings
+		isConnecting || inSettings
 	}
 
 	init(_ controller: ContentView?) {
@@ -88,6 +89,8 @@ struct MainView: View {
 								.font(.system(size: 20, weight: .medium))
 							Button(action: refreshHosts, label: { Image(systemName: "arrow.clockwise") })
 								.padding(4)
+								.disabled(isRefreshing)
+								.opacity(isRefreshing ? 0.4 : 1)
 						} else if page == .friends {
 							Text(friendCountStr)
 								.multilineTextAlignment(.center)
@@ -117,7 +120,7 @@ struct MainView: View {
 										.foregroundColor(Color("Foreground"))
 									Spacer()
 									Button(action: logout) {
-										Text("Sign in")
+										Text("Sign In")
 											.fontWeight(.semibold)
 											.foregroundColor(Color("AccentColor"))
 											.frame(minWidth: 44, minHeight: 44)
@@ -131,10 +134,39 @@ struct MainView: View {
 								.frame(maxWidth: 400)
 								.padding(.horizontal)
 							}
-							Text(refreshTime)
-								.multilineTextAlignment(.center)
-								.opacity(0.5)
-							if let lastHost = lastHostShown {
+							if let refreshError = refreshError {
+								HStack {
+									Text(refreshError)
+										.foregroundColor(Color("Foreground"))
+									Spacer()
+									Button(action: refreshHosts) {
+										Text("Retry")
+											.fontWeight(.semibold)
+											.foregroundColor(Color("AccentColor"))
+											.frame(minWidth: 44, minHeight: 44)
+											.contentShape(Rectangle())
+									}
+								}
+								.padding(.horizontal, 12)
+								.padding(.vertical, 2)
+								.background(Rectangle().fill(Color("BackgroundPrompt")))
+								.cornerRadius(8)
+								.frame(maxWidth: 400)
+								.padding(.horizontal)
+							}
+							if isRefreshing {
+								HStack(spacing: 8) {
+									ActivityIndicator(isAnimating: $isRefreshing, style: .medium, tint: UIColor(named: "Foreground") ?? .white)
+										.frame(width: 20, height: 20)
+									Text("Refreshing hosts...")
+										.foregroundColor(Color("Foreground"))
+								}
+							} else if !refreshTime.isEmpty {
+								Text(refreshTime)
+									.multilineTextAlignment(.center)
+									.opacity(0.5)
+							}
+							if let lastHost = lastHostShown, !isConnecting {
 								VStack(spacing: 0) {
 									HStack {
 										VStack(alignment: .leading, spacing: 4) {
@@ -233,6 +265,11 @@ struct MainView: View {
 								.frame(maxWidth: 400)
 								.background(Rectangle().fill(Color("BackgroundCard")))
 								.cornerRadius(8)
+								.contextMenu {
+									Button(action: { UIPasteboard.general.string = i.hostname }) {
+										Label("Copy Name", systemImage: "doc.on.doc")
+									}
+								}
 							}
 						}
 						.padding()
@@ -394,24 +431,6 @@ struct MainView: View {
 					.padding()
 				}
 			}
-			if isRefreshing {
-				ZStack {
-					Rectangle() // Darken background
-						.fill(Color.black)
-						.opacity(0.5)
-						.edgesIgnoringSafeArea(.all)
-					VStack {
-						ActivityIndicator(isAnimating: $isRefreshing, style: .large, tint: .white)
-							.padding()
-						Text("Refreshing hosts...")
-							.multilineTextAlignment(.center)
-					}
-					.padding()
-					.background(Rectangle().fill(Color("BackgroundPrompt")))
-					.cornerRadius(8)
-					.padding()
-				}
-			}
 		}
 		.foregroundColor(Color("Foreground"))
 	}
@@ -449,14 +468,14 @@ struct MainView: View {
 	}
 
 	func refreshHosts() {
+		guard !isRefreshing else { return }
 		withAnimation {
 			isRefreshing = true
 
 			let clinfo = NetworkHandler.clinfo
 			if clinfo == nil {
 				isRefreshing = false
-				baseAlertText = "Error gathering hosts: Invalid session"
-				showBaseAlert = true
+				sessionExpired = true
 				return
 			}
 
@@ -475,6 +494,7 @@ struct MainView: View {
 					if let data = data {
 						guard let statusCode = (response as? HTTPURLResponse)?.statusCode else { return }
 						if statusCode == 401 {
+							refreshError = nil
 							sessionExpired = true
 							return
 						}
@@ -482,7 +502,11 @@ struct MainView: View {
 
 						if statusCode == 200 { // 200 OK
 							sessionExpired = false
-							guard let info: HostInfoList = try? decoder.decode(HostInfoList.self, from: data) else { return }
+							guard let info: HostInfoList = try? decoder.decode(HostInfoList.self, from: data) else {
+								refreshError = "Couldn't refresh hosts: bad response"
+								return
+							}
+							refreshError = nil
 							hosts.removeAll()
 							if let datas = info.data {
 								datas.forEach { h in
@@ -498,14 +522,16 @@ struct MainView: View {
 							hostCountStr = "\(hosts.count) \(grammar)"
 
 							let formatter = DateFormatter()
-							formatter.dateFormat = "M/d/yyyy h:mm a"
+							formatter.dateStyle = .short
+							formatter.timeStyle = .short
 							refreshTime = "Last refreshed at \(formatter.string(from: Date()))"
-						} else if statusCode == 403 { // 403 Forbidden
-							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
-
-							baseAlertText = "Error gathering hosts: \(info.error)"
-							showBaseAlert = true
+						} else if statusCode == 403, let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) { // 403 Forbidden
+							refreshError = "Couldn't refresh hosts: \(info.error)"
+						} else {
+							refreshError = "Couldn't refresh hosts (HTTP \(statusCode))"
 						}
+					} else {
+						refreshError = "Can't reach Parsec"
 					}
 				}
 			}
