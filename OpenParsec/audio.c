@@ -24,8 +24,8 @@ typedef struct RecycleChain {
 
 typedef struct RecycleChainMgr {
 	RecycleChain *rc;
-	RecycleChain *first;
-	RecycleChain *last_to_queue;
+	_Atomic(RecycleChain *) first;
+	_Atomic(RecycleChain *) last_to_queue;
 	//AudioQueueBufferRef *last_use;
 }RecycleChainMgr;
 
@@ -43,6 +43,16 @@ struct audio {
 	os_unfair_lock clear_lock;
 };
 
+static inline UInt32 buffer_size_load(AudioQueueBufferRef buffer)
+{
+	return __atomic_load_n(&buffer->mAudioDataByteSize, __ATOMIC_ACQUIRE);
+}
+
+static inline void buffer_size_store(AudioQueueBufferRef buffer, UInt32 size)
+{
+	__atomic_store_n(&buffer->mAudioDataByteSize, size, __ATOMIC_RELEASE);
+}
+
 static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBufferRef buffer)
 {
     struct audio *ctx = (struct audio *) opaque;
@@ -54,12 +64,12 @@ static void audio_queue_callback(void *opaque, AudioQueueRef queue, AudioQueueBu
     
 	if (ctx->in_use > 0)
 	{
-        ctx->in_use -= buffer->mAudioDataByteSize;
+        ctx->in_use -= buffer_size_load(buffer);
 	}
 	
     if(buffer != ctx->silence_buf)
 	{
-		buffer->mAudioDataByteSize = FAKE_SIZE;
+		buffer_size_store(buffer, FAKE_SIZE);
 		lastbuf = *((int *)(buffer->mUserData));	
 	}
 	else
@@ -237,7 +247,7 @@ void audio_clear(struct audio **ctx_out)
     
 	//rcTraverse = ctx->rcm.rc;
 	for (int32_t x = 0; x < NUM_AUDIO_BUF; x++) {
-        ctx->audio_buf[x]->mAudioDataByteSize = FAKE_SIZE;
+        buffer_size_store(ctx->audio_buf[x], FAKE_SIZE);
 		/*rcTraverse->curt = &ctx->audio_buf[x];
 		if( x != NUM_AUDIO_BUF - 1)
 		{
@@ -266,7 +276,7 @@ void audio_cb(const int16_t *pcm, uint32_t frames, void *opaque)
     AudioQueueBufferRef *find_idle = NULL;
 	
 	find_idle = ctx->rcm.first->curt;
-	if ((*find_idle)->mAudioDataByteSize != FAKE_SIZE)
+	if (buffer_size_load(*find_idle) != FAKE_SIZE)
 	{
 		++ctx->fail_num;
 		if(ctx->fail_num > 10) audio_clear(&ctx);	
@@ -283,7 +293,7 @@ void audio_cb(const int16_t *pcm, uint32_t frames, void *opaque)
     uint32_t bytes = frames * 4;
     if (bytes > BUFFER_SIZE) bytes = BUFFER_SIZE;
     memcpy((*find_idle)->mAudioData, pcm, bytes);
-    (*find_idle)->mAudioDataByteSize = bytes;
+    buffer_size_store(*find_idle, bytes);
 	
 	if(!isStart)
 	{
