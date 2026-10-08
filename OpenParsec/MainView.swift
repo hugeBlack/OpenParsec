@@ -8,7 +8,7 @@ struct MainView: View {
 
 	// Host page vars
 	@State var hostCountStr: String = "0 hosts"
-	@State var refreshTime: String = "Last refreshed at 1/1/1970 12:00 AM"
+	@State var refreshTime: String = ""
 
 	@State var hosts: [IdentifiableHostInfo] = []
 
@@ -161,7 +161,7 @@ struct MainView: View {
 									Text("Refreshing hosts...")
 										.foregroundColor(Color("Foreground"))
 								}
-							} else {
+							} else if !refreshTime.isEmpty {
 								Text(refreshTime)
 									.multilineTextAlignment(.center)
 									.opacity(0.5)
