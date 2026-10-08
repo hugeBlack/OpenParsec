@@ -44,7 +44,7 @@ struct LoginView: View {
 					.autocapitalization(/*@START_MENU_TOKEN@*/.none/*@END_MENU_TOKEN@*/)
 					.keyboardType(.emailAddress)
 					.textContentType(.emailAddress)
-				SecureField("Password", text: $inputPassword)
+				SecureField("Password", text: $inputPassword, onCommit: { authenticate() })
 					.padding()
 					.background(Rectangle().fill(Color("BackgroundField")))
 					.cornerRadius(8)
@@ -126,10 +126,19 @@ struct LoginView: View {
 		.alert(isPresented: $showAlert) {
 			Alert(title: Text("Login Failed"), message: Text(alertText))
 		}
+		.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in retryRestore() }
+		.onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in retryRestore() }
+	}
+
+	func retryRestore() {
+		if !isLoading && !presentTFAAlert, let c = controller {
+			c.retryRestore()
+		}
 	}
 
 	func saveToKeychain(data: Data, key: String) {
-		let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key, kSecValueData as String: data]
+		SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key] as CFDictionary)
+		let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key, kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock]
 		let status = SecItemAdd(query as CFDictionary, nil)
 		guard status == errSecSuccess else {
 			print("Error saving to Keychain: \(status)")
