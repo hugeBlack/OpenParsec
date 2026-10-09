@@ -12,6 +12,9 @@ class NetworkWatcher {
 	private let queue = DispatchQueue(label: "netwatch")
 	private var running = false
 	private var offline = false
+	private(set) var noNetwork = false
+	private var known = false
+	private var waiting: [() -> Void] = []
 
 	var onReturn: (() -> Void)?
 
@@ -20,18 +23,31 @@ class NetworkWatcher {
 		running = true
 
 		monitor.pathUpdateHandler = { [weak self] path in
-			guard let self = self else { return }
-
-			if path.status == .satisfied {
-				guard self.offline else { return }
-				self.offline = false
-				DispatchQueue.main.async { self.onReturn?() }
-			} else {
-				self.offline = true
+			let status = path.status
+			DispatchQueue.main.async {
+				guard let self = self else { return }
+				self.noNetwork = status == .unsatisfied
+				if !self.known {
+					self.known = true
+					let runs = self.waiting
+					self.waiting = []
+					runs.forEach { $0() }
+				}
+				if status == .satisfied {
+					guard self.offline else { return }
+					self.offline = false
+					self.onReturn?()
+				} else {
+					self.offline = true
+				}
 			}
 		}
 
 		monitor.start(queue: queue)
+	}
+
+	func whenKnown(_ run: @escaping () -> Void) {
+		if known { run() } else { waiting.append(run) }
 	}
 }
 

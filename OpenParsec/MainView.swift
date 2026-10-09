@@ -463,8 +463,10 @@ struct MainView: View {
 		let pending = ParsecBackgroundManager.shared.reconnectPending
 		ParsecBackgroundManager.shared.reconnectPending = false
 
-		if (SettingsHandler.autoConnectOnLaunch || pending) && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
-			reconnectLastHost()
+		NetworkWatcher.shared.whenKnown {
+			if (SettingsHandler.autoConnectOnLaunch || pending) && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
+				reconnectLastHost()
+			}
 		}
 	}
 
@@ -648,6 +650,13 @@ struct MainView: View {
 	}
 
 	func connectTo(_ who: IdentifiableHostInfo) {
+		if NetworkWatcher.shared.noNetwork {
+			appNote("[connect] no network, not trying")
+			baseAlertText = "No network connection"
+			showBaseAlert = true
+			return
+		}
+
 		pollTimer?.invalidate()
 		pollTimer = nil
 		CParsec.initialize()
