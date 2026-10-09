@@ -529,6 +529,10 @@ struct MainView: View {
 									hosts.append(IdentifiableHostInfo(id: h.peer_id, hostname: h.name, user: h.user, connections: h.players))
 								}
 							}
+							if let lastId = ParsecBackgroundManager.shared.lastPeerId, let current = hosts.first(where: { $0.id == lastId }), current.hostname != ParsecBackgroundManager.shared.lastHostname {
+								ParsecBackgroundManager.shared.lastHostname = current.hostname
+								if lastHostShown != nil { lastHostShown = current.hostname }
+							}
 
 							var grammar: String = "hosts"
 							if hosts.count == 1 {
@@ -694,7 +698,7 @@ struct MainView: View {
 			appNote("[connect] result \(status.rawValue)")
 
 			if status == PARSEC_OK {
-				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: who.hostname)
+				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: hosts.first(where: { $0.id == who.id })?.hostname ?? who.hostname)
 				if let c = controller {
 					c.setView(.parsec)
 				}
