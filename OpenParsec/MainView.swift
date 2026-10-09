@@ -657,6 +657,11 @@ struct MainView: View {
 			return
 		}
 
+		if let window = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).flatMap({ $0.windows }).first(where: { $0.isKeyWindow }) {
+			let scale = window.screen.nativeScale
+			ParsecResolution.updateClientResolution(width: Int(window.bounds.width * scale), height: Int(window.bounds.height * scale))
+		}
+
 		pollTimer?.invalidate()
 		pollTimer = nil
 		CParsec.initialize()
