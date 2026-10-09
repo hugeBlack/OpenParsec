@@ -449,6 +449,13 @@ struct MainView: View {
 			}
 		}
 
+		NetworkWatcher.shared.onReturn = {
+			guard NetworkHandler.clinfo != nil, !ParsecBackgroundManager.shared.hasActiveConnection else { return }
+			refreshHosts()
+			refreshFriends()
+		}
+		NetworkWatcher.shared.start()
+
 		if SettingsHandler.autoConnectOnLaunch && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
 			reconnectLastHost()
 		}

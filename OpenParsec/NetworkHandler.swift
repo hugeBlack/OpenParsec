@@ -1,5 +1,38 @@
+import Foundation
+import Network
+
 class NetworkHandler {
 	public static var clinfo: ClientInfo?
+}
+
+class NetworkWatcher {
+	static let shared = NetworkWatcher()
+
+	private let monitor = NWPathMonitor()
+	private let queue = DispatchQueue(label: "netwatch")
+	private var running = false
+	private var offline = false
+
+	var onReturn: (() -> Void)?
+
+	func start() {
+		if running { return }
+		running = true
+
+		monitor.pathUpdateHandler = { [weak self] path in
+			guard let self = self else { return }
+
+			if path.status == .satisfied {
+				guard self.offline else { return }
+				self.offline = false
+				DispatchQueue.main.async { self.onReturn?() }
+			} else {
+				self.offline = true
+			}
+		}
+
+		monitor.start(queue: queue)
+	}
 }
 
 struct ErrorInfo: Decodable {
