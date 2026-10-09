@@ -5,6 +5,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	var window: UIWindow?
 
 	func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+		if connectionOptions.shortcutItem?.type == ParsecBackgroundManager.reconnectShortcut {
+			ParsecBackgroundManager.shared.reconnectPending = true
+		}
+		ParsecBackgroundManager.shared.updateShortcut()
 		let contentView = ContentView()
 
 		if let windowScene = scene as? UIWindowScene {
@@ -13,6 +17,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 		    self.window = window
 		    window.makeKeyAndVisible()
 		}
+	}
+
+	func windowScene(_ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
+		guard shortcutItem.type == ParsecBackgroundManager.reconnectShortcut, !ParsecBackgroundManager.shared.hasActiveConnection, !ParsecBackgroundManager.shared.isMarkedForReconnect, let reconnect = ParsecBackgroundManager.shared.onShortcutReconnect else {
+			completionHandler(false)
+			return
+		}
+		reconnect()
+		completionHandler(true)
 	}
 
 	func sceneDidDisconnect(_ scene: UIScene) {

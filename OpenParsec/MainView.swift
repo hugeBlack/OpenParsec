@@ -397,6 +397,7 @@ struct MainView: View {
 				.zIndex(1)
 			}
 			.onAppear(perform: initView)
+			.onDisappear { ParsecBackgroundManager.shared.onShortcutReconnect = nil }
 			.disabled(busy) // disable view if busy
 
 			// Settings screen
@@ -456,7 +457,13 @@ struct MainView: View {
 		}
 		NetworkWatcher.shared.start()
 
-		if SettingsHandler.autoConnectOnLaunch && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
+		ParsecBackgroundManager.shared.onShortcutReconnect = {
+			if !isConnecting { reconnectLastHost() }
+		}
+		let pending = ParsecBackgroundManager.shared.reconnectPending
+		ParsecBackgroundManager.shared.reconnectPending = false
+
+		if (SettingsHandler.autoConnectOnLaunch || pending) && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
 			reconnectLastHost()
 		}
 	}

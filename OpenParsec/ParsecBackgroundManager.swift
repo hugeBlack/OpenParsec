@@ -10,7 +10,10 @@ class ParsecBackgroundManager {
 		didSet { UserDefaults.standard.set(lastPeerId, forKey: "lastConnectedPeerId") }
 	}
 	var lastHostname: String? {
-		didSet { UserDefaults.standard.set(lastHostname, forKey: "lastConnectedHostname") }
+		didSet {
+			UserDefaults.standard.set(lastHostname, forKey: "lastConnectedHostname")
+			updateShortcut()
+		}
 	}
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
@@ -21,6 +24,9 @@ class ParsecBackgroundManager {
 	weak var glkViewController: GLKViewController?
 
 	var onShouldReconnect: ((String) -> Void)?
+	var onShortcutReconnect: (() -> Void)?
+	var reconnectPending = false
+	static let reconnectShortcut = "reconnect"
 	var onShouldDisconnect: (() -> Void)?
 
 	var isMarkedForReconnect: Bool {
@@ -37,6 +43,10 @@ class ParsecBackgroundManager {
 	private init() {
 		lastPeerId = UserDefaults.standard.string(forKey: "lastConnectedPeerId")
 		lastHostname = UserDefaults.standard.string(forKey: "lastConnectedHostname")
+	}
+
+	func updateShortcut() {
+		UIApplication.shared.shortcutItems = lastHostname.map { [UIApplicationShortcutItem(type: Self.reconnectShortcut, localizedTitle: "Reconnect to \($0)", localizedSubtitle: nil, icon: UIApplicationShortcutIcon(systemImageName: "arrow.clockwise"), userInfo: nil)] }
 	}
 
 	func connectionDidStart() {
