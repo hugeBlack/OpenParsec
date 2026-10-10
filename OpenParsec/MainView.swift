@@ -26,6 +26,8 @@ struct MainView: View {
 
 	@State var isConnecting: Bool = false
 	@State var waitingForApproval: Bool = false
+	@State var retryingConnect: Bool = false
+	@State var connectPolls = 0
 	@State var connectingToName: String = ""
 	@State var pollTimer: Timer?
 	@State var approvalStartedAt: Date?
@@ -414,7 +416,7 @@ struct MainView: View {
 					VStack {
 						ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
 							.padding()
-						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : "Requesting connection to \(connectingToName)...")
+						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : retryingConnect ? "\(connectingToName) didn't answer, trying again..." : "Requesting connection to \(connectingToName)...")
 							.multilineTextAlignment(.center)
 						Button(action: cancelConnection) {
 							ZStack {
@@ -655,9 +657,14 @@ struct MainView: View {
 		}
 	}
 
-	func connectTo(_ who: IdentifiableHostInfo) {
+	func connectTo(_ who: IdentifiableHostInfo, retried: Bool = false) {
 		if NetworkWatcher.shared.noNetwork {
 			appNote("[connect] no network, not trying")
+			withAnimation {
+				isConnecting = false
+				waitingForApproval = false
+				retryingConnect = false
+			}
 			baseAlertText = "No network connection"
 			showBaseAlert = true
 			return
@@ -674,10 +681,12 @@ struct MainView: View {
 		DataManager.model.reset()
 		ParsecBackgroundManager.shared.reconnectAttempts = 0
 		connectingToName = who.hostname
+		retryingConnect = retried
 		withAnimation { isConnecting = true }
 
 		let status = CParsec.connect(who.id)
 		appNote("[connect] started, status \(status.rawValue)")
+		connectPolls = 0
 		approvalStartedAt = nil
 
 		// Polling status
@@ -690,10 +699,29 @@ struct MainView: View {
 
 	func pollConnect(_ who: IdentifiableHostInfo) {
 		let status = CParsec.getStatus()
+		connectPolls += 1
 
 		if status == PARSEC_CONNECTING { return } // wait
 
 		if status == CONNECT_WRN_APPROVAL {
+			if approvalStartedAt == nil {
+				appNote("[connect] status \(status.rawValue) after \(connectPolls) polls, retried \(retryingConnect)")
+				if connectPolls >= 20 {
+					pollTimer?.invalidate()
+					CParsec.disconnect()
+					if !retryingConnect {
+						connectTo(who, retried: true)
+						return
+					}
+					withAnimation {
+						isConnecting = false
+						retryingConnect = false
+					}
+					baseAlertText = "\(who.hostname) didn't answer the connection request"
+					showBaseAlert = true
+					return
+				}
+			}
 			let started = approvalStartedAt ?? Date()
 			approvalStartedAt = started
 			if !waitingForApproval { withAnimation { waitingForApproval = true } }
@@ -703,6 +731,7 @@ struct MainView: View {
 		withAnimation {
 			isConnecting = false
 			waitingForApproval = false
+			retryingConnect = false
 		}
 		appNote("[connect] result \(status.rawValue)")
 
@@ -725,6 +754,7 @@ struct MainView: View {
 		withAnimation {
 			isConnecting = false
 			waitingForApproval = false
+			retryingConnect = false
 		}
 
 		CParsec.disconnect()
