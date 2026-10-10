@@ -31,6 +31,7 @@ struct MainView: View {
 	@State var connectingToName: String = ""
 	@State var pollTimer: Timer?
 	@State var approvalStartedAt: Date?
+	@State var connectStartedAt = Date()
 
 	@State var isRefreshing: Bool = false
 	@State var refreshError: String?
@@ -684,6 +685,7 @@ struct MainView: View {
 		retryingConnect = retried
 		withAnimation { isConnecting = true }
 
+		connectStartedAt = Date()
 		let status = CParsec.connect(who.id)
 		appNote("[connect] started, status \(status.rawValue)")
 		connectPolls = 0
@@ -701,24 +703,20 @@ struct MainView: View {
 		let status = CParsec.getStatus()
 		connectPolls += 1
 
+		if let err = CParsec.setupError, err.at > connectStartedAt, status == PARSEC_CONNECTING || status == CONNECT_WRN_APPROVAL {
+			CParsec.setupError = nil
+			appNote("[connect] sdk setup failed after \(connectPolls) polls, retried \(retryingConnect): \(err.line)")
+			retryOrGiveUp(who)
+			return
+		}
+
 		if status == PARSEC_CONNECTING { return } // wait
 
 		if status == CONNECT_WRN_APPROVAL {
 			if approvalStartedAt == nil {
 				appNote("[connect] status \(status.rawValue) after \(connectPolls) polls, retried \(retryingConnect)")
 				if connectPolls >= 20 {
-					pollTimer?.invalidate()
-					CParsec.disconnect()
-					if !retryingConnect {
-						connectTo(who, retried: true)
-						return
-					}
-					withAnimation {
-						isConnecting = false
-						retryingConnect = false
-					}
-					baseAlertText = "\(who.hostname) didn't answer the connection request"
-					showBaseAlert = true
+					retryOrGiveUp(who)
 					return
 				}
 			}
@@ -747,6 +745,21 @@ struct MainView: View {
 		}
 
 		pollTimer?.invalidate()
+	}
+
+	func retryOrGiveUp(_ who: IdentifiableHostInfo) {
+		pollTimer?.invalidate()
+		CParsec.disconnect()
+		if !retryingConnect {
+			connectTo(who, retried: true)
+			return
+		}
+		withAnimation {
+			isConnecting = false
+			retryingConnect = false
+		}
+		baseAlertText = "\(who.hostname) didn't answer the connection request"
+		showBaseAlert = true
 	}
 
 	func cancelConnection() {
