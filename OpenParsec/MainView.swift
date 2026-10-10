@@ -28,6 +28,7 @@ struct MainView: View {
 	@State var waitingForApproval: Bool = false
 	@State var connectingToName: String = ""
 	@State var pollTimer: Timer?
+	@State var approvalStartedAt: Date?
 
 	@State var isRefreshing: Bool = false
 	@State var refreshError: String?
@@ -675,42 +676,48 @@ struct MainView: View {
 		connectingToName = who.hostname
 		withAnimation { isConnecting = true }
 
-		var status = CParsec.connect(who.id)
+		let status = CParsec.connect(who.id)
 		appNote("[connect] started, status \(status.rawValue)")
-		var approvalStarted: Date?
+		approvalStartedAt = nil
 
 		// Polling status
-		pollTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
-			status = CParsec.getStatus()
-
-			if status == PARSEC_CONNECTING { return } // wait
-
-			if status == CONNECT_WRN_APPROVAL {
-				let started = approvalStarted ?? Date()
-				approvalStarted = started
-				if !waitingForApproval { withAnimation { waitingForApproval = true } }
-				if Date().timeIntervalSince(started) < 60 { return }
+		pollTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+			MainActor.assumeIsolated {
+				pollConnect(who)
 			}
-
-			withAnimation {
-				isConnecting = false
-				waitingForApproval = false
-			}
-			appNote("[connect] result \(status.rawValue)")
-
-			if status == PARSEC_OK {
-				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: hosts.first(where: { $0.id == who.id })?.hostname ?? who.hostname)
-				if let c = controller {
-					c.setView(.parsec)
-				}
-			} else {
-				CParsec.disconnect()
-				baseAlertText = status.readable(connecting: true)
-				showBaseAlert = true
-			}
-
-			timer.invalidate()
 		}
+	}
+
+	func pollConnect(_ who: IdentifiableHostInfo) {
+		let status = CParsec.getStatus()
+
+		if status == PARSEC_CONNECTING { return } // wait
+
+		if status == CONNECT_WRN_APPROVAL {
+			let started = approvalStartedAt ?? Date()
+			approvalStartedAt = started
+			if !waitingForApproval { withAnimation { waitingForApproval = true } }
+			if Date().timeIntervalSince(started) < 60 { return }
+		}
+
+		withAnimation {
+			isConnecting = false
+			waitingForApproval = false
+		}
+		appNote("[connect] result \(status.rawValue)")
+
+		if status == PARSEC_OK {
+			ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: hosts.first(where: { $0.id == who.id })?.hostname ?? who.hostname)
+			if let c = controller {
+				c.setView(.parsec)
+			}
+		} else {
+			CParsec.disconnect()
+			baseAlertText = status.readable(connecting: true)
+			showBaseAlert = true
+		}
+
+		pollTimer?.invalidate()
 	}
 
 	func cancelConnection() {
