@@ -9,6 +9,10 @@ class ParsecBackgroundManager {
 	private(set) var lastPeerId: String? {
 		didSet { UserDefaults.standard.set(lastPeerId, forKey: "lastConnectedPeerId") }
 	}
+	private(set) var resumeOnLaunch: Bool {
+		get { UserDefaults.standard.bool(forKey: "resumeLastHost") }
+		set { UserDefaults.standard.set(newValue, forKey: "resumeLastHost") }
+	}
 	var lastHostname: String? {
 		didSet {
 			UserDefaults.standard.set(lastHostname, forKey: "lastConnectedHostname")
@@ -59,6 +63,7 @@ class ParsecBackgroundManager {
 	func connectionDidGoLive(peerId: String, hostname: String) {
 		lastPeerId = peerId
 		lastHostname = hostname
+		resumeOnLaunch = true
 	}
 
 	func connectionDidEnd() {
@@ -98,11 +103,16 @@ class ParsecBackgroundManager {
 		didDisconnectDueToBackground = true
 	}
 
-	func disableAutoReconnect() {
+	func endSession() {
 		didDisconnectDueToBackground = false
 		isReconnecting = false
+		reconnectAttempts = 0
+		resumeOnLaunch = false
+	}
+
+	func disableAutoReconnect() {
+		endSession()
 		lastPeerId = nil
 		lastHostname = nil
-		reconnectAttempts = 0
 	}
 }

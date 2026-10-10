@@ -464,7 +464,7 @@ struct MainView: View {
 		ParsecBackgroundManager.shared.reconnectPending = false
 
 		NetworkWatcher.shared.whenKnown {
-			if (SettingsHandler.autoConnectOnLaunch || pending) && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
+			if (SettingsHandler.autoConnectOnLaunch && ParsecBackgroundManager.shared.resumeOnLaunch || pending) && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
 				reconnectLastHost()
 			}
 		}
