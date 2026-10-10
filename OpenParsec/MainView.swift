@@ -475,6 +475,7 @@ struct MainView: View {
 		let hostname = ParsecBackgroundManager.shared.lastHostname ?? peerId
 		let user = UserInfo(id: 0, name: "", warp: false, team_id: "")
 		let stub = IdentifiableHostInfo(id: peerId, hostname: hostname, user: user, connections: 0)
+		appNote("[connect] last host from the saved id, host list \(hosts.isEmpty ? "not loaded yet" : "loaded")")
 		connectTo(stub)
 	}
 
