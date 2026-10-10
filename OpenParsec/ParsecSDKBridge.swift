@@ -260,10 +260,9 @@ class ParsecSDKBridge: ParsecService {
 		ParsecClientGLDestroy(_parsec, UInt8(DEFAULT_STREAM))
 	}
 
-	/*static func renderMetalFrame(_ queue:inout MTLCommandQueue, _ texturePtr: UnsafeMutablePointer<UnsafeMutableRawPointer?>, timeout: UInt32 = 16) // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
-	 {
-	 ParsecClientMetalRenderFrame(_parsec, UInt8(DEFAULT_STREAM), &queue, texturePtr, nil, nil, timeout)
-	 }*/
+	func pollFrame(timeout: UInt32, callback: ParsecFrameCallback, opaque: UnsafeRawPointer) -> ParsecStatus {
+		ParsecClientPollFrame(_parsec, UInt8(DEFAULT_STREAM), callback, timeout, opaque)
+	}
 
 	@discardableResult
 	func pollAudio(timeout: UInt32 = 16) -> ParsecStatus { // timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.

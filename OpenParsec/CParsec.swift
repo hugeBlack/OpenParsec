@@ -144,6 +144,7 @@ protocol ParsecService {
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat)
 	func renderGLFrame(timeout: UInt32)
 	func glDestroy()
+	func pollFrame(timeout: UInt32, callback: ParsecFrameCallback, opaque: UnsafeRawPointer) -> ParsecStatus
 	func setMuted(_ muted: Bool)
 	func applyConfig()
 	func sendMouseMessage(_ button: ParsecMouseButton, _ x: Int32, _ y: Int32, _ pressed: Bool)
@@ -224,6 +225,11 @@ class CParsec {
 
 	static func glDestroy() {
 		parsecImpl.glDestroy()
+	}
+
+	@discardableResult
+	static func pollFrame(timeout: UInt32, callback: ParsecFrameCallback, opaque: UnsafeRawPointer) -> ParsecStatus {
+		parsecImpl.pollFrame(timeout: timeout, callback: callback, opaque: opaque)
 	}
 
 	static func setMuted(_ muted: Bool) {
