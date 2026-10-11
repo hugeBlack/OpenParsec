@@ -2,6 +2,12 @@ import UIKit
 import AVFoundation
 import GLKit
 
+protocol RenderLoop: AnyObject {
+	var isPaused: Bool { get set }
+}
+
+extension GLKViewController: RenderLoop {}
+
 class ParsecBackgroundManager {
 	static let shared = ParsecBackgroundManager()
 
@@ -25,7 +31,7 @@ class ParsecBackgroundManager {
 	var reconnectStartTime = Date()
 	var resumedAt: Date?
 	var isPaused = false
-	weak var glkViewController: GLKViewController?
+	weak var glkViewController: RenderLoop?
 
 	var onShouldReconnect: ((String) -> Void)?
 	var onShortcutReconnect: (() -> Void)?

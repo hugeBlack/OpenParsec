@@ -1,31 +1,39 @@
-/*import SwiftUI
+import UIKit
 import MetalKit
 
-struct ParsecMetalViewController: UIViewRepresentable
-{
-	let onBeforeRender:() -> Void
-	
-	func makeCoordinator() -> ParsecMetalRenderer
-	{
-		ParsecMetalRenderer(self, onBeforeRender)
+extension MTKView: RenderLoop {}
+
+class ParsecMetalViewController: ParsecPlayground {
+
+	var metalView: MTKView!
+	let metalRenderer: ParsecMetalRenderer?
+	let updateImage: () -> Void
+
+	var renderView: UIView { metalView }
+
+	required init(viewController: UIViewController, updateImage: @escaping () -> Void) {
+		self.updateImage = updateImage
+		metalRenderer = MTLCreateSystemDefaultDevice().flatMap { ParsecMetalRenderer($0, updateImage) }
 	}
-	
-	func makeUIView(context: UIViewRepresentableContext<ParsecMetalViewController>) -> MTKView
-	{
-		let metalView = MTKView()
-		metalView.delegate = context.coordinator
-		metalView.preferredFramesPerSecond = 60
-		metalView.enableSetNeedsDisplay = true
-		
-		if let metalDevice = MTLCreateSystemDefaultDevice()
-		{
-			metalView.device = metalDevice
-		}
-		
-		metalView.framebufferOnly = false
-		metalView.drawableSize = metalView.frame.size
-		return metalView
+
+	public func viewDidLoad() {
+		metalView = MTKView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height), device: metalRenderer?.device)
+		metalView.colorPixelFormat = .bgra8Unorm
+		metalView.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+		metalView.autoResizeDrawable = false
+		let fps = SettingsHandler.preferredFramesPerSecond
+		metalView.preferredFramesPerSecond = fps == 0 ? UIScreen.main.maximumFramesPerSecond : fps
+		metalView.delegate = metalRenderer
+		ParsecBackgroundManager.shared.glkViewController = metalView
 	}
-	
-	func updateUIView(_ uiView:MTKView, context: UIViewRepresentableContext<ParsecMetalViewController>) { }
-}*/
+
+	func cleanUp() {
+		metalView?.isPaused = true
+		metalRenderer?.reset()
+	}
+
+	func updateSize(width: CGFloat, height: CGFloat) {
+		metalView.frame.size.width = width
+		metalView.frame.size.height = height
+	}
+}

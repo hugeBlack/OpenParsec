@@ -2,9 +2,11 @@ import Foundation
 import UIKit
 import ParsecSDK
 import QuartzCore
+import os
 
 protocol ParsecPlayground {
 	init(viewController: UIViewController, updateImage: @escaping () -> Void)
+	var renderView: UIView { get }
 	func viewDidLoad()
 	func cleanUp()
 	func updateSize(width: CGFloat, height: CGFloat)
@@ -91,7 +93,16 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	init() {
 		super.init(nibName: nil, bundle: nil)
 
-		self.glkView = ParsecGLKViewController(viewController: self, updateImage: { [weak self] in self?.updateImage() })
+		let update: () -> Void = { [weak self] in self?.updateImage() }
+		let metal = SettingsHandler.renderer == .metal ? ParsecMetalViewController(viewController: self, updateImage: update) : nil
+		if let metal = metal, metal.metalRenderer != nil {
+			self.glkView = metal
+		} else {
+			if metal != nil {
+				os_log("%{public}@", log: sdkLog, type: .error, "metal could not start, using opengl")
+			}
+			self.glkView = ParsecGLKViewController(viewController: self, updateImage: update)
+		}
 
 		self.gamePadController = GamepadController()
 		self.touchController = TouchController()
@@ -103,9 +114,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	func computeRenderScale() -> CGFloat {
 		let nativeScale = UIScreen.main.nativeScale
-		guard scrollView.zoomScale > 1.01, let glk = glkView as? ParsecGLKViewController else { return nativeScale }
-		let vw = glk.glkView.frame.size.width
-		let vh = glk.glkView.frame.size.height
+		guard scrollView.zoomScale > 1.01 else { return nativeScale }
+		let vw = glkView.renderView.frame.size.width
+		let vh = glkView.renderView.frame.size.height
 		let sw = CGFloat(CParsec.hostWidth)
 		let sh = CGFloat(CParsec.hostHeight)
 		guard vw > 0, vh > 0, sw > 0, sh > 0 else { return nativeScale }
@@ -119,7 +130,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		if abs(target - appliedRenderScale) > 0.01 {
 			appliedRenderScale = target
 			DispatchQueue.main.async { [weak self] in
-				(self?.glkView as? ParsecGLKViewController)?.glkView.contentScaleFactor = target
+				self?.glkView.renderView.contentScaleFactor = target
 			}
 		}
 	}
@@ -208,13 +219,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 		// Move GLKView to ContentView
 		// glkView.viewDidLoad() adds the view to 'view', we need to move it.
-		if let parsecGLK = glkView as? ParsecGLKViewController {
-			parsecGLK.glkView.removeFromSuperview()
-			contentView.addSubview(parsecGLK.glkView)
-		} else {
-			// Fallback if type check fails, try to find the last subview added?
-			// Assumption: glkView.viewDidLoad() adds a subview.
-		}
+		glkView.renderView.removeFromSuperview()
+		contentView.addSubview(glkView.renderView)
 
 		if #available(iOS 15.0, *) {
 			if SettingsHandler.enablePiP,

@@ -73,6 +73,8 @@ class ParsecGLKViewController: ParsecPlayground {
 		return glkView?.context
 	}
 
+	var renderView: UIView { glkView }
+
 	func cleanUp() {
 		guard let context = eaglContext else { return }
 		EAGLContext.setCurrent(context)
