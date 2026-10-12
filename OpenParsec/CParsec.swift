@@ -187,6 +187,8 @@ class CParsec {
 	}
 
 	static var drawRate: Double = 0
+	static var runningRenderer: RendererType = .opengl
+	static var rendererName: String { runningRenderer == .metal ? "Metal" : "OpenGL" }
 	static var setupError: (line: String, at: Date)?
 
 	static var parsecImpl: ParsecService!

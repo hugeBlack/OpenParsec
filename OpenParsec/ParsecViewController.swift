@@ -97,7 +97,11 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		let metal = SettingsHandler.renderer == .metal ? ParsecMetalViewController(viewController: self, updateImage: update) : nil
 		if let metal = metal, metal.metalRenderer != nil {
 			self.glkView = metal
+			CParsec.runningRenderer = .metal
+			appNote("[renderer] metal")
 		} else {
+			CParsec.runningRenderer = .opengl
+			appNote("[renderer] opengl")
 			if metal != nil {
 				os_log("%{public}@", log: sdkLog, type: .error, "metal could not start, using opengl")
 			}
