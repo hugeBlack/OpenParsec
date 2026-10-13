@@ -25,6 +25,13 @@ private let frameCallback: ParsecFrameCallback = { frame, image, opaque in
 	Unmanaged<ParsecMetalRenderer>.fromOpaque(opaque).takeUnretainedValue().upload(frame.pointee, image)
 }
 
+extension ParsecFrame {
+	var isWholeNV12: Bool {
+		let w = Int(width), h = Int(height), stride = Int(fullWidth), rows = Int(fullHeight)
+		return format == FORMAT_NV12 && w > 0 && h > 0 && stride >= w && rows >= h && Int(size) >= stride * rows + stride * ((h + 1) / 2)
+	}
+}
+
 class ParsecMetalRenderer: NSObject, MTKViewDelegate {
 	private let queue: MTLCommandQueue
 	private let pipeline: MTLRenderPipelineState
@@ -78,8 +85,7 @@ class ParsecMetalRenderer: NSObject, MTKViewDelegate {
 
 	fileprivate func upload(_ f: ParsecFrame, _ image: UnsafeRawPointer) {
 		let w = Int(f.width), h = Int(f.height), stride = Int(f.fullWidth), rows = Int(f.fullHeight)
-		guard f.format == FORMAT_NV12, w > 0, h > 0, stride >= w, rows >= h,
-			  Int(f.size) >= stride * rows + stride * ((h + 1) / 2) else { return }
+		guard f.isWholeNV12 else { return }
 		let slot = (current + 1) % planes.count
 		if planes[slot]?.y.width != w || planes[slot]?.y.height != h {
 			planes[slot] = makePlanes(w, h)
@@ -89,6 +95,9 @@ class ParsecMetalRenderer: NSObject, MTKViewDelegate {
 		p.c.replace(region: MTLRegionMake2D(0, 0, (w + 1) / 2, (h + 1) / 2), mipmapLevel: 0, withBytes: image + stride * rows, bytesPerRow: stride)
 		current = slot
 		frameSize = CGSize(width: w, height: h)
+		if #available(iOS 15.0, *) {
+			PictureInPictureManager.shared.feedFrame(f, image)
+		}
 	}
 
 	private func makePlanes(_ w: Int, _ h: Int) -> (y: MTLTexture, c: MTLTexture)? {

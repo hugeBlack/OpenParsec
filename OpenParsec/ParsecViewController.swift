@@ -227,10 +227,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		contentView.addSubview(glkView.renderView)
 
 		if #available(iOS 15.0, *) {
-			if SettingsHandler.enablePiP,
-			   let parsecGLK = glkView as? ParsecGLKViewController,
-			   let eaglContext = parsecGLK.eaglContext {
-				PictureInPictureManager.shared.setup(sourceView: view, glContext: eaglContext, glkViewController: parsecGLK.glkViewController)
+			if SettingsHandler.enablePiP {
+				if let parsecGLK = glkView as? ParsecGLKViewController, let eaglContext = parsecGLK.eaglContext {
+					PictureInPictureManager.shared.setup(sourceView: view, glContext: eaglContext)
+				} else if glkView is ParsecMetalViewController {
+					PictureInPictureManager.shared.setup(sourceView: view, glContext: nil)
+				}
 			}
 		}
 

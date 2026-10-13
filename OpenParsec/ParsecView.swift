@@ -145,7 +145,11 @@ struct ParsecStatusBar: View {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
 			isReconnecting = false
 			appNote("[reconnect] live again")
-			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			var pumping = false
+			if #available(iOS 15.0, *) { pumping = PictureInPictureManager.shared.isPumping }
+			if !pumping {
+				ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			}
 			// SDK forgets stream dims on reconnect, re-send them so the frame fills not corners
 			if let vc = parsecViewController {
 				CParsec.setFrame(vc.view.bounds.width, vc.view.bounds.height, UIScreen.main.scale)

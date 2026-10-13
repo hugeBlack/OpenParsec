@@ -5,6 +5,7 @@ import OpenGLES
 import GLKit
 import CoreMedia
 import os
+import ParsecSDK
 
 private let kGL_BGRA: GLenum = 0x80E1
 
@@ -24,6 +25,20 @@ class PictureInPictureManager: NSObject {
 	private var captureHeight: GLsizei = 0
 	private var glContext: EAGLContext?
 
+	private var nv12Pool: CVPixelBufferPool?
+	private var nv12Width = 0
+	private var nv12Height = 0
+	private var lastFeed: CFTimeInterval = 0
+	private let feedLock = NSLock()
+	private var pump: DispatchSourceTimer?
+	var isPumping: Bool { pump != nil }
+	private let pumpQueue = DispatchQueue(label: "pip.pump")
+
+	private static let frameCallback: ParsecFrameCallback = { frame, image, _ in
+		guard let frame = frame, let image = image else { return }
+		PictureInPictureManager.shared.feedFrame(frame.pointee, image)
+	}
+
 	private var cachedFormatDescription: CMVideoFormatDescription?
 	private var displayLayerFlushes = 0
 	private var displayLayerGaveUp = false
@@ -37,8 +52,6 @@ class PictureInPictureManager: NSObject {
 	private var lastValidStreamWidth: GLsizei = 0
 	private var lastValidStreamHeight: GLsizei = 0
 
-	private weak var glkViewController: GLKViewController?
-
 	var onPiPStopped: (() -> Void)?
 	var onPiPStartFailed: (() -> Void)?
 	var onRestoreUserInterface: (() -> Void)?
@@ -49,12 +62,11 @@ class PictureInPictureManager: NSObject {
 
 	// MARK: - Setup
 
-	func setup(sourceView: UIView, glContext: EAGLContext, glkViewController: GLKViewController? = nil) {
+	func setup(sourceView: UIView, glContext: EAGLContext?) {
 		guard !isSetup else { return }
 		guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
 
 		self.glContext = glContext
-		self.glkViewController = glkViewController
 
 		try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
 		try? AVAudioSession.sharedInstance().setActive(true)
@@ -83,7 +95,9 @@ class PictureInPictureManager: NSObject {
 		controller.canStartPictureInPictureAutomaticallyFromInline = false
 		self.pipController = controller
 
-		setupTextureCache(glContext: glContext)
+		if let glContext = glContext {
+			setupTextureCache(glContext: glContext)
+		}
 
 		isSetup = true
 	}
@@ -263,14 +277,18 @@ class PictureInPictureManager: NSObject {
 
 	private func feedSampleBuffer() {
 		guard let pixelBuffer = pixelBuffer,
-			  let displayLayer = sampleBufferDisplayLayer else { return }
+			  let displayLayer = sampleBufferDisplayLayer,
+			  displayLayerTakesFrames(displayLayer) else { return }
+		enqueue(pixelBuffer, on: displayLayer)
+	}
 
+	private func displayLayerTakesFrames(_ displayLayer: AVSampleBufferDisplayLayer) -> Bool {
 		if displayLayer.status == .failed {
-			guard !displayLayerGaveUp else { return }
+			guard !displayLayerGaveUp else { return false }
 			guard displayLayerFlushes < 3 else {
 				displayLayerGaveUp = true
 				handleTerminalDisplayLayerFailure(displayLayer)
-				return
+				return false
 			}
 			displayLayerFlushes += 1
 			displayLayer.flush()
@@ -278,8 +296,76 @@ class PictureInPictureManager: NSObject {
 		} else if displayLayer.status == .rendering {
 			displayLayerFlushes = 0
 		}
-		guard displayLayer.isReadyForMoreMediaData else { return }
+		return displayLayer.isReadyForMoreMediaData
+	}
 
+	func feedFrame(_ f: ParsecFrame, _ image: UnsafeRawPointer) {
+		guard isSetup else { return }
+		feedLock.lock()
+		defer { feedLock.unlock() }
+		let now = CACurrentMediaTime()
+		guard now - lastFeed >= (isPiPActive || isStarting ? 0.03 : 0.5) else { return }
+		let w = Int(f.width), h = Int(f.height), stride = Int(f.fullWidth), rows = Int(f.fullHeight)
+		guard f.isWholeNV12, let displayLayer = sampleBufferDisplayLayer, displayLayerTakesFrames(displayLayer) else { return }
+		if nv12Pool == nil || nv12Width != w || nv12Height != h {
+			let attrs: [String: Any] = [
+				kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+				kCVPixelBufferWidthKey as String: w,
+				kCVPixelBufferHeightKey as String: h,
+				kCVPixelBufferIOSurfacePropertiesKey as String: [:] as [String: Any]
+			]
+			var pool: CVPixelBufferPool?
+			CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, attrs as CFDictionary, &pool)
+			nv12Pool = pool
+			nv12Width = w
+			nv12Height = h
+		}
+		guard let pool = nv12Pool else { return }
+		var out: CVPixelBuffer?
+		guard CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &out) == kCVReturnSuccess, let pb = out else { return }
+		CVPixelBufferLockBaseAddress(pb, [])
+		if let y = CVPixelBufferGetBaseAddressOfPlane(pb, 0), let c = CVPixelBufferGetBaseAddressOfPlane(pb, 1) {
+			let yRow = CVPixelBufferGetBytesPerRowOfPlane(pb, 0)
+			let cRow = CVPixelBufferGetBytesPerRowOfPlane(pb, 1)
+			let cBytes = min(((w + 1) / 2) * 2, stride, cRow)
+			for r in 0..<h {
+				memcpy(y + r * yRow, image + r * stride, min(w, yRow))
+			}
+			let uv = image + stride * rows
+			for r in 0..<((h + 1) / 2) {
+				memcpy(c + r * cRow, uv + r * stride, cBytes)
+			}
+		}
+		CVPixelBufferUnlockBaseAddress(pb, [])
+		lastFeed = now
+		enqueue(pb, on: displayLayer)
+	}
+
+	func startFramePump() {
+		guard isSetup, pump == nil else { return }
+		let t = DispatchSource.makeTimerSource(queue: pumpQueue)
+		t.schedule(deadline: .now(), repeating: .milliseconds(16))
+		let opaque = UnsafeRawPointer(Unmanaged.passUnretained(self).toOpaque())
+		t.setEventHandler {
+			_ = CParsec.pollFrame(timeout: 8, callback: PictureInPictureManager.frameCallback, opaque: opaque)
+		}
+		t.resume()
+		pump = t
+	}
+
+	@discardableResult
+	func stopFramePump() -> Bool {
+		guard let t = pump else { return false }
+		t.cancel()
+		pump = nil
+		pumpQueue.sync {}
+		return true
+	}
+
+	private func enqueue(_ pixelBuffer: CVPixelBuffer, on displayLayer: AVSampleBufferDisplayLayer) {
+		if let format = cachedFormatDescription, !CMVideoFormatDescriptionMatchesImageBuffer(format, imageBuffer: pixelBuffer) {
+			cachedFormatDescription = nil
+		}
 		if cachedFormatDescription == nil {
 			CMVideoFormatDescriptionCreateForImageBuffer(
 				allocator: kCFAllocatorDefault,
@@ -355,6 +441,8 @@ class PictureInPictureManager: NSObject {
 			}
 		} else {
 			isStarting = false
+			stopFramePump()
+			appNote("[pip] gave up starting after \(retryCount) retries")
 			onPiPStartFailed?()
 		}
 	}
@@ -368,6 +456,8 @@ class PictureInPictureManager: NSObject {
 	// MARK: - Cleanup
 
 	func teardown() {
+		stopFramePump()
+		nv12Pool = nil
 		stopPiP()
 		destroyCaptureSurface()
 
@@ -405,8 +495,6 @@ extension PictureInPictureManager: AVPictureInPictureControllerDelegate {
 	func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
 		isPiPActive = true
 		isStarting = false
-		// Keep GL render loop alive during PiP so frames keep updating
-		glkViewController?.isPaused = false
 	}
 
 	func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
@@ -417,6 +505,7 @@ extension PictureInPictureManager: AVPictureInPictureControllerDelegate {
 
 	func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
 		isPiPActive = false
+		stopFramePump()
 		onPiPStopped?()
 	}
 
@@ -430,6 +519,7 @@ extension PictureInPictureManager: AVPictureInPictureControllerDelegate {
 									failedToStartPictureInPictureWithError error: Error) {
 		isPiPActive = false
 		isStarting = false
+		stopFramePump()
 		onPiPStartFailed?()
 	}
 }
