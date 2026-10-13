@@ -517,6 +517,8 @@ extension PictureInPictureManager: AVPictureInPictureControllerDelegate {
 
 	func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController,
 									failedToStartPictureInPictureWithError error: Error) {
+		let nsError = error as NSError
+		appNote("[pip] could not start, \(nsError.domain) \(nsError.code)")
 		isPiPActive = false
 		isStarting = false
 		stopFramePump()
