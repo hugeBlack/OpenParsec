@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
 	@Binding var visible: Bool
 
-	@AppStorage("rendererChoice") var renderer: RendererType = .opengl
+	@AppStorage("rendererChoice") var renderer: RendererType = .metal
 	@AppStorage("resolution") var resolution: ParsecResolution = .client
 	@AppStorage("bitrate") var bitrate: Int = 0
 	@AppStorage("decoder") var decoder: DecoderPref = .h264
