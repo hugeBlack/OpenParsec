@@ -1,33 +1,202 @@
 import Foundation
 import SwiftUI
 
+final class SettingsStore: ObservableObject {
+	static let shared = SettingsStore()
+	private let defaults = UserDefaults.standard
+
+	private init() {
+		defaults.register(defaults: [
+			"rendererChoice": RendererType.metal.rawValue,
+			"resolution": ParsecResolution.client.rawValue,
+			"bitrate": 0,
+			"decoder": DecoderPref.h264.rawValue,
+			"cursorMode": CursorMode.touchpad.rawValue,
+			"cursorScale": 0.5,
+			"mouseSensitivity": 1.0,
+			"optionAsCommand": false,
+			"noOverlay": false,
+			"hideStatusBar": true,
+			"rightClickPosition": RightClickPosition.firstFinger.rawValue,
+			"reverseScrollDirection": false,
+			"scrollSensitivity": 1.5,
+			"preferredFramesPerSecond": 60,
+			"decoderCompatibility": false,
+			"showKeyboardButton": true,
+			"alwaysShowStatus": false,
+			"enablePiP": false,
+			"startMuted": false,
+			"autoReconnect": true,
+			"errorPrompts": false,
+			"autoConnectOnLaunch": false,
+			"saveSessionSettings": true,
+			"savedZoomEnabled": false,
+			"savedConstantFps": false,
+			"savedMuted": false
+		])
+	}
+
+	private func store(_ value: Any, _ key: String) {
+		objectWillChange.send()
+		defaults.set(value, forKey: key)
+	}
+
+	var renderer: RendererType {
+		get { RendererType(rawValue: defaults.integer(forKey: "rendererChoice")) ?? .metal }
+		set { store(newValue.rawValue, "rendererChoice") }
+	}
+
+	var resolution: ParsecResolution {
+		get { ParsecResolution(rawValue: defaults.string(forKey: "resolution") ?? "") ?? .client }
+		set { store(newValue.rawValue, "resolution") }
+	}
+
+	var bitrate: Int {
+		get { defaults.integer(forKey: "bitrate") }
+		set { store(newValue, "bitrate") }
+	}
+
+	var decoder: DecoderPref {
+		get { DecoderPref(rawValue: defaults.integer(forKey: "decoder")) ?? .h264 }
+		set { store(newValue.rawValue, "decoder") }
+	}
+
+	var cursorMode: CursorMode {
+		get { CursorMode(rawValue: defaults.integer(forKey: "cursorMode")) ?? .touchpad }
+		set { store(newValue.rawValue, "cursorMode") }
+	}
+
+	var cursorScale: Double {
+		get { defaults.double(forKey: "cursorScale") }
+		set { store(newValue, "cursorScale") }
+	}
+
+	var mouseSensitivity: Double {
+		get { defaults.double(forKey: "mouseSensitivity") }
+		set { store(newValue, "mouseSensitivity") }
+	}
+
+	var optionAsCommand: Bool {
+		get { defaults.bool(forKey: "optionAsCommand") }
+		set { store(newValue, "optionAsCommand") }
+	}
+
+	var noOverlay: Bool {
+		get { defaults.bool(forKey: "noOverlay") }
+		set { store(newValue, "noOverlay") }
+	}
+
+	var hideStatusBar: Bool {
+		get { defaults.bool(forKey: "hideStatusBar") }
+		set { store(newValue, "hideStatusBar") }
+	}
+
+	var rightClickPosition: RightClickPosition {
+		get { RightClickPosition(rawValue: defaults.integer(forKey: "rightClickPosition")) ?? .firstFinger }
+		set { store(newValue.rawValue, "rightClickPosition") }
+	}
+
+	var reverseScrollDirection: Bool {
+		get { defaults.bool(forKey: "reverseScrollDirection") }
+		set { store(newValue, "reverseScrollDirection") }
+	}
+
+	var scrollSensitivity: Double {
+		get { defaults.double(forKey: "scrollSensitivity") }
+		set { store(newValue, "scrollSensitivity") }
+	}
+
+	var preferredFramesPerSecond: Int { // 0 = use device max (ProMotion)
+		get { defaults.integer(forKey: "preferredFramesPerSecond") }
+		set { store(newValue, "preferredFramesPerSecond") }
+	}
+
+	var decoderCompatibility: Bool { // Enable for stutter issues on some devices
+		get { defaults.bool(forKey: "decoderCompatibility") }
+		set { store(newValue, "decoderCompatibility") }
+	}
+
+	var showKeyboardButton: Bool {
+		get { defaults.bool(forKey: "showKeyboardButton") }
+		set { store(newValue, "showKeyboardButton") }
+	}
+
+	var alwaysShowStatus: Bool {
+		get { defaults.bool(forKey: "alwaysShowStatus") }
+		set { store(newValue, "alwaysShowStatus") }
+	}
+
+	var enablePiP: Bool {
+		get { defaults.bool(forKey: "enablePiP") }
+		set { store(newValue, "enablePiP") }
+	}
+
+	var startMuted: Bool {
+		get { defaults.bool(forKey: "startMuted") }
+		set { store(newValue, "startMuted") }
+	}
+
+	var autoReconnect: Bool {
+		get { defaults.bool(forKey: "autoReconnect") }
+		set { store(newValue, "autoReconnect") }
+	}
+
+	var errorPrompts: Bool {
+		get { defaults.bool(forKey: "errorPrompts") }
+		set { store(newValue, "errorPrompts") }
+	}
+
+	var autoConnectOnLaunch: Bool {
+		get { defaults.bool(forKey: "autoConnectOnLaunch") }
+		set { store(newValue, "autoConnectOnLaunch") }
+	}
+
+	var saveSessionSettings: Bool {
+		get { defaults.bool(forKey: "saveSessionSettings") }
+		set { store(newValue, "saveSessionSettings") }
+	}
+
+	var savedZoomEnabled: Bool {
+		get { defaults.bool(forKey: "savedZoomEnabled") }
+		set { store(newValue, "savedZoomEnabled") }
+	}
+
+	var savedConstantFps: Bool {
+		get { defaults.bool(forKey: "savedConstantFps") }
+		set { store(newValue, "savedConstantFps") }
+	}
+
+	var savedMuted: Bool {
+		get { defaults.bool(forKey: "savedMuted") }
+		set { store(newValue, "savedMuted") }
+	}
+}
+
 struct SettingsHandler {
-	@AppStorage("rendererChoice") public static var renderer: RendererType = .metal
-	@AppStorage("resolution") public static var resolution: ParsecResolution = .client
-	@AppStorage("bitrate") public static var bitrate: Int = 0
-	@AppStorage("decoder") public static var decoder: DecoderPref = .h264
-	@AppStorage("cursorMode") public static var cursorMode: CursorMode = .touchpad
-	@AppStorage("cursorScale") public static var cursorScale: Double = 0.5
-	@AppStorage("mouseSensitivity") public static var mouseSensitivity: Double = 1.0
-	@AppStorage("optionAsCommand") public static var optionAsCommand: Bool = false
-	@AppStorage("noOverlay") public static var noOverlay: Bool = false
-	@AppStorage("hideStatusBar") public static var hideStatusBar: Bool = true
-	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger
-	@AppStorage("reverseScrollDirection") public static var reverseScrollDirection: Bool = false
-	@AppStorage("scrollSensitivity") public static var scrollSensitivity: Double = 1.5
-	@AppStorage("preferredFramesPerSecond") public static var preferredFramesPerSecond: Int = 60 // 0 = use device max (ProMotion)
-	@AppStorage("decoderCompatibility") public static var decoderCompatibility: Bool = false // Enable for stutter issues on some devices
-	@AppStorage("showKeyboardButton") public static var showKeyboardButton: Bool = true
-	@AppStorage("alwaysShowStatus") public static var alwaysShowStatus: Bool = false
-	@AppStorage("enablePiP") public static var enablePiP: Bool = false
-	@AppStorage("startMuted") public static var startMuted: Bool = false
-	@AppStorage("autoReconnect") public static var autoReconnect: Bool = true
-	@AppStorage("errorPrompts") public static var errorPrompts: Bool = false
-	@AppStorage("autoConnectOnLaunch") public static var autoConnectOnLaunch: Bool = false
-
-	@AppStorage("saveSessionSettings") public static var saveSessionSettings: Bool = true
-	@AppStorage("savedZoomEnabled") public static var savedZoomEnabled: Bool = false
-	@AppStorage("savedConstantFps") public static var savedConstantFps: Bool = false
-	@AppStorage("savedMuted") public static var savedMuted: Bool = false
-
+	static var renderer: RendererType { get { SettingsStore.shared.renderer } set { SettingsStore.shared.renderer = newValue } }
+	static var resolution: ParsecResolution { get { SettingsStore.shared.resolution } set { SettingsStore.shared.resolution = newValue } }
+	static var bitrate: Int { get { SettingsStore.shared.bitrate } set { SettingsStore.shared.bitrate = newValue } }
+	static var decoder: DecoderPref { get { SettingsStore.shared.decoder } set { SettingsStore.shared.decoder = newValue } }
+	static var cursorMode: CursorMode { get { SettingsStore.shared.cursorMode } set { SettingsStore.shared.cursorMode = newValue } }
+	static var cursorScale: Double { get { SettingsStore.shared.cursorScale } set { SettingsStore.shared.cursorScale = newValue } }
+	static var mouseSensitivity: Double { get { SettingsStore.shared.mouseSensitivity } set { SettingsStore.shared.mouseSensitivity = newValue } }
+	static var optionAsCommand: Bool { get { SettingsStore.shared.optionAsCommand } set { SettingsStore.shared.optionAsCommand = newValue } }
+	static var noOverlay: Bool { get { SettingsStore.shared.noOverlay } set { SettingsStore.shared.noOverlay = newValue } }
+	static var hideStatusBar: Bool { get { SettingsStore.shared.hideStatusBar } set { SettingsStore.shared.hideStatusBar = newValue } }
+	static var rightClickPosition: RightClickPosition { get { SettingsStore.shared.rightClickPosition } set { SettingsStore.shared.rightClickPosition = newValue } }
+	static var reverseScrollDirection: Bool { get { SettingsStore.shared.reverseScrollDirection } set { SettingsStore.shared.reverseScrollDirection = newValue } }
+	static var scrollSensitivity: Double { get { SettingsStore.shared.scrollSensitivity } set { SettingsStore.shared.scrollSensitivity = newValue } }
+	static var preferredFramesPerSecond: Int { get { SettingsStore.shared.preferredFramesPerSecond } set { SettingsStore.shared.preferredFramesPerSecond = newValue } }
+	static var decoderCompatibility: Bool { get { SettingsStore.shared.decoderCompatibility } set { SettingsStore.shared.decoderCompatibility = newValue } }
+	static var showKeyboardButton: Bool { get { SettingsStore.shared.showKeyboardButton } set { SettingsStore.shared.showKeyboardButton = newValue } }
+	static var alwaysShowStatus: Bool { get { SettingsStore.shared.alwaysShowStatus } set { SettingsStore.shared.alwaysShowStatus = newValue } }
+	static var enablePiP: Bool { get { SettingsStore.shared.enablePiP } set { SettingsStore.shared.enablePiP = newValue } }
+	static var startMuted: Bool { get { SettingsStore.shared.startMuted } set { SettingsStore.shared.startMuted = newValue } }
+	static var autoReconnect: Bool { get { SettingsStore.shared.autoReconnect } set { SettingsStore.shared.autoReconnect = newValue } }
+	static var errorPrompts: Bool { get { SettingsStore.shared.errorPrompts } set { SettingsStore.shared.errorPrompts = newValue } }
+	static var autoConnectOnLaunch: Bool { get { SettingsStore.shared.autoConnectOnLaunch } set { SettingsStore.shared.autoConnectOnLaunch = newValue } }
+	static var saveSessionSettings: Bool { get { SettingsStore.shared.saveSessionSettings } set { SettingsStore.shared.saveSessionSettings = newValue } }
+	static var savedZoomEnabled: Bool { get { SettingsStore.shared.savedZoomEnabled } set { SettingsStore.shared.savedZoomEnabled = newValue } }
+	static var savedConstantFps: Bool { get { SettingsStore.shared.savedConstantFps } set { SettingsStore.shared.savedConstantFps = newValue } }
+	static var savedMuted: Bool { get { SettingsStore.shared.savedMuted } set { SettingsStore.shared.savedMuted = newValue } }
 }
