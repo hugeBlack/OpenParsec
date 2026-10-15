@@ -318,6 +318,7 @@ class ParsecSDKBridge: ParsecService {
 						self.didSetResolution = true
 						DataManager.model.resolutionX = SettingsHandler.resolution.width
 						DataManager.model.resolutionY = SettingsHandler.resolution.height
+						DataManager.model.constantFps = SettingsHandler.constantFps
 						self.updateHostVideoConfig()
 					}
 				}

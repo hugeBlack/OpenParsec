@@ -190,7 +190,6 @@ struct ParsecView: View {
 
 	@State var muted: Bool = false
 	@State var preferH265: Bool = true
-	@State var constantFps = false
 	@State var isReconnecting: Bool = false
 	@State var connectionLost: Bool = false
 
@@ -216,7 +215,6 @@ struct ParsecView: View {
 
 		_muted = State(initialValue: SettingsHandler.startMuted)
 		_zoomEnabled = State(initialValue: SettingsHandler.zoomEnabled)
-		_constantFps = State(initialValue: SettingsHandler.constantFps)
 		_resolutions = State(initialValue: ParsecResolution.resolutions)
 		_bitrates = State(initialValue: ParsecResolution.bitrates)
 
@@ -379,7 +377,7 @@ struct ParsecView: View {
 							}
 
 							Button(action: toggleConstantFps) {
-								Text("Constant FPS: \(constantFps ? "ON" : "OFF")")
+								Text("Constant FPS: \(dataModel.constantFps ? "ON" : "OFF")")
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
@@ -494,7 +492,7 @@ struct ParsecView: View {
 		if muted { CParsec.pause(video: false, audio: true) }
 		parsecViewController.setZoomEnabled(zoomEnabled)
 
-		DataManager.model.constantFps = constantFps
+		DataManager.model.constantFps = SettingsHandler.constantFps
 
 		let screenSize: CGSize = self.parsecViewController.view.frame.size
 		let scaleFactor = UIScreen.main.nativeScale
@@ -597,9 +595,8 @@ struct ParsecView: View {
 	func toggleConstantFps() {
 		DispatchQueue.main.async {
 			DataManager.model.constantFps.toggle()
-			constantFps = DataManager.model.constantFps
 			CParsec.updateHostVideoConfig()
-			SettingsHandler.constantFps = constantFps
+			SettingsHandler.constantFps = DataManager.model.constantFps
 		}
 	}
 
