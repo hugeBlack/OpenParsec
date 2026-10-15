@@ -214,10 +214,9 @@ struct ParsecView: View {
 	init(_ controller: ContentView?) {
 		self.controller = controller
 
-		let save = SettingsHandler.saveSessionSettings
-		_muted = State(initialValue: SettingsHandler.startMuted || (save && SettingsHandler.savedMuted))
-		_zoomEnabled = State(initialValue: save ? SettingsHandler.savedZoomEnabled : false)
-		_constantFps = State(initialValue: save ? SettingsHandler.savedConstantFps : false)
+		_muted = State(initialValue: SettingsHandler.startMuted)
+		_zoomEnabled = State(initialValue: SettingsHandler.zoomEnabled)
+		_constantFps = State(initialValue: SettingsHandler.constantFps)
 		_resolutions = State(initialValue: ParsecResolution.resolutions)
 		_bitrates = State(initialValue: ParsecResolution.bitrates)
 
@@ -495,9 +494,7 @@ struct ParsecView: View {
 		if muted { CParsec.pause(video: false, audio: true) }
 		parsecViewController.setZoomEnabled(zoomEnabled)
 
-		if SettingsHandler.saveSessionSettings {
-			DataManager.model.constantFps = constantFps
-		}
+		DataManager.model.constantFps = constantFps
 
 		let screenSize: CGSize = self.parsecViewController.view.frame.size
 		let scaleFactor = UIScreen.main.nativeScale
@@ -528,7 +525,6 @@ struct ParsecView: View {
 		} else {
 			CParsec.resume()
 		}
-		if SettingsHandler.saveSessionSettings { SettingsHandler.savedMuted = muted }
 	}
 
 		/*func genDisplaySheet() -> ActionSheet
@@ -603,7 +599,7 @@ struct ParsecView: View {
 			DataManager.model.constantFps.toggle()
 			constantFps = DataManager.model.constantFps
 			CParsec.updateHostVideoConfig()
-			if SettingsHandler.saveSessionSettings { SettingsHandler.savedConstantFps = constantFps }
+			SettingsHandler.constantFps = constantFps
 		}
 	}
 
@@ -618,7 +614,7 @@ struct ParsecView: View {
 		DispatchQueue.main.async {
 			zoomEnabled.toggle()
 			parsecViewController.setZoomEnabled(zoomEnabled)
-			if SettingsHandler.saveSessionSettings { SettingsHandler.savedZoomEnabled = zoomEnabled }
+			SettingsHandler.zoomEnabled = zoomEnabled
 		}
 	}
 

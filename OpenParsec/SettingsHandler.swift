@@ -28,10 +28,8 @@ final class SettingsStore: ObservableObject {
 			"autoReconnect": true,
 			"errorPrompts": false,
 			"autoConnectOnLaunch": false,
-			"saveSessionSettings": true,
 			"savedZoomEnabled": false,
-			"savedConstantFps": false,
-			"savedMuted": false
+			"savedConstantFps": false
 		])
 	}
 
@@ -145,24 +143,14 @@ final class SettingsStore: ObservableObject {
 		set { store(newValue, "autoConnectOnLaunch") }
 	}
 
-	var saveSessionSettings: Bool {
-		get { defaults.bool(forKey: "saveSessionSettings") }
-		set { store(newValue, "saveSessionSettings") }
-	}
-
-	var savedZoomEnabled: Bool {
+	var zoomEnabled: Bool {
 		get { defaults.bool(forKey: "savedZoomEnabled") }
 		set { store(newValue, "savedZoomEnabled") }
 	}
 
-	var savedConstantFps: Bool {
+	var constantFps: Bool {
 		get { defaults.bool(forKey: "savedConstantFps") }
 		set { store(newValue, "savedConstantFps") }
-	}
-
-	var savedMuted: Bool {
-		get { defaults.bool(forKey: "savedMuted") }
-		set { store(newValue, "savedMuted") }
 	}
 }
 
@@ -188,8 +176,6 @@ struct SettingsHandler {
 	static var autoReconnect: Bool { get { SettingsStore.shared.autoReconnect } set { SettingsStore.shared.autoReconnect = newValue } }
 	static var errorPrompts: Bool { get { SettingsStore.shared.errorPrompts } set { SettingsStore.shared.errorPrompts = newValue } }
 	static var autoConnectOnLaunch: Bool { get { SettingsStore.shared.autoConnectOnLaunch } set { SettingsStore.shared.autoConnectOnLaunch = newValue } }
-	static var saveSessionSettings: Bool { get { SettingsStore.shared.saveSessionSettings } set { SettingsStore.shared.saveSessionSettings = newValue } }
-	static var savedZoomEnabled: Bool { get { SettingsStore.shared.savedZoomEnabled } set { SettingsStore.shared.savedZoomEnabled = newValue } }
-	static var savedConstantFps: Bool { get { SettingsStore.shared.savedConstantFps } set { SettingsStore.shared.savedConstantFps = newValue } }
-	static var savedMuted: Bool { get { SettingsStore.shared.savedMuted } set { SettingsStore.shared.savedMuted = newValue } }
+	static var zoomEnabled: Bool { get { SettingsStore.shared.zoomEnabled } set { SettingsStore.shared.zoomEnabled = newValue } }
+	static var constantFps: Bool { get { SettingsStore.shared.constantFps } set { SettingsStore.shared.constantFps = newValue } }
 }

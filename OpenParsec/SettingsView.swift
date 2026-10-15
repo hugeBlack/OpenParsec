@@ -88,6 +88,10 @@ struct SettingsView: View {
 								Toggle("", isOn: $settings.reverseScrollDirection)
 									.frame(width: 80)
 							}
+							CatItem("Pinch to Zoom") {
+								Toggle("", isOn: $settings.zoomEnabled)
+									.frame(width: 80)
+							}
 						}
 						CatTitle("Keyboard")
 						CatList {
@@ -121,6 +125,10 @@ struct SettingsView: View {
 									Choice("30 FPS", 30)
 								])
 							}
+							CatItem("Constant Frame Rate") {
+								Toggle("", isOn: $settings.constantFps)
+									.frame(width: 80)
+							}
 							CatItem("Codec") {
 								MultiPicker(selection: $settings.decoder, options:
 								[
@@ -149,10 +157,6 @@ struct SettingsView: View {
 							}
 							CatItem("Start Muted") {
 								Toggle("", isOn: $settings.startMuted)
-									.frame(width: 80)
-							}
-							CatItem("Remember Stream Options") {
-								Toggle("", isOn: $settings.saveSessionSettings)
 									.frame(width: 80)
 							}
 						}
