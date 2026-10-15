@@ -52,16 +52,16 @@ struct SettingsView: View {
 					.zIndex(1)
 
 					ScrollView {
-                        CatTitle("Interactivity")
-                        CatList {
-                            CatItem("Mouse Movement") {
-                                MultiPicker(selection: $settings.cursorMode, options:
+						CatTitle("Touch & Mouse")
+						CatList {
+							CatItem("Touch Mode") {
+								MultiPicker(selection: $settings.cursorMode, options:
 								[
 									Choice("Touchpad", CursorMode.touchpad),
 									Choice("Direct", CursorMode.direct)
 								])
-                            }
-							CatItem("Right Click Position") {
+							}
+							CatItem("Right Click") {
 								MultiPicker(selection: $settings.rightClickPosition, options:
 								[
 									Choice("First Finger", RightClickPosition.firstFinger),
@@ -69,32 +69,39 @@ struct SettingsView: View {
 									Choice("Second Finger", RightClickPosition.secondFinger)
 								])
 							}
+							CatItem("Pointer Speed") {
+								Slider(value: $settings.mouseSensitivity, in: 0.1...4, step: 0.1)
+									.frame(width: 200)
+								Text(String(format: "%.1f", settings.mouseSensitivity))
+							}
+							CatItem("Cursor Size") {
+								Slider(value: $settings.cursorScale, in: 0.1...4, step: 0.1)
+									.frame(width: 200)
+								Text(String(format: "%.1f", settings.cursorScale))
+							}
 							CatItem("Scroll Speed") {
 								Slider(value: $settings.scrollSensitivity, in: 0.5...5, step: 0.5)
 									.frame(width: 200)
 								Text(String(format: "%.1f", settings.scrollSensitivity))
 							}
-							CatItem("Reverse Scroll Direction") {
+							CatItem("Reverse Scrolling") {
 								Toggle("", isOn: $settings.reverseScrollDirection)
 									.frame(width: 80)
 							}
-                            CatItem("Cursor Scale") {
-                                Slider(value: $settings.cursorScale, in: 0.1...4, step: 0.1)
-									.frame(width: 200)
-								Text(String(format: "%.1f", settings.cursorScale))
-                            }
-							CatItem("Mouse Sensitivity") {
-								Slider(value: $settings.mouseSensitivity, in: 0.1...4, step: 0.1)
-									.frame(width: 200)
-								Text(String(format: "%.1f", settings.mouseSensitivity))
+						}
+						CatTitle("Keyboard")
+						CatList {
+							CatItem("Show Keyboard Button") {
+								Toggle("", isOn: $settings.showKeyboardButton)
+									.frame(width: 80)
 							}
 							CatItem("Option Key as Command") {
 								Toggle("", isOn: $settings.optionAsCommand)
 									.frame(width: 80)
 							}
-                        }
-                        CatTitle("Graphics")
-                        CatList {
+						}
+						CatTitle("Video")
+						CatList {
 							CatItem("Renderer") {
 								SegmentPicker(selection: $settings.renderer, options: [
 									Choice("OpenGL", RendererType.opengl),
@@ -102,16 +109,9 @@ struct SettingsView: View {
 								])
 								.frame(width: 165)
 							}
-							CatItem("Default Resolution") {
+							CatItem("Resolution") {
 								MultiPicker(selection: $settings.resolution, options: resolutionChoices)
 							}
-                            CatItem("Decoder") {
-								MultiPicker(selection: $settings.decoder, options:
-								[
-									Choice("H.264", DecoderPref.h264),
-									Choice("Prefer H.265", DecoderPref.h265)
-								])
-                            }
 							CatItem("Frame Rate") {
 								MultiPicker(selection: $settings.preferredFramesPerSecond, options:
 								[
@@ -121,27 +121,30 @@ struct SettingsView: View {
 									Choice("30 FPS", 30)
 								])
 							}
+							CatItem("Codec") {
+								MultiPicker(selection: $settings.decoder, options:
+								[
+									Choice("H.264", DecoderPref.h264),
+									Choice("Prefer H.265", DecoderPref.h265)
+								])
+							}
 							CatItem("Decoder Compatibility") {
 								Toggle("", isOn: $settings.decoderCompatibility)
 									.frame(width: 80)
 							}
-                        }
-                        CatTitle("Misc")
-                        CatList {
-                            CatItem("Never Show Overlay") {
-                                Toggle("", isOn: $settings.noOverlay)
-                                    .frame(width: 80)
-                            }
-							CatItem("Hide Status Bar") {
-								Toggle("", isOn: $settings.hideStatusBar)
-									.frame(width: 80)
-							}
-							CatItem("Show Keyboard Button") {
-								Toggle("", isOn: $settings.showKeyboardButton)
-									.frame(width: 80)
-							}
-							CatItem("Always Show Status") {
+						}
+						CatTitle("During a Stream")
+						CatList {
+							CatItem("Show Stream Stats") {
 								Toggle("", isOn: $settings.alwaysShowStatus)
+									.frame(width: 80)
+							}
+							CatItem("Hide Menu Button") {
+								Toggle("", isOn: $settings.noOverlay)
+									.frame(width: 80)
+							}
+							CatItem(UIDevice.current.userInterfaceIdiom == .pad ? "Hide iPad Status Bar" : "Hide iPhone Status Bar") {
+								Toggle("", isOn: $settings.hideStatusBar)
 									.frame(width: 80)
 							}
 							CatItem("Picture in Picture") {
@@ -152,19 +155,22 @@ struct SettingsView: View {
 								Toggle("", isOn: $settings.startMuted)
 									.frame(width: 80)
 							}
+							CatItem("Remember Stream Options") {
+								Toggle("", isOn: $settings.saveSessionSettings)
+									.frame(width: 80)
+							}
+						}
+						CatTitle("Developer")
+						CatList {
 							CatItem("Auto Reconnect") {
 								Toggle("", isOn: $settings.autoReconnect)
 									.frame(width: 80)
 							}
 							if settings.autoReconnect {
-								CatItem("Reconnect Error Prompts") {
+								CatItem("Show Reconnect Errors") {
 									Toggle("", isOn: $settings.errorPrompts)
 										.frame(width: 80)
 								}
-							}
-							CatItem("Save Session Settings") {
-								Toggle("", isOn: $settings.saveSessionSettings)
-									.frame(width: 80)
 							}
 						}
 						Text(getVersionInfo())
