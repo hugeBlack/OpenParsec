@@ -69,6 +69,33 @@ struct CatItem<Content: View>: View {
 	}
 }
 
+struct CatSlider: View {
+	var title: String
+	var value: Binding<Double>
+	var range: ClosedRange<Double>
+	var step: Double
+
+	init(_ title: String, value: Binding<Double>, in range: ClosedRange<Double>, step: Double) {
+		self.title = title
+		self.value = value
+		self.range = range
+		self.step = step
+	}
+
+	var body: some View {
+		VStack(spacing: 4) {
+			HStack {
+				Text(title)
+					.lineLimit(1)
+				Spacer()
+				Text(String(format: "%.1f", value.wrappedValue))
+			}
+			Slider(value: value, in: range, step: step)
+		}
+		.padding(.horizontal)
+	}
+}
+
 /**
  * Choice
  *

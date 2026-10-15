@@ -69,21 +69,9 @@ struct SettingsView: View {
 									Choice("Second Finger", RightClickPosition.secondFinger)
 								])
 							}
-							CatItem("Pointer Speed") {
-								Slider(value: $settings.mouseSensitivity, in: 0.1...4, step: 0.1)
-									.frame(width: 200)
-								Text(String(format: "%.1f", settings.mouseSensitivity))
-							}
-							CatItem("Cursor Size") {
-								Slider(value: $settings.cursorScale, in: 0.1...4, step: 0.1)
-									.frame(width: 200)
-								Text(String(format: "%.1f", settings.cursorScale))
-							}
-							CatItem("Scroll Speed") {
-								Slider(value: $settings.scrollSensitivity, in: 0.5...5, step: 0.5)
-									.frame(width: 200)
-								Text(String(format: "%.1f", settings.scrollSensitivity))
-							}
+							CatSlider("Pointer Speed", value: $settings.mouseSensitivity, in: 0.1...4, step: 0.1)
+							CatSlider("Cursor Size", value: $settings.cursorScale, in: 0.1...4, step: 0.1)
+							CatSlider("Scroll Speed", value: $settings.scrollSensitivity, in: 0.5...5, step: 0.5)
 							CatItem("Reverse Scrolling") {
 								Toggle("", isOn: $settings.reverseScrollDirection)
 									.frame(width: 80)
