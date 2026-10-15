@@ -21,7 +21,6 @@ final class SettingsStore: ObservableObject {
 			"reverseScrollDirection": false,
 			"scrollSensitivity": 1.5,
 			"preferredFramesPerSecond": 60,
-			"decoderCompatibility": false,
 			"showKeyboardButton": true,
 			"alwaysShowStatus": false,
 			"enablePiP": false,
@@ -111,11 +110,6 @@ final class SettingsStore: ObservableObject {
 		set { store(newValue, "preferredFramesPerSecond") }
 	}
 
-	var decoderCompatibility: Bool { // Enable for stutter issues on some devices
-		get { defaults.bool(forKey: "decoderCompatibility") }
-		set { store(newValue, "decoderCompatibility") }
-	}
-
 	var showKeyboardButton: Bool {
 		get { defaults.bool(forKey: "showKeyboardButton") }
 		set { store(newValue, "showKeyboardButton") }
@@ -187,7 +181,6 @@ struct SettingsHandler {
 	static var reverseScrollDirection: Bool { get { SettingsStore.shared.reverseScrollDirection } set { SettingsStore.shared.reverseScrollDirection = newValue } }
 	static var scrollSensitivity: Double { get { SettingsStore.shared.scrollSensitivity } set { SettingsStore.shared.scrollSensitivity = newValue } }
 	static var preferredFramesPerSecond: Int { get { SettingsStore.shared.preferredFramesPerSecond } set { SettingsStore.shared.preferredFramesPerSecond = newValue } }
-	static var decoderCompatibility: Bool { get { SettingsStore.shared.decoderCompatibility } set { SettingsStore.shared.decoderCompatibility = newValue } }
 	static var showKeyboardButton: Bool { get { SettingsStore.shared.showKeyboardButton } set { SettingsStore.shared.showKeyboardButton = newValue } }
 	static var alwaysShowStatus: Bool { get { SettingsStore.shared.alwaysShowStatus } set { SettingsStore.shared.alwaysShowStatus = newValue } }
 	static var enablePiP: Bool { get { SettingsStore.shared.enablePiP } set { SettingsStore.shared.enablePiP = newValue } }

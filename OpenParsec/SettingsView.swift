@@ -128,10 +128,6 @@ struct SettingsView: View {
 									Choice("Prefer H.265", DecoderPref.h265)
 								])
 							}
-							CatItem("Decoder Compatibility") {
-								Toggle("", isOn: $settings.decoderCompatibility)
-									.frame(width: 80)
-							}
 						}
 						CatTitle("During a Stream")
 						CatList {
