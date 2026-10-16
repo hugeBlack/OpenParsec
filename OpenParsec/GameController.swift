@@ -38,8 +38,10 @@ class GamepadController {
 
     func registerControllerHandler() {
 		for controller in GCController.controllers() {
-			controllers.insert(controller)
-			if controllers.count > 1 { break }
+			if !controllers.contains(controller) {
+				guard controllers.count < maximumControllerCount else { continue }
+				controllers.insert(controller)
+			}
 
 			delegate?.inputManager(self, didConnect: controller)
 
@@ -126,11 +128,11 @@ class GamepadController {
 
     @objc func didDisconnectController(_ notification: Notification) {
 
-        guard let controller = notification.object as? GCController else { return }
-        controllers.remove(controller)
+        guard let controller = notification.object as? GCController, controllers.remove(controller) != nil else { return }
 
         delegate?.inputManager(self, didDisconnect: controller)
 		CParsec.sendGameControllerUnplugMessage(controllerId: 1)
+		DispatchQueue.main.async { [weak self] in self?.registerControllerHandler() }
     }
 
 	func ButtonFloatToParsecInt(_ value: Float) -> Int16 {
