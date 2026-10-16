@@ -515,12 +515,14 @@ class ParsecSDKBridge: ParsecService {
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 
 		// add release delay in case some games ignore instant key release
-		DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
-			keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: keyCode, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
-			ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+			var release = ParsecMessage()
+			release.type = MESSAGE_KEYBOARD
+			release.keyboard = ParsecKeyboardMessage(code: keyCode, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
+			ParsecClientSendMessage(self._parsec, &release)
 			if sendShift {
-				keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: KEY_LSHIFT, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
-				ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
+				release.keyboard = ParsecKeyboardMessage(code: KEY_LSHIFT, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
+				ParsecClientSendMessage(self._parsec, &release)
 			}
 		}
 	}
