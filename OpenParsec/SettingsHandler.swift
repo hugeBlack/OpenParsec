@@ -25,7 +25,7 @@ final class SettingsStore: ObservableObject {
 			"alwaysShowStatus": false,
 			"enablePiP": false,
 			"startMuted": false,
-			"autoReconnect": true,
+			"autoReconnectEnabled": true,
 			"errorPrompts": false,
 			"autoConnectOnLaunch": false,
 			"savedZoomEnabled": false,
@@ -129,8 +129,8 @@ final class SettingsStore: ObservableObject {
 	}
 
 	var autoReconnect: Bool {
-		get { defaults.bool(forKey: "autoReconnect") }
-		set { store(newValue, "autoReconnect") }
+		get { defaults.bool(forKey: "autoReconnectEnabled") }
+		set { store(newValue, "autoReconnectEnabled") }
 	}
 
 	var errorPrompts: Bool {
