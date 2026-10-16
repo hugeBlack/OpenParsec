@@ -145,6 +145,7 @@ struct ParsecStatusBar: View {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
 			isReconnecting = false
 			appNote("[reconnect] live again")
+			ParsecView.getHostUserData()
 			var pumping = false
 			if #available(iOS 15.0, *) { pumping = PictureInPictureManager.shared.isPumping }
 			if !pumping {
@@ -274,7 +275,7 @@ struct ParsecView: View {
 								showMenu = false
 							} else {
 								showMenu = true
-								getHostUserData()
+								ParsecView.getHostUserData()
 							}
 						}) {
 							Image("IconTransparent")
@@ -508,7 +509,7 @@ struct ParsecView: View {
 		let scaleFactor = UIScreen.main.nativeScale
 		ParsecResolution.updateClientResolution(width: Int(screenSize.width * scaleFactor), height: Int(screenSize.height * scaleFactor))
 
-		getHostUserData()
+		ParsecView.getHostUserData()
 
 		hideOverlay = SettingsHandler.noOverlay
 
@@ -635,7 +636,7 @@ struct ParsecView: View {
 		}
 	}
 
-	func getHostUserData() {
+	static func getHostUserData() {
 		let data = Data()
 		CParsec.sendUserData(type: .getVideoConfig, message: data)
 		CParsec.sendUserData(type: .getAdapterInfo, message: data)

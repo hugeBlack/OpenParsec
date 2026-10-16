@@ -162,6 +162,7 @@ class ParsecSDKBridge: ParsecService {
 	func reconnect(_ peerID: String) -> ParsecStatus {
 		sendReleaseMessage()
 		pollGeneration += 1
+		didSetResolution = false
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
 		ParsecBackgroundManager.shared.connectionDidEnd()
