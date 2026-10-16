@@ -227,12 +227,13 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		touchOverlay.inputDelegate = self
 		view.addSubview(touchOverlay)
 
-		let menuEdgeGestureRecognizer = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
-		menuEdgeGestureRecognizer.edges = SettingsHandler.menuSwipeEdge == .left ? .left : .right
-		menuEdgeGestureRecognizer.allowedTouchTypes = [0]
-		menuEdgeGestureRecognizer.cancelsTouchesInView = true
-		menuEdgeGestureRecognizer.delaysTouchesBegan = true
-		view.addGestureRecognizer(menuEdgeGestureRecognizer)
+		if SettingsHandler.menuSwipeEdge != .off {
+			let menuEdgeGestureRecognizer = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
+			menuEdgeGestureRecognizer.edges = SettingsHandler.menuSwipeEdge == .left ? .left : .right
+			menuEdgeGestureRecognizer.allowedTouchTypes = [0]
+			menuEdgeGestureRecognizer.cancelsTouchesInView = true
+			view.addGestureRecognizer(menuEdgeGestureRecognizer)
+		}
 
 		// Cursor is a screen-space overlay ON TOP of everything (not inside the scroll view), so the
 		// zoom transform never scales it - keeping it crisp and a constant on-screen size.

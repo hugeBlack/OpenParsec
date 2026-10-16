@@ -463,9 +463,7 @@ struct ParsecView: View {
 		parsecViewController.onMenuEdgeSwipe = {
 			DispatchQueue.main.async {
 				menuVisibility.wrappedValue = true
-				let data = Data()
-				CParsec.sendUserData(type: .getVideoConfig, message: data)
-				CParsec.sendUserData(type: .getAdapterInfo, message: data)
+				getHostUserData()
 			}
 		}
 

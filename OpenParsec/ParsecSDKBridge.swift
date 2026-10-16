@@ -26,6 +26,12 @@ enum RightClickPosition: Int {
 	case secondFinger
 }
 
+enum MenuSwipeEdge: Int {
+	case left
+	case right
+	case off
+}
+
 struct KeyBoardKeyEvent {
 	var input: UIKey?
 	var isPressBegin: Bool
