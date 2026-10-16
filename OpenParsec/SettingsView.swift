@@ -134,8 +134,8 @@ struct SettingsView: View {
 								Toggle("", isOn: $settings.alwaysShowStatus)
 									.frame(width: 80)
 							}
-							CatItem("Hide Menu Button") {
-								Toggle("", isOn: $settings.noOverlay)
+							CatItem("Show Menu Button") {
+								Toggle("", isOn: Binding(get: { !settings.noOverlay }, set: { settings.noOverlay = !$0 }))
 									.frame(width: 80)
 							}
 							CatItem(UIDevice.current.userInterfaceIdiom == .pad ? "Hide iPad Status Bar" : "Hide iPhone Status Bar") {

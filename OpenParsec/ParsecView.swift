@@ -184,8 +184,10 @@ struct ParsecView: View {
 	@State var metricInfo: String = "Loading..."
 
 	@State var hideOverlay: Bool = false
+	@State var hideKeyboardButton: Bool = false
+	@AppStorage("keyboardHintShown") var keyboardHintShown: Bool = false
+	@State var hint: String?
 	@State var showMenu: Bool = false
-	@State var showMenuSwipeHint: Bool = false
 	@AppStorage("menuSwipeHintShown") var menuSwipeHintShown: Bool = false
 
 	@State var showKeyboard: Bool = false
@@ -269,8 +271,9 @@ struct ParsecView: View {
 					.zIndex(3)
 			}
 
-			if showMenuSwipeHint {
-				Text("Swipe from the left edge to show the menu")
+			if let hint = hint {
+				Text(hint)
+					.multilineTextAlignment(.center)
 					.foregroundColor(.white)
 					.padding(.horizontal, 16)
 					.padding(.vertical, 10)
@@ -303,30 +306,29 @@ struct ParsecView: View {
 						.edgesIgnoringSafeArea(.all)
 						Spacer()
 					}
-					if SettingsHandler.showKeyboardButton {
-						HStack {
-							Button(action: toggleKeyboard) {
-								Image(systemName: "keyboard")
-									.resizable()
-									.aspectRatio(contentMode: .fit)
-									.frame(width: 32, height: 32)
-									.foregroundColor(Color("Foreground"))
-									.padding(8)
-									.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showKeyboard ? 0.75 : 0.5)))
-									.cornerRadius(8)
-							}
-							.padding(.leading)
-							.edgesIgnoringSafeArea(.all)
-							Spacer()
+				}
+				if !hideKeyboardButton {
+					HStack {
+						Button(action: toggleKeyboard) {
+							Image(systemName: "keyboard")
+								.resizable()
+								.aspectRatio(contentMode: .fit)
+								.frame(width: 32, height: 32)
+								.foregroundColor(Color("Foreground"))
+								.padding(8)
+								.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showKeyboard ? 0.75 : 0.5)))
+								.cornerRadius(8)
 						}
+						.padding(.leading)
+						.edgesIgnoringSafeArea(.all)
+						Spacer()
 					}
-
 				}
 				if showMenu {
 					HStack {
 						VStack(spacing: 3) {
 							Button(action: disableOverlay) {
-								Text("Hide Overlay")
+								Text("Hide Buttons")
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
@@ -525,13 +527,16 @@ struct ParsecView: View {
 		ParsecView.getHostUserData()
 
 		hideOverlay = SettingsHandler.noOverlay
+		hideKeyboardButton = !SettingsHandler.showKeyboardButton
 		parsecViewController.setMenuEdgeSwipeEnabled(hideOverlay)
-		if hideOverlay { offerMenuSwipeHint() }
+		offerHint()
 
 		let overlayHidden = $hideOverlay
+		let keyboardButtonHidden = $hideKeyboardButton
 		let menuShown = $showMenu
 		parsecViewController.onMenuEdgeSwipe = {
 			overlayHidden.wrappedValue = false
+			keyboardButtonHidden.wrappedValue = !SettingsHandler.showKeyboardButton
 			menuShown.wrappedValue = true
 			ParsecView.getHostUserData()
 		}
@@ -546,17 +551,22 @@ struct ParsecView: View {
 
 	func disableOverlay() {
 		hideOverlay = true
+		hideKeyboardButton = true
 		showMenu = false
 		parsecViewController.setMenuEdgeSwipeEnabled(true)
-		offerMenuSwipeHint()
+		offerHint(always: true)
 	}
 
-	func offerMenuSwipeHint() {
-		guard !menuSwipeHintShown else { return }
-		menuSwipeHintShown = true
-		withAnimation { showMenuSwipeHint = true }
-		DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-			withAnimation { showMenuSwipeHint = false }
+	func offerHint(always: Bool = false) {
+		let menu = hideOverlay && (always || !menuSwipeHintShown)
+		let keyboard = hideKeyboardButton && (always || !keyboardHintShown)
+		guard menu || keyboard else { return }
+		if menu { menuSwipeHintShown = true }
+		if keyboard { keyboardHintShown = true }
+		let text = [menu ? "Swipe from the left edge for the menu" : nil, keyboard ? "Tap with three fingers to show or hide the keyboard" : nil].compactMap { $0 }.joined(separator: "\n")
+		withAnimation { hint = text }
+		DispatchQueue.main.asyncAfter(deadline: .now() + (menu && keyboard ? 6 : 4)) {
+			withAnimation { hint = nil }
 		}
 	}
 

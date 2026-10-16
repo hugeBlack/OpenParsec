@@ -986,7 +986,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	}
 
 	@objc func handleThreeFinderTap(_ gestureRecognizer: UITapGestureRecognizer) {
-		showKeyboard()
+		setKeyboardVisible(!keyboardVisible)
 	}
 
 	@objc func handleLongPress(_ gestureRecognizer: UIGestureRecognizer) {
@@ -1341,10 +1341,6 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 	@objc func doneTapped() {
 		// Resign first responder to dismiss the keyboard
 		resignFirstResponder()
-	}
-
-	@objc func showKeyboard() {
-		becomeFirstResponder()
 	}
 
 	// CRITICAL: This is the robust way to show the keyboard.
