@@ -76,6 +76,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var keyboardAccessoriesView: UIView?
 	var keyboardHeight: CGFloat = 0.0
 	var keyboardVisible: Bool = false
+	var pinnedToKeyboard = false
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
 	var onMenuEdgeSwipe: (() -> Void)?
 	var menuEdgeSwipe: UIScreenEdgePanGestureRecognizer?
@@ -182,7 +183,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 						centerViewportOnCursorPos()
 						positionCursorOverlay()
 					}
-				} else if keyboardVisible && scrollView.contentInset.bottom > 0 {
+				} else if keyboardVisible && scrollView.contentInset.bottom > 0 && !pinnedToKeyboard {
 					// Not zoomed: keep the cursor above the on-screen keyboard.
 					let margin: CGFloat = 50.0
 					let effectiveViewHeight = view.bounds.height - keyboardHeight
@@ -535,24 +536,59 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
             // Allow scrolling past current bottom to see hidden content
             scrollView.contentInset.bottom = height
 
+			if scrollView.zoomScale <= 1.0, let shift = pictureShiftAboveKeyboard(height - accessoryClearBand) {
+				pinnedToKeyboard = true
+				scrollView.contentInset.top = max(0, -shift)
+				scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: shift), animated: true)
+				onKeyboardVisibilityChanged?(true)
+				return
+			}
+			var baseY = scrollView.contentOffset.y
+			if pinnedToKeyboard {
+				pinnedToKeyboard = false
+				scrollView.contentInset.top = 0
+				baseY = 0
+			}
+
             // Automatic scroll up only if mouse is in the bottom half of the screen
             let mouseY = CGFloat(CParsec.mouseInfo.mouseY)
             let screenMidY = view.bounds.height / 2.1
 
             if mouseY > screenMidY {
                  let maxOffsetY = max(0, scrollView.contentSize.height - scrollView.bounds.height + height)
-                 let newOffsetY = min(maxOffsetY, scrollView.contentOffset.y + height / 1.25)
+                 let newOffsetY = min(maxOffsetY, baseY + height / 1.25)
 
                  scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: newOffsetY), animated: true)
 
-            }
+            } else if baseY != scrollView.contentOffset.y {
+				scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: baseY), animated: true)
+			}
 		}
 		onKeyboardVisibilityChanged?(true)
+	}
+
+	var accessoryClearBand: CGFloat {
+		keyboardAccessoriesView?.subviews.first?.frame.minY ?? 0
+	}
+
+	func pictureShiftAboveKeyboard(_ keyboard: CGFloat) -> CGFloat? {
+		let w = view.bounds.width, h = view.bounds.height
+		guard keyboard > 0, CParsec.hostWidth > 0, CParsec.hostHeight > 0 else { return nil }
+		let picture = min(h, w * CGFloat(CParsec.hostHeight / CParsec.hostWidth))
+		guard picture <= h - keyboard else { return nil }
+		return keyboard - (h - picture) / 2
 	}
 
 	@objc func keyboardWillHide(notification: NSNotification) {
 		keyboardHeight = 0.0
         keyboardVisible = false
+		if pinnedToKeyboard {
+			pinnedToKeyboard = false
+			scrollView.contentInset = .zero
+			scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: 0), animated: true)
+			onKeyboardVisibilityChanged?(false)
+			return
+		}
 
         // Restore inset
         scrollView.contentInset.bottom = 0
@@ -920,6 +956,10 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		let contentX = (anchor.x + off.x) / oldZoom
 		let contentY = (anchor.y + off.y) / oldZoom
 		scrollView.zoomScale = newZoom
+		if pinnedToKeyboard {
+			pinnedToKeyboard = false
+			scrollView.contentInset.top = 0
+		}
 		var newOff = CGPoint(x: contentX * newZoom - anchor.x, y: contentY * newZoom - anchor.y)
 		let maxX = max(0, scrollView.contentSize.width - scrollView.bounds.width)
 		let maxY = max(0, scrollView.contentSize.height - scrollView.bounds.height)
@@ -1195,7 +1235,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		}
         // Refactored to UIView with autoresizing mask for better landscape support
         // Using frame-based layout for the container to avoid constraint conflicts with keyboard
-		let containerView = UIView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 94))
+		let containerView = AccessoryContainerView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 94))
         containerView.autoresizingMask = [.flexibleWidth]
         containerView.backgroundColor = .clear
 
@@ -1396,4 +1436,10 @@ class TouchOverlayView: UIView {
 	override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: true) }
 	override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
 	override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
+}
+
+final class AccessoryContainerView: UIView {
+	override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+		subviews.contains { $0.frame.contains(point) }
+	}
 }
