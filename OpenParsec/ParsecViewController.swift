@@ -77,6 +77,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var keyboardHeight: CGFloat = 0.0
 	var keyboardVisible: Bool = false
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
+	var onMenuEdgeSwipe: (() -> Void)?
+	var menuEdgeSwipe: UIScreenEdgePanGestureRecognizer?
 	var scrollView: UIScrollView!
 	var contentView: UIView!
 	var lastLaidOutWidth: CGFloat = 0
@@ -300,6 +302,15 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		// Don't cancel the overlay's touch, so the click-hold button can be released on lift.
 		longPressGestureRecognizer.cancelsTouchesInView = false
 		view.addGestureRecognizer(longPressGestureRecognizer)
+
+		let edgeSwipe = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
+		edgeSwipe.edges = .left
+		edgeSwipe.maximumNumberOfTouches = 1
+		edgeSwipe.allowedTouchTypes = [0]
+		edgeSwipe.delaysTouchesBegan = true
+		edgeSwipe.isEnabled = false
+		view.addGestureRecognizer(edgeSwipe)
+		menuEdgeSwipe = edgeSwipe
 
 		NotificationCenter.default.addObserver(
 			self,
@@ -562,6 +573,16 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 
 	func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
 		return true
+	}
+
+	func setMenuEdgeSwipeEnabled(_ enabled: Bool) {
+		menuEdgeSwipe?.isEnabled = enabled
+	}
+
+	@objc private func handleMenuEdgeSwipe(_ gestureRecognizer: UIScreenEdgePanGestureRecognizer) {
+		guard gestureRecognizer.state == .began else { return }
+		onMenuEdgeSwipe?()
+		gestureRecognizer.isEnabled = false
 	}
 
 	@objc func handlePinchGesture(_ gestureRecognizer: UIPinchGestureRecognizer) {

@@ -185,6 +185,8 @@ struct ParsecView: View {
 
 	@State var hideOverlay: Bool = false
 	@State var showMenu: Bool = false
+	@State var showMenuSwipeHint: Bool = false
+	@AppStorage("menuSwipeHintShown") var menuSwipeHintShown: Bool = false
 
 	@State var showKeyboard: Bool = false
 	@State var zoomEnabled: Bool = false
@@ -264,6 +266,17 @@ struct ParsecView: View {
 					.padding(.vertical, 10)
 					.background(Color("BackgroundPrompt").opacity(0.85))
 					.cornerRadius(8)
+					.zIndex(3)
+			}
+
+			if showMenuSwipeHint {
+				Text("Swipe from the left edge to show the menu")
+					.foregroundColor(.white)
+					.padding(.horizontal, 16)
+					.padding(.vertical, 10)
+					.background(Color("BackgroundPrompt").opacity(0.85))
+					.cornerRadius(8)
+					.allowsHitTesting(false)
 					.zIndex(3)
 			}
 
@@ -512,6 +525,16 @@ struct ParsecView: View {
 		ParsecView.getHostUserData()
 
 		hideOverlay = SettingsHandler.noOverlay
+		parsecViewController.setMenuEdgeSwipeEnabled(hideOverlay)
+		if hideOverlay { offerMenuSwipeHint() }
+
+		let overlayHidden = $hideOverlay
+		let menuShown = $showMenu
+		parsecViewController.onMenuEdgeSwipe = {
+			overlayHidden.wrappedValue = false
+			menuShown.wrappedValue = true
+			ParsecView.getHostUserData()
+		}
 
         let keyboardShown = $showKeyboard
         parsecViewController.onKeyboardVisibilityChanged = { visible in
@@ -524,6 +547,17 @@ struct ParsecView: View {
 	func disableOverlay() {
 		hideOverlay = true
 		showMenu = false
+		parsecViewController.setMenuEdgeSwipeEnabled(true)
+		offerMenuSwipeHint()
+	}
+
+	func offerMenuSwipeHint() {
+		guard !menuSwipeHintShown else { return }
+		menuSwipeHintShown = true
+		withAnimation { showMenuSwipeHint = true }
+		DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+			withAnimation { showMenuSwipeHint = false }
+		}
 	}
 
 	func toggleMute() {
