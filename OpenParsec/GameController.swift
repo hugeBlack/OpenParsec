@@ -98,6 +98,13 @@ class GamepadController {
 				guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
 				CParsec.sendMouseClickMessage(MOUSE_MIDDLE, pressed)
 				}
+			for (index, button) in (mouse.mouseInput?.auxiliaryButtons ?? []).prefix(2).enumerated() {
+				let target = index == 0 ? MOUSE_X1 : MOUSE_X2
+				button.pressedChangedHandler = {(_: GCControllerButtonInput, _: Float, pressed: Bool) in
+					guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
+					CParsec.sendMouseClickMessage(target, pressed)
+				}
+			}
 			mouse.mouseInput?.mouseMovedHandler={(_: GCMouseInput, v: Float, v2: Float) in
 				CParsec.sendMouseDelta(Int32(v/1.25 * Float(SettingsHandler.mouseSensitivity)), Int32(-v2/1.25 * Float(SettingsHandler.mouseSensitivity)))
 				}
