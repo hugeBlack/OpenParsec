@@ -486,11 +486,15 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		repeatKeyCode = keyCode
 
 		repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
-			guard let self = self else { return }
-			self.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true) { [weak self] _ in
+			MainActor.assumeIsolated {
 				guard let self = self else { return }
-				CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: false)
-				CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: true)
+				self.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true) { [weak self] _ in
+					MainActor.assumeIsolated {
+						guard let self = self else { return }
+						CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: false)
+						CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: true)
+					}
+				}
 			}
 		}
 	}
