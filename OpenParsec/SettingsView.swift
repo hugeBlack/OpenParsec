@@ -104,6 +104,9 @@ struct SettingsView: View {
 							CatItem("Resolution") {
 								MultiPicker(selection: $settings.resolution, options: resolutionChoices)
 							}
+							CatItem("Bitrate") {
+								MultiPicker(selection: $settings.bitrate, options: [Choice("Host Default", 0)] + ParsecResolution.bitrates.map { Choice("\($0) Mbps", $0) })
+							}
 							CatItem("Frame Rate") {
 								MultiPicker(selection: $settings.preferredFramesPerSecond, options:
 								[

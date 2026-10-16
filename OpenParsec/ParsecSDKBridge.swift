@@ -316,9 +316,15 @@ class ParsecSDKBridge: ParsecService {
 					}
 					if !self.didSetResolution {
 						self.didSetResolution = true
+						if DataManager.model.hostDefaultBitrate == 0 {
+							DataManager.model.hostDefaultBitrate = DataManager.model.bitrate
+						}
 						DataManager.model.resolutionX = SettingsHandler.resolution.width
 						DataManager.model.resolutionY = SettingsHandler.resolution.height
 						DataManager.model.constantFps = SettingsHandler.constantFps
+						if SettingsHandler.bitrate > 0 {
+							DataManager.model.bitrate = SettingsHandler.bitrate
+						}
 						self.updateHostVideoConfig()
 					}
 				}

@@ -202,6 +202,7 @@ struct ParsecView: View {
 
     // Observer shared state for updates
     @ObservedObject var dataModel = DataManager.model
+	@ObservedObject var settingsStore = SettingsStore.shared
 
     // Computed property for convenience refactoring
     var parsecViewController: ParsecViewController {
@@ -341,11 +342,20 @@ struct ParsecView: View {
 									.multilineTextAlignment(.center)
 							}
 							Menu {
+								Button(action: {
+									changeBitRate(bitrate: 0)
+								}) {
+									if settingsStore.bitrate == 0 {
+										Label("Host Default", systemImage: "checkmark")
+									} else {
+										Text("Host Default")
+									}
+								}
 								ForEach(bitrates, id: \.self) { bitrate in
 									Button(action: {
 										changeBitRate(bitrate: bitrate)
 									}) {
-                                        if bitrate == dataModel.bitrate {
+                                        if bitrate == settingsStore.bitrate {
                                             Label("\(bitrate) Mbps", systemImage: "checkmark")
                                         } else {
                                             Text("\(bitrate) Mbps")
@@ -585,11 +595,14 @@ struct ParsecView: View {
 
 	func changeBitRate(bitrate: Int) {
 		SettingsHandler.bitrate = bitrate
+		applyBitrate()
+	}
 
-		DispatchQueue.main.async {
-			DataManager.model.bitrate = bitrate
-			CParsec.updateHostVideoConfig()
-		}
+	func applyBitrate() {
+		let target = SettingsHandler.bitrate > 0 ? SettingsHandler.bitrate : DataManager.model.hostDefaultBitrate
+		guard target > 0, target != DataManager.model.bitrate else { return }
+		DataManager.model.bitrate = target
+		CParsec.updateHostVideoConfig()
 	}
 
 	func toggleConstantFps() {
