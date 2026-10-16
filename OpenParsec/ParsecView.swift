@@ -387,13 +387,13 @@ struct ParsecView: View {
 							}
 
 							Button(action: toggleConstantFps) {
-								Text("Constant FPS: \(dataModel.constantFps ? "ON" : "OFF")")
+								Text("Constant Frame Rate: \(dataModel.constantFps ? "ON" : "OFF")")
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
 							}
 							Button(action: toggleZoom) {
-								Text("Zoom: \(zoomEnabled ? "ON" : "OFF")")
+								Text("Pinch to Zoom: \(zoomEnabled ? "ON" : "OFF")")
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
@@ -412,7 +412,7 @@ struct ParsecView: View {
 						}
 						.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
 						.foregroundColor(Color("Foreground"))
-						.frame(maxWidth: 175)
+						.frame(maxWidth: 230)
 						.cornerRadius(8)
 						.padding(.horizontal)
 						// .edgesIgnoringSafeArea(.all)
