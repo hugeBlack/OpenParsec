@@ -72,6 +72,7 @@ class ParsecSDKBridge: ParsecService {
 	}
 	var didSetResolution = false
 	private var didReleaseOnConnect = false
+	private var capsLock = false
 
 	public var mouseInfo = MouseInfo()
 
@@ -552,6 +553,8 @@ class ParsecSDKBridge: ParsecService {
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
 		keyboardMessagePress.keyboard.pressed = event.isPressBegin
+		capsLock = event.input?.modifierFlags.contains(.alphaShift) == true
+		keyboardMessagePress.keyboard.mod = capsLock ? MOD_CAPS : MOD_NONE
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
 
@@ -561,6 +564,7 @@ class ParsecSDKBridge: ParsecService {
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(keyCode)
 		keyboardMessagePress.keyboard.pressed = pressed
+		keyboardMessagePress.keyboard.mod = capsLock ? MOD_CAPS : MOD_NONE
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
 	
