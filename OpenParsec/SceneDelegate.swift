@@ -40,6 +40,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	func sceneDidBecomeActive(_ scene: UIScene) {
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.stopPiP()
+			if PictureInPictureManager.shared.stopFramePump() {
+				ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			}
 		}
 		if ParsecBackgroundManager.shared.isPaused {
 			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
@@ -80,6 +83,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 		if pipAttempted {
 			ParsecBackgroundManager.shared.isPaused = false
+			if #available(iOS 15.0, *) {
+				ParsecBackgroundManager.shared.glkViewController?.isPaused = true
+				PictureInPictureManager.shared.startFramePump()
+			}
 		}
 
 		if !pipAttempted && ParsecBackgroundManager.shared.hasActiveConnection {

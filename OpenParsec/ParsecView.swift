@@ -145,7 +145,11 @@ struct ParsecStatusBar: View {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
 			isReconnecting = false
 			appNote("[reconnect] live again")
-			ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			var pumping = false
+			if #available(iOS 15.0, *) { pumping = PictureInPictureManager.shared.isPumping }
+			if !pumping {
+				ParsecBackgroundManager.shared.glkViewController?.isPaused = false
+			}
 			// SDK forgets stream dims on reconnect, re-send them so the frame fills not corners
 			if let vc = parsecViewController {
 				CParsec.setFrame(vc.view.bounds.width, vc.view.bounds.height, UIScreen.main.scale)
@@ -154,7 +158,7 @@ struct ParsecStatusBar: View {
 
 		if showMenu || SettingsHandler.alwaysShowStatus {
 			let str = String.fromBuffer(&pcs.decoder.0.name.0, length: 16)
-			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    RTx \(pcs.`self`.metrics.0.fastRTs + pcs.`self`.metrics.0.slowRTs)    Queue \(pcs.`self`.metrics.0.queuedFrames)    Draw \(String(format: "%.0f", CParsec.drawRate))fps    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
+			metricInfo = "Decode \(String(format: "%.2f", pcs.`self`.metrics.0.decodeLatency))ms    Encode \(String(format: "%.2f", pcs.`self`.metrics.0.encodeLatency))ms    Network \(String(format: "%.2f", pcs.`self`.metrics.0.networkLatency))ms    Bitrate \(String(format: "%.2f", pcs.`self`.metrics.0.bitrate))Mbps    RTx \(pcs.`self`.metrics.0.fastRTs + pcs.`self`.metrics.0.slowRTs)    Queue \(pcs.`self`.metrics.0.queuedFrames)    Draw \(String(format: "%.0f", CParsec.drawRate))fps \(CParsec.rendererName)    \(pcs.decoder.0.h265 ? "H265" : "H264") \(pcs.decoder.0.width)x\(pcs.decoder.0.height) \(pcs.decoder.0.color444 ? "4:4:4" : "4:2:0") \(str)"
 		}
 	}
 
