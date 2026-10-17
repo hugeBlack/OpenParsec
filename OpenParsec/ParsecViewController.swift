@@ -75,6 +75,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var keyboardHeight: CGFloat = 0.0
 	var keyboardVisible: Bool = false
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
+	var onMenuEdgeSwipe: (() -> Void)?
 	var scrollView: UIScrollView!
 	var contentView: UIView!
 	var lastLaidOutWidth: CGFloat = 0
@@ -237,6 +238,14 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		touchOverlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 		touchOverlay.inputDelegate = self
 		view.addSubview(touchOverlay)
+
+		if SettingsHandler.menuSwipeEdge != .off {
+			let menuEdgeGestureRecognizer = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
+			menuEdgeGestureRecognizer.edges = SettingsHandler.menuSwipeEdge == .left ? .left : .right
+			menuEdgeGestureRecognizer.allowedTouchTypes = [0]
+			menuEdgeGestureRecognizer.cancelsTouchesInView = true
+			view.addGestureRecognizer(menuEdgeGestureRecognizer)
+		}
 
 		// Cursor is a screen-space overlay ON TOP of everything (not inside the scroll view), so the
 		// zoom transform never scales it - keeping it crisp and a constant on-screen size.
@@ -550,6 +559,11 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 
 	func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
 		return true
+	}
+
+	@objc private func handleMenuEdgeSwipe(_ gestureRecognizer: UIScreenEdgePanGestureRecognizer) {
+		guard gestureRecognizer.state == .began else { return }
+		onMenuEdgeSwipe?()
 	}
 
 	@objc func handlePinchGesture(_ gestureRecognizer: UIPinchGestureRecognizer) {

@@ -10,6 +10,7 @@ struct SettingsHandler {
 	@AppStorage("cursorScale") public static var cursorScale: Double = 0.5
 	@AppStorage("mouseSensitivity") public static var mouseSensitivity: Double = 1.0
 	@AppStorage("optionAsCommand") public static var optionAsCommand: Bool = false
+	@AppStorage("menuSwipeEdge") public static var menuSwipeEdge: MenuSwipeEdge = .off
 	@AppStorage("noOverlay") public static var noOverlay: Bool = false
 	@AppStorage("hideStatusBar") public static var hideStatusBar: Bool = true
 	@AppStorage("rightClickPosition") public static var rightClickPosition: RightClickPosition = .firstFinger
