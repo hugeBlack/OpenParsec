@@ -189,16 +189,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 						centerViewportOnCursorPos()
 						positionCursorOverlay()
 					}
-				} else if keyboardVisible && scrollView.contentInset.bottom > 0 && !pinnedToKeyboard && SettingsHandler.cursorMode != .direct {
+				} else {
 					// Not zoomed: keep the cursor above the on-screen keyboard.
-					let margin: CGFloat = 50.0
-					let effectiveViewHeight = view.bounds.height - keyboardHeight
-					if u!.frame.maxY > effectiveViewHeight - margin {
-						let diff = u!.frame.maxY - (effectiveViewHeight - margin)
-						let maxOffsetY = max(0, scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom)
-						let targetOffsetY = min(scrollView.contentOffset.y + diff, maxOffsetY)
-						scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: targetOffsetY), animated: false)
-					}
+					keepCursorAboveKeyboard()
 				}
 			}
 		} else {
@@ -881,6 +874,8 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 			}
 		} else {
 			centerViewportOnCursorPos()
+			positionCursorOverlay()
+			keepCursorAboveKeyboard()
 		}
 		positionCursorOverlay()
 	}
@@ -1029,6 +1024,8 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		if pinnedToKeyboard {
 			pinnedToKeyboard = false
 			scrollView.contentInset.top = 0
+			keyboardCoversPicture = keyboardHeight > 0
+			updatePanHandle()
 		}
 		var newOff = CGPoint(x: contentX * newZoom - anchor.x, y: contentY * newZoom - anchor.y)
 		let maxX = max(0, scrollView.contentSize.width - scrollView.bounds.width)
@@ -1124,12 +1121,34 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		return contentView
 	}
 
+	func scrollViewDidScroll(_ scrollView: UIScrollView) {
+		positionCursorOverlay()
+	}
+
 	func scrollViewDidZoom(_ scrollView: UIScrollView) {
 		// Centering is handled on cursor movement (updateImage) and at the end of a pinch.
 	}
 
 	func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
 		centerViewportOnCursorPos()
+	}
+
+	func keepCursorAboveKeyboard() {
+		guard scrollView.zoomScale <= 1.0, keyboardVisible, scrollView.contentInset.bottom > 0, !pinnedToKeyboard,
+			  SettingsHandler.cursorMode != .direct, let cursor = u, !cursor.isHidden else { return }
+		let visibleBottom = view.bounds.height - keyboardHeight
+		let margin = min(50, max(0, (visibleBottom - cursor.frame.height) / 2 - 1))
+		let maxOffsetY = max(0, scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom)
+		var target = scrollView.contentOffset.y
+		if cursor.frame.maxY > visibleBottom - margin {
+			target += cursor.frame.maxY - (visibleBottom - margin)
+		} else if cursor.frame.minY < margin {
+			target -= margin - cursor.frame.minY
+		}
+		target = min(max(0, target), maxOffsetY)
+		guard target != scrollView.contentOffset.y else { return }
+		scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: target), animated: false)
+		positionCursorOverlay()
 	}
 
 	// Slides the viewport so the host cursor stays centered on screen while zoomed in,
