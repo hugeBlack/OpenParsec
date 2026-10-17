@@ -32,6 +32,12 @@ final class SettingsStore: ObservableObject {
 			"savedZoomEnabled": false,
 			"savedConstantFps": false
 		])
+		// values saved back when saving was off would now always apply
+		if defaults.object(forKey: "saveSessionSettings") as? Bool == false {
+			defaults.set(false, forKey: "savedZoomEnabled")
+			defaults.set(false, forKey: "savedConstantFps")
+		}
+		defaults.removeObject(forKey: "saveSessionSettings")
 	}
 
 	private func store(_ value: Any, _ key: String) {
