@@ -138,6 +138,14 @@ struct SettingsView: View {
 								Toggle("", isOn: $settings.noOverlay)
 									.frame(width: 80)
 							}
+							CatItem("Menu Edge Swipe") {
+								MultiPicker(selection: $settings.menuSwipeEdge, options:
+								[
+									Choice("Off", MenuSwipeEdge.off),
+									Choice("Left Edge", MenuSwipeEdge.left),
+									Choice("Right Edge", MenuSwipeEdge.right)
+								])
+							}
 							CatItem(UIDevice.current.userInterfaceIdiom == .pad ? "Hide iPad Status Bar" : "Hide iPhone Status Bar") {
 								Toggle("", isOn: $settings.hideStatusBar)
 									.frame(width: 80)

@@ -99,11 +99,23 @@ class GamepadController {
 			mouse.mouseInput?.mouseMovedHandler={(_: GCMouseInput, v: Float, v2: Float) in
 				CParsec.sendMouseDelta(Int32(v/1.25 * Float(SettingsHandler.mouseSensitivity)), Int32(-v2/1.25 * Float(SettingsHandler.mouseSensitivity)))
 				}
+			var accumulatedScrollX: Float = 0
 			mouse.mouseInput?.scroll.yAxis.valueChangedHandler = {(_: GCControllerAxisInput, value: Float) in
-				CParsec.sendWheelMsg(x: Int32(value), y: 0)
+				accumulatedScrollX += value
+				let wheelX = Int32(accumulatedScrollX)
+				accumulatedScrollX -= Float(wheelX)
+				if wheelX != 0 {
+					CParsec.sendWheelMsg(x: wheelX, y: 0)
+				}
 			}
+			var accumulatedScrollY: Float = 0
 			mouse.mouseInput?.scroll.xAxis.valueChangedHandler = {(_: GCControllerAxisInput, value: Float) in
-				CParsec.sendWheelMsg(x: 0, y: Int32(value))
+				accumulatedScrollY += value
+				let wheelY = Int32(accumulatedScrollY)
+				accumulatedScrollY -= Float(wheelY)
+				if wheelY != 0 {
+					CParsec.sendWheelMsg(x: 0, y: wheelY)
+				}
 			}
 		}
 	}

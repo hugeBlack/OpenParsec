@@ -517,6 +517,13 @@ struct ParsecView: View {
         parsecViewController.onKeyboardVisibilityChanged = { visible in
             keyboardShown.wrappedValue = visible
         }
+		let menuVisibility = $showMenu
+		parsecViewController.onMenuEdgeSwipe = {
+			DispatchQueue.main.async {
+				menuVisibility.wrappedValue = true
+				getHostUserData()
+			}
+		}
 
 		parsecViewController.setKeyboardVisible(showKeyboard)
 	}

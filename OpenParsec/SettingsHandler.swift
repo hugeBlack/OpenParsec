@@ -15,6 +15,7 @@ final class SettingsStore: ObservableObject {
 			"cursorScale": 0.5,
 			"mouseSensitivity": 1.0,
 			"optionAsCommand": false,
+			"menuSwipeEdge": MenuSwipeEdge.off.rawValue,
 			"noOverlay": false,
 			"hideStatusBar": true,
 			"rightClickPosition": RightClickPosition.firstFinger.rawValue,
@@ -76,6 +77,11 @@ final class SettingsStore: ObservableObject {
 	var optionAsCommand: Bool {
 		get { defaults.bool(forKey: "optionAsCommand") }
 		set { store(newValue, "optionAsCommand") }
+	}
+
+	var menuSwipeEdge: MenuSwipeEdge {
+		get { MenuSwipeEdge(rawValue: defaults.integer(forKey: "menuSwipeEdge")) ?? .off }
+		set { store(newValue.rawValue, "menuSwipeEdge") }
 	}
 
 	var noOverlay: Bool {
@@ -163,6 +169,7 @@ struct SettingsHandler {
 	static var cursorScale: Double { get { SettingsStore.shared.cursorScale } set { SettingsStore.shared.cursorScale = newValue } }
 	static var mouseSensitivity: Double { get { SettingsStore.shared.mouseSensitivity } set { SettingsStore.shared.mouseSensitivity = newValue } }
 	static var optionAsCommand: Bool { get { SettingsStore.shared.optionAsCommand } set { SettingsStore.shared.optionAsCommand = newValue } }
+	static var menuSwipeEdge: MenuSwipeEdge { get { SettingsStore.shared.menuSwipeEdge } set { SettingsStore.shared.menuSwipeEdge = newValue } }
 	static var noOverlay: Bool { get { SettingsStore.shared.noOverlay } set { SettingsStore.shared.noOverlay = newValue } }
 	static var hideStatusBar: Bool { get { SettingsStore.shared.hideStatusBar } set { SettingsStore.shared.hideStatusBar = newValue } }
 	static var rightClickPosition: RightClickPosition { get { SettingsStore.shared.rightClickPosition } set { SettingsStore.shared.rightClickPosition = newValue } }
