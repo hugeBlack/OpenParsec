@@ -186,6 +186,7 @@ struct ParsecView: View {
 	@State var hideOverlay: Bool = false
 	@State var hideKeyboardButton: Bool = false
 	@AppStorage("keyboardHintShown") var keyboardHintShown: Bool = false
+	@AppStorage("keyboardPanHintShown") var keyboardPanHintShown: Bool = false
 	@State var hint: String?
 	@State var showMenu: Bool = false
 	@AppStorage("menuSwipeHintShown") var menuSwipeHintShown: Bool = false
@@ -279,6 +280,8 @@ struct ParsecView: View {
 					.padding(.vertical, 10)
 					.background(Color("BackgroundPrompt").opacity(0.85))
 					.cornerRadius(8)
+					.padding(.top, showKeyboard ? 100 : 0)
+					.frame(maxHeight: .infinity, alignment: showKeyboard ? .top : .center)
 					.allowsHitTesting(false)
 					.zIndex(3)
 			}
@@ -545,6 +548,16 @@ struct ParsecView: View {
         parsecViewController.onKeyboardVisibilityChanged = { visible in
             keyboardShown.wrappedValue = visible
         }
+		let hint = $hint
+		let panHintShown = $keyboardPanHintShown
+		parsecViewController.onKeyboardCoversPicture = {
+			guard !panHintShown.wrappedValue else { return }
+			panHintShown.wrappedValue = true
+			withAnimation { hint.wrappedValue = "Part of the screen is under the keyboard\nDrag ↕\u{FE0E} to move it into view" }
+			DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+				withAnimation { hint.wrappedValue = nil }
+			}
+		}
 
 		parsecViewController.setKeyboardVisible(showKeyboard)
 	}
