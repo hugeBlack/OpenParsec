@@ -145,6 +145,7 @@ struct ParsecStatusBar: View {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
 			isReconnecting = false
 			appNote("[reconnect] live again")
+			ParsecView.getHostUserData()
 			var pumping = false
 			if #available(iOS 15.0, *) { pumping = PictureInPictureManager.shared.isPumping }
 			if !pumping {
@@ -190,7 +191,6 @@ struct ParsecView: View {
 
 	@State var muted: Bool = false
 	@State var preferH265: Bool = true
-	@State var constantFps = false
 	@State var isReconnecting: Bool = false
 	@State var connectionLost: Bool = false
 
@@ -203,6 +203,7 @@ struct ParsecView: View {
 
     // Observer shared state for updates
     @ObservedObject var dataModel = DataManager.model
+	@ObservedObject var settingsStore = SettingsStore.shared
 
     // Computed property for convenience refactoring
     var parsecViewController: ParsecViewController {
@@ -214,10 +215,8 @@ struct ParsecView: View {
 	init(_ controller: ContentView?) {
 		self.controller = controller
 
-		let save = SettingsHandler.saveSessionSettings
-		_muted = State(initialValue: SettingsHandler.startMuted || (save && SettingsHandler.savedMuted))
-		_zoomEnabled = State(initialValue: save ? SettingsHandler.savedZoomEnabled : false)
-		_constantFps = State(initialValue: save ? SettingsHandler.savedConstantFps : false)
+		_muted = State(initialValue: SettingsHandler.startMuted)
+		_zoomEnabled = State(initialValue: SettingsHandler.zoomEnabled)
 		_resolutions = State(initialValue: ParsecResolution.resolutions)
 		_bitrates = State(initialValue: ParsecResolution.bitrates)
 
@@ -276,7 +275,7 @@ struct ParsecView: View {
 								showMenu = false
 							} else {
 								showMenu = true
-								getHostUserData()
+								ParsecView.getHostUserData()
 							}
 						}) {
 							Image("IconTransparent")
@@ -344,11 +343,20 @@ struct ParsecView: View {
 									.multilineTextAlignment(.center)
 							}
 							Menu {
+								Button(action: {
+									changeBitRate(bitrate: 0)
+								}) {
+									if settingsStore.bitrate == 0 {
+										Label("Host Default", systemImage: "checkmark")
+									} else {
+										Text("Host Default")
+									}
+								}
 								ForEach(bitrates, id: \.self) { bitrate in
 									Button(action: {
 										changeBitRate(bitrate: bitrate)
 									}) {
-                                        if bitrate == dataModel.bitrate {
+                                        if bitrate == settingsStore.bitrate {
                                             Label("\(bitrate) Mbps", systemImage: "checkmark")
                                         } else {
                                             Text("\(bitrate) Mbps")
@@ -380,13 +388,13 @@ struct ParsecView: View {
 							}
 
 							Button(action: toggleConstantFps) {
-								Text("Constant FPS: \(constantFps ? "ON" : "OFF")")
+								Text("Constant Frame Rate: \(dataModel.constantFps ? "ON" : "OFF")")
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
 							}
 							Button(action: toggleZoom) {
-								Text("Zoom: \(zoomEnabled ? "ON" : "OFF")")
+								Text("Pinch to Zoom: \(zoomEnabled ? "ON" : "OFF")")
 									.padding(8)
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
@@ -405,7 +413,7 @@ struct ParsecView: View {
 						}
 						.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
 						.foregroundColor(Color("Foreground"))
-						.frame(maxWidth: 175)
+						.frame(maxWidth: 230)
 						.cornerRadius(8)
 						.padding(.horizontal)
 						// .edgesIgnoringSafeArea(.all)
@@ -495,15 +503,13 @@ struct ParsecView: View {
 		if muted { CParsec.pause(video: false, audio: true) }
 		parsecViewController.setZoomEnabled(zoomEnabled)
 
-		if SettingsHandler.saveSessionSettings {
-			DataManager.model.constantFps = constantFps
-		}
+		DataManager.model.constantFps = SettingsHandler.constantFps
 
 		let screenSize: CGSize = self.parsecViewController.view.frame.size
 		let scaleFactor = UIScreen.main.nativeScale
 		ParsecResolution.updateClientResolution(width: Int(screenSize.width * scaleFactor), height: Int(screenSize.height * scaleFactor))
 
-		getHostUserData()
+		ParsecView.getHostUserData()
 
 		hideOverlay = SettingsHandler.noOverlay
 
@@ -515,7 +521,7 @@ struct ParsecView: View {
 		parsecViewController.onMenuEdgeSwipe = {
 			DispatchQueue.main.async {
 				menuVisibility.wrappedValue = true
-				getHostUserData()
+				ParsecView.getHostUserData()
 			}
 		}
 
@@ -535,7 +541,6 @@ struct ParsecView: View {
 		} else {
 			CParsec.resume()
 		}
-		if SettingsHandler.saveSessionSettings { SettingsHandler.savedMuted = muted }
 	}
 
 		/*func genDisplaySheet() -> ActionSheet
@@ -598,19 +603,21 @@ struct ParsecView: View {
 
 	func changeBitRate(bitrate: Int) {
 		SettingsHandler.bitrate = bitrate
+		applyBitrate()
+	}
 
-		DispatchQueue.main.async {
-			DataManager.model.bitrate = bitrate
-			CParsec.updateHostVideoConfig()
-		}
+	func applyBitrate() {
+		let target = SettingsHandler.bitrate > 0 ? SettingsHandler.bitrate : DataManager.model.hostDefaultBitrate
+		guard target > 0, target != DataManager.model.bitrate else { return }
+		DataManager.model.bitrate = target
+		CParsec.updateHostVideoConfig()
 	}
 
 	func toggleConstantFps() {
 		DispatchQueue.main.async {
 			DataManager.model.constantFps.toggle()
-			constantFps = DataManager.model.constantFps
 			CParsec.updateHostVideoConfig()
-			if SettingsHandler.saveSessionSettings { SettingsHandler.savedConstantFps = constantFps }
+			SettingsHandler.constantFps = DataManager.model.constantFps
 		}
 	}
 
@@ -625,7 +632,7 @@ struct ParsecView: View {
 		DispatchQueue.main.async {
 			zoomEnabled.toggle()
 			parsecViewController.setZoomEnabled(zoomEnabled)
-			if SettingsHandler.saveSessionSettings { SettingsHandler.savedZoomEnabled = zoomEnabled }
+			SettingsHandler.zoomEnabled = zoomEnabled
 		}
 	}
 
@@ -636,7 +643,7 @@ struct ParsecView: View {
 		}
 	}
 
-	func getHostUserData() {
+	static func getHostUserData() {
 		let data = Data()
 		CParsec.sendUserData(type: .getVideoConfig, message: data)
 		CParsec.sendUserData(type: .getAdapterInfo, message: data)

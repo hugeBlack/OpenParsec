@@ -198,7 +198,7 @@ struct MainView: View {
 									}
 									.padding()
 									HStack {
-										Toggle("Auto connect on launch", isOn: Binding(
+										Toggle("Reconnect on app launch", isOn: Binding(
 											get: { SettingsHandler.autoConnectOnLaunch },
 											set: { SettingsHandler.autoConnectOnLaunch = $0 }
 										))

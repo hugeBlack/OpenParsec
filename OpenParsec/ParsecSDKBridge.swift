@@ -130,13 +130,11 @@ class ParsecSDKBridge: ParsecService {
         // Use saved resolution from SettingsHandler
 		parsecClientCfg.video.0.resolutionX = Int32(SettingsHandler.resolution.width)
 		parsecClientCfg.video.0.resolutionY = Int32(SettingsHandler.resolution.height)
-		parsecClientCfg.video.0.decoderCompatibility = SettingsHandler.decoderCompatibility
 		parsecClientCfg.video.0.decoderH265 = SettingsHandler.decoder == .h265
 
 		parsecClientCfg.video.1.decoderIndex = 1
 		parsecClientCfg.video.1.resolutionX = Int32(SettingsHandler.resolution.width)
 		parsecClientCfg.video.1.resolutionY = Int32(SettingsHandler.resolution.height)
-		parsecClientCfg.video.1.decoderCompatibility = SettingsHandler.decoderCompatibility
 		parsecClientCfg.video.1.decoderH265 = SettingsHandler.decoder == .h265
 
 		parsecClientCfg.mediaContainer = 0
@@ -170,6 +168,7 @@ class ParsecSDKBridge: ParsecService {
 	func reconnect(_ peerID: String) -> ParsecStatus {
 		sendReleaseMessage()
 		pollGeneration += 1
+		didSetResolution = false
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
 		ParsecBackgroundManager.shared.connectionDidEnd()
@@ -324,8 +323,15 @@ class ParsecSDKBridge: ParsecService {
 					}
 					if !self.didSetResolution {
 						self.didSetResolution = true
+						if DataManager.model.hostDefaultBitrate == 0 {
+							DataManager.model.hostDefaultBitrate = DataManager.model.bitrate
+						}
 						DataManager.model.resolutionX = SettingsHandler.resolution.width
 						DataManager.model.resolutionY = SettingsHandler.resolution.height
+						DataManager.model.constantFps = SettingsHandler.constantFps
+						if SettingsHandler.bitrate > 0 {
+							DataManager.model.bitrate = SettingsHandler.bitrate
+						}
 						self.updateHostVideoConfig()
 					}
 				}
@@ -401,13 +407,11 @@ class ParsecSDKBridge: ParsecService {
 		parsecClientCfg.video.0.decoderIndex = 1
 		parsecClientCfg.video.0.resolutionX = 0
 		parsecClientCfg.video.0.resolutionY = 0
-		parsecClientCfg.video.0.decoderCompatibility = SettingsHandler.decoderCompatibility
 		parsecClientCfg.video.0.decoderH265 = SettingsHandler.decoder == .h265
 
 		parsecClientCfg.video.1.decoderIndex = 1
 		parsecClientCfg.video.1.resolutionX = 0
 		parsecClientCfg.video.1.resolutionY = 0
-		parsecClientCfg.video.1.decoderCompatibility = SettingsHandler.decoderCompatibility
 		parsecClientCfg.video.1.decoderH265 = SettingsHandler.decoder == .h265
 
 		parsecClientCfg.mediaContainer = mediaContainer
