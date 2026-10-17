@@ -521,7 +521,7 @@ struct ParsecView: View {
 		parsecViewController.onMenuEdgeSwipe = {
 			DispatchQueue.main.async {
 				menuVisibility.wrappedValue = true
-				getHostUserData()
+				ParsecView.getHostUserData()
 			}
 		}
 
