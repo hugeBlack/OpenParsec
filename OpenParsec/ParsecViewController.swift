@@ -76,8 +76,17 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var keyboardAccessoriesView: UIView?
 	var keyboardHeight: CGFloat = 0.0
 	var keyboardVisible: Bool = false
+	var pinnedToKeyboard = false
+	var onKeyboardCoversPicture: (() -> Void)?
+	private var panHandle: UIImageView?
+	private var keyScrollView: UIScrollView?
+	private var keyBarDone: UIButton?
+	private var panStartOffset: CGPoint = .zero
+	private var keyboardCoversPicture = false
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
 	var onMenuEdgeSwipe: (() -> Void)?
+	var menuEdgeSwipe: UIScreenEdgePanGestureRecognizer?
+	var menuEdgeSwipeRight: UIScreenEdgePanGestureRecognizer?
 	var scrollView: UIScrollView!
 	var contentView: UIView!
 	var lastLaidOutWidth: CGFloat = 0
@@ -181,16 +190,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 						centerViewportOnCursorPos()
 						positionCursorOverlay()
 					}
-				} else if keyboardVisible && scrollView.contentInset.bottom > 0 {
+				} else {
 					// Not zoomed: keep the cursor above the on-screen keyboard.
-					let margin: CGFloat = 50.0
-					let effectiveViewHeight = view.bounds.height - keyboardHeight
-					if u!.frame.maxY > effectiveViewHeight - margin {
-						let diff = u!.frame.maxY - (effectiveViewHeight - margin)
-						let maxOffsetY = max(0, scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom)
-						let targetOffsetY = min(scrollView.contentOffset.y + diff, maxOffsetY)
-						scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: targetOffsetY), animated: false)
-					}
+					keepCursorAboveKeyboard()
 				}
 			}
 		} else {
@@ -251,14 +253,6 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		touchOverlay.inputDelegate = self
 		view.addSubview(touchOverlay)
 
-		if SettingsHandler.menuSwipeEdge != .off {
-			let menuEdgeGestureRecognizer = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
-			menuEdgeGestureRecognizer.edges = SettingsHandler.menuSwipeEdge == .left ? .left : .right
-			menuEdgeGestureRecognizer.allowedTouchTypes = [0]
-			menuEdgeGestureRecognizer.cancelsTouchesInView = true
-			view.addGestureRecognizer(menuEdgeGestureRecognizer)
-		}
-
 		// Cursor is a screen-space overlay ON TOP of everything (not inside the scroll view), so the
 		// zoom transform never scales it - keeping it crisp and a constant on-screen size.
 		u = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -309,6 +303,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		// Don't cancel the overlay's touch, so the click-hold button can be released on lift.
 		longPressGestureRecognizer.cancelsTouchesInView = false
 		view.addGestureRecognizer(longPressGestureRecognizer)
+
+		menuEdgeSwipe = addMenuEdgeSwipe(.left)
+		menuEdgeSwipeRight = addMenuEdgeSwipe(.right)
 
 		NotificationCenter.default.addObserver(
 			self,
@@ -484,11 +481,15 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		repeatKeyCode = keyCode
 
 		repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
-			guard let self = self else { return }
-			self.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true) { [weak self] _ in
+			MainActor.assumeIsolated {
 				guard let self = self else { return }
-				CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: false)
-				CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: true)
+				self.repeatTimer = Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true) { [weak self] _ in
+					MainActor.assumeIsolated {
+						guard let self = self else { return }
+						CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: false)
+						CParsec.sendKeyboardMessage(keyCode: UInt32(self.repeatKeyCode), pressed: true)
+					}
+				}
 			}
 		}
 	}
@@ -529,24 +530,122 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
             // Allow scrolling past current bottom to see hidden content
             scrollView.contentInset.bottom = height
 
+			if scrollView.zoomScale <= 1.0, let shift = pictureShiftAboveKeyboard(height - accessoryClearBand) {
+				keyboardCoversPicture = false
+				updatePanHandle()
+				pinnedToKeyboard = true
+				scrollView.contentInset.top = max(0, -shift)
+				scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: shift), animated: true)
+				onKeyboardVisibilityChanged?(true)
+				return
+			}
+			var baseY = scrollView.contentOffset.y
+			if pinnedToKeyboard {
+				pinnedToKeyboard = false
+				scrollView.contentInset.top = 0
+				baseY = 0
+			}
+			keyboardCoversPicture = height > 0
+			updatePanHandle()
+			if height > 0 && SettingsHandler.cursorMode == .direct {
+				onKeyboardCoversPicture?()
+			}
+			if SettingsHandler.cursorMode == .direct {
+				let bottomY = max(0, scrollView.contentSize.height - scrollView.bounds.height + height)
+				scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: bottomY), animated: true)
+				onKeyboardVisibilityChanged?(true)
+				return
+			}
+
             // Automatic scroll up only if mouse is in the bottom half of the screen
             let mouseY = CGFloat(CParsec.mouseInfo.mouseY)
             let screenMidY = view.bounds.height / 2.1
 
             if mouseY > screenMidY {
                  let maxOffsetY = max(0, scrollView.contentSize.height - scrollView.bounds.height + height)
-                 let newOffsetY = min(maxOffsetY, scrollView.contentOffset.y + height / 1.25)
+                 let newOffsetY = min(maxOffsetY, baseY + height / 1.25)
 
                  scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: newOffsetY), animated: true)
 
-            }
+            } else if baseY != scrollView.contentOffset.y {
+				scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: baseY), animated: true)
+			}
 		}
 		onKeyboardVisibilityChanged?(true)
+	}
+
+	var accessoryClearBand: CGFloat {
+		keyboardAccessoriesView?.subviews.first?.frame.minY ?? 0
+	}
+
+	func pictureShiftAboveKeyboard(_ keyboard: CGFloat) -> CGFloat? {
+		let w = view.bounds.width, h = view.bounds.height
+		guard keyboard > 0, CParsec.hostWidth > 0, CParsec.hostHeight > 0 else { return nil }
+		let picture = min(h, w * CGFloat(CParsec.hostHeight / CParsec.hostWidth))
+		guard picture <= h - keyboard else { return nil }
+		return keyboard - (h - picture) / 2
+	}
+
+	func updatePanHandle() {
+		setPanHandleVisible(keyboardCoversPicture && SettingsHandler.cursorMode == .direct)
+	}
+
+	func setPanHandleVisible(_ visible: Bool) {
+		guard let handle = panHandle else { return }
+		handle.isHidden = !visible
+		setPanHandleAxes()
+		layoutKeyBar()
+	}
+
+	func setPanHandleAxes() {
+		guard let handle = panHandle, !handle.isHidden else { return }
+		let zoomed = scrollView.zoomScale > 1.01
+		let label = zoomed ? "Move screen in any direction" : "Move screen up or down"
+		guard handle.accessibilityLabel != label else { return }
+		handle.image = UIImage(systemName: zoomed ? "arrow.up.and.down.and.arrow.left.and.right" : "arrow.up.and.down")
+		handle.accessibilityLabel = label
+	}
+
+	func layoutKeyBar() {
+		guard let handle = panHandle, let keys = keyScrollView, let bar = keys.superview else { return }
+		let inset = bar.safeAreaInsets
+		handle.frame.origin.x = 4 + inset.left
+		let left = (handle.isHidden ? 8 : 48) + inset.left
+		keys.frame = CGRect(x: left, y: 0, width: bar.bounds.width - 72 - left - inset.right, height: 44)
+		keyBarDone?.frame.origin.x = bar.bounds.width - 70 - inset.right
+	}
+
+	@objc func handlePanHandle(_ gesture: UIPanGestureRecognizer) {
+		if gesture.state == .began {
+			panStartOffset = scrollView.contentOffset
+		}
+		let t = gesture.translation(in: view)
+		let maxX = max(0, scrollView.contentSize.width - scrollView.bounds.width)
+		let maxY = max(0, scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom)
+		let x = min(max(0, panStartOffset.x - t.x), maxX)
+		let y = min(max(-scrollView.contentInset.top, panStartOffset.y - t.y), maxY)
+		scrollView.setContentOffset(CGPoint(x: x, y: y), animated: false)
+		positionCursorOverlay()
+	}
+
+	@objc func handlePanHandleDoubleTap(_ gesture: UITapGestureRecognizer) {
+		let maxY = max(0, scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom)
+		let y: CGFloat = scrollView.contentOffset.y < maxY / 2 ? maxY : 0
+		scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: y), animated: true)
 	}
 
 	@objc func keyboardWillHide(notification: NSNotification) {
 		keyboardHeight = 0.0
         keyboardVisible = false
+		keyboardCoversPicture = false
+		setPanHandleVisible(false)
+		if pinnedToKeyboard {
+			pinnedToKeyboard = false
+			scrollView.contentInset = .zero
+			scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: 0), animated: true)
+			onKeyboardVisibilityChanged?(false)
+			return
+		}
 
         // Restore inset
         scrollView.contentInset.bottom = 0
@@ -573,9 +672,35 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		return true
 	}
 
+	// the delay stops a direct mode swipe from clicking at the edge first
+	private func addMenuEdgeSwipe(_ edge: UIRectEdge) -> UIScreenEdgePanGestureRecognizer {
+		let edgeSwipe = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
+		edgeSwipe.edges = edge
+		edgeSwipe.maximumNumberOfTouches = 1
+		edgeSwipe.allowedTouchTypes = [0]
+		edgeSwipe.delaysTouchesBegan = true
+		edgeSwipe.isEnabled = false
+		view.addGestureRecognizer(edgeSwipe)
+		return edgeSwipe
+	}
+
+	// left brings back a hidden menu button, slide over owns the right edge
+	func updateMenuEdgeSwipe(menuHidden: Bool) {
+		menuEdgeSwipe?.isEnabled = menuHidden || SettingsHandler.menuSwipeEdge == .left
+		menuEdgeSwipeRight?.isEnabled = SettingsHandler.menuSwipeEdge == .right
+	}
+
+	// switching it off mid swipe would hand the held touch to the stream
 	@objc private func handleMenuEdgeSwipe(_ gestureRecognizer: UIScreenEdgePanGestureRecognizer) {
-		guard gestureRecognizer.state == .began else { return }
-		onMenuEdgeSwipe?()
+		switch gestureRecognizer.state {
+		case .began:
+			flushAllTouches()
+			onMenuEdgeSwipe?()
+		case .ended, .cancelled, .failed:
+			updateMenuEdgeSwipe(menuHidden: false)
+		default:
+			break
+		}
 	}
 
 	@objc func handlePinchGesture(_ gestureRecognizer: UIPinchGestureRecognizer) {
@@ -765,6 +890,8 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 			}
 		} else {
 			centerViewportOnCursorPos()
+			positionCursorOverlay()
+			keepCursorAboveKeyboard()
 		}
 		positionCursorOverlay()
 	}
@@ -909,6 +1036,13 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		let contentX = (anchor.x + off.x) / oldZoom
 		let contentY = (anchor.y + off.y) / oldZoom
 		scrollView.zoomScale = newZoom
+		setPanHandleAxes()
+		if pinnedToKeyboard {
+			pinnedToKeyboard = false
+			scrollView.contentInset.top = 0
+			keyboardCoversPicture = keyboardHeight > 0
+			updatePanHandle()
+		}
 		var newOff = CGPoint(x: contentX * newZoom - anchor.x, y: contentY * newZoom - anchor.y)
 		let maxX = max(0, scrollView.contentSize.width - scrollView.bounds.width)
 		let maxY = max(0, scrollView.contentSize.height - scrollView.bounds.height)
@@ -979,7 +1113,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	}
 
 	@objc func handleThreeFinderTap(_ gestureRecognizer: UITapGestureRecognizer) {
-		showKeyboard()
+		setKeyboardVisible(!keyboardVisible)
 	}
 
 	@objc func handleLongPress(_ gestureRecognizer: UIGestureRecognizer) {
@@ -1003,12 +1137,34 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		return contentView
 	}
 
+	func scrollViewDidScroll(_ scrollView: UIScrollView) {
+		positionCursorOverlay()
+	}
+
 	func scrollViewDidZoom(_ scrollView: UIScrollView) {
 		// Centering is handled on cursor movement (updateImage) and at the end of a pinch.
 	}
 
 	func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
 		centerViewportOnCursorPos()
+	}
+
+	func keepCursorAboveKeyboard() {
+		guard scrollView.zoomScale <= 1.0, keyboardVisible, scrollView.contentInset.bottom > 0, !pinnedToKeyboard,
+			  SettingsHandler.cursorMode != .direct, let cursor = u, !cursor.isHidden else { return }
+		let visibleBottom = view.bounds.height - keyboardHeight
+		let margin = min(50, max(0, (visibleBottom - cursor.frame.height) / 2 - 1))
+		let maxOffsetY = max(0, scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom)
+		var target = scrollView.contentOffset.y
+		if cursor.frame.maxY > visibleBottom - margin {
+			target += cursor.frame.maxY - (visibleBottom - margin)
+		} else if cursor.frame.minY < margin {
+			target -= margin - cursor.frame.minY
+		}
+		target = min(max(0, target), maxOffsetY)
+		guard target != scrollView.contentOffset.y else { return }
+		scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: target), animated: false)
+		positionCursorOverlay()
 	}
 
 	// Slides the viewport so the host cursor stays centered on screen while zoomed in,
@@ -1184,7 +1340,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		}
         // Refactored to UIView with autoresizing mask for better landscape support
         // Using frame-based layout for the container to avoid constraint conflicts with keyboard
-		let containerView = UIView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 94))
+		let containerView = AccessoryContainerView(frame: CGRect(x: 0, y: 0, width: self.view.bounds.width, height: 94))
         containerView.autoresizingMask = [.flexibleWidth]
         containerView.backgroundColor = .clear
 
@@ -1252,7 +1408,25 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		doneButton.setTitle("Done", for: .normal)
 		doneButton.addTarget(self, action: #selector(doneTapped), for: .touchUpInside)
 
+		let handle = UIImageView(image: UIImage(systemName: "arrow.up.and.down"))
+		handle.frame = CGRect(x: 4, y: 0, width: 40, height: 44)
+		handle.contentMode = .center
+		handle.tintColor = .label
+		handle.isUserInteractionEnabled = true
+		handle.isHidden = true
+		handle.isAccessibilityElement = true
+		handle.accessibilityLabel = "Move screen up or down"
+		handle.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(handlePanHandle(_:))))
+		let handleDoubleTap = UITapGestureRecognizer(target: self, action: #selector(handlePanHandleDoubleTap(_:)))
+		handleDoubleTap.numberOfTapsRequired = 2
+		handle.addGestureRecognizer(handleDoubleTap)
+		panHandle = handle
+		keyScrollView = scrollView
+		keyBarDone = doneButton
+		containerView.onLayout = { [weak self] in self?.layoutKeyBar() }
+
 		toolbarBackground.addSubview(scrollView)
+		toolbarBackground.addSubview(handle)
 		toolbarBackground.addSubview(doneButton)
 
 		containerView.addSubview(toolbarBackground)
@@ -1336,10 +1510,6 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 		resignFirstResponder()
 	}
 
-	@objc func showKeyboard() {
-		becomeFirstResponder()
-	}
-
 	// CRITICAL: This is the robust way to show the keyboard.
     // 1. Dispatch async to ensure view is attached to window.
     // 2. call reloadInputViews() to ensure updated accessory view (especially for rotation).
@@ -1389,4 +1559,22 @@ class TouchOverlayView: UIView {
 	override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: true) }
 	override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
 	override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
+}
+
+final class AccessoryContainerView: UIView {
+	var onLayout: (() -> Void)?
+
+	override func layoutSubviews() {
+		super.layoutSubviews()
+		onLayout?()
+	}
+
+	override func safeAreaInsetsDidChange() {
+		super.safeAreaInsetsDidChange()
+		setNeedsLayout()
+	}
+
+	override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+		subviews.contains { $0.frame.contains(point) }
+	}
 }

@@ -78,6 +78,7 @@ class ParsecSDKBridge: ParsecService {
 	}
 	var didSetResolution = false
 	private var didReleaseOnConnect = false
+	private var capsLock = false
 
 	public var mouseInfo = MouseInfo()
 
@@ -520,12 +521,14 @@ class ParsecSDKBridge: ParsecService {
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 
 		// add release delay in case some games ignore instant key release
-		DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
-			keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: keyCode, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
-			ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+			var release = ParsecMessage()
+			release.type = MESSAGE_KEYBOARD
+			release.keyboard = ParsecKeyboardMessage(code: keyCode, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
+			ParsecClientSendMessage(self._parsec, &release)
 			if sendShift {
-				keyboardMessagePress.keyboard = ParsecKeyboardMessage(code: KEY_LSHIFT, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
-				ParsecClientSendMessage(self._parsec, &keyboardMessagePress)
+				release.keyboard = ParsecKeyboardMessage(code: KEY_LSHIFT, mod: MOD_NONE, pressed: false, __pad: (0, 0, 0))
+				ParsecClientSendMessage(self._parsec, &release)
 			}
 		}
 	}
@@ -558,6 +561,8 @@ class ParsecSDKBridge: ParsecService {
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(UInt32(KeyCodeTranslators.uiKeyCodeToInt(key: event.input?.keyCode ?? UIKeyboardHIDUsage.keyboardErrorUndefined)))
 		keyboardMessagePress.keyboard.pressed = event.isPressBegin
+		capsLock = event.input?.modifierFlags.contains(.alphaShift) == true
+		keyboardMessagePress.keyboard.mod = capsLock ? MOD_CAPS : MOD_NONE
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
 
@@ -567,6 +572,7 @@ class ParsecSDKBridge: ParsecService {
 		keyboardMessagePress.type = MESSAGE_KEYBOARD
 		keyboardMessagePress.keyboard.code = ParsecKeycode(keyCode)
 		keyboardMessagePress.keyboard.pressed = pressed
+		keyboardMessagePress.keyboard.mod = capsLock ? MOD_CAPS : MOD_NONE
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
 	

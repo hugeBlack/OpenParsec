@@ -38,8 +38,10 @@ class GamepadController {
 
     func registerControllerHandler() {
 		for controller in GCController.controllers() {
-			controllers.insert(controller)
-			if controllers.count > 1 { break }
+			if !controllers.contains(controller) {
+				guard controllers.count < maximumControllerCount else { continue }
+				controllers.insert(controller)
+			}
 
 			delegate?.inputManager(self, didConnect: controller)
 
@@ -96,6 +98,13 @@ class GamepadController {
 				guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
 				CParsec.sendMouseClickMessage(MOUSE_MIDDLE, pressed)
 				}
+			for (index, button) in (mouse.mouseInput?.auxiliaryButtons ?? []).prefix(2).enumerated() {
+				let target = index == 0 ? MOUSE_X1 : MOUSE_X2
+				button.pressedChangedHandler = {(_: GCControllerButtonInput, _: Float, pressed: Bool) in
+					guard ParsecBackgroundManager.shared.hasActiveConnection else { return }
+					CParsec.sendMouseClickMessage(target, pressed)
+				}
+			}
 			mouse.mouseInput?.mouseMovedHandler={(_: GCMouseInput, v: Float, v2: Float) in
 				CParsec.sendMouseDelta(Int32(v/1.25 * Float(SettingsHandler.mouseSensitivity)), Int32(-v2/1.25 * Float(SettingsHandler.mouseSensitivity)))
 				}
@@ -138,11 +147,11 @@ class GamepadController {
 
     @objc func didDisconnectController(_ notification: Notification) {
 
-        guard let controller = notification.object as? GCController else { return }
-        controllers.remove(controller)
+        guard let controller = notification.object as? GCController, controllers.remove(controller) != nil else { return }
 
         delegate?.inputManager(self, didDisconnect: controller)
 		CParsec.sendGameControllerUnplugMessage(controllerId: 1)
+		DispatchQueue.main.async { [weak self] in self?.registerControllerHandler() }
     }
 
 	func ButtonFloatToParsecInt(_ value: Float) -> Int16 {
