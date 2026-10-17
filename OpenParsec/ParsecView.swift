@@ -531,7 +531,7 @@ struct ParsecView: View {
 
 		hideOverlay = SettingsHandler.noOverlay
 		hideKeyboardButton = !SettingsHandler.showKeyboardButton
-		parsecViewController.setMenuEdgeSwipeEnabled(hideOverlay)
+		parsecViewController.updateMenuEdgeSwipe(menuHidden: hideOverlay)
 		offerHint()
 
 		let overlayHidden = $hideOverlay
@@ -566,7 +566,7 @@ struct ParsecView: View {
 		hideOverlay = true
 		hideKeyboardButton = true
 		showMenu = false
-		parsecViewController.setMenuEdgeSwipeEnabled(true)
+		parsecViewController.updateMenuEdgeSwipe(menuHidden: true)
 		offerHint(always: true)
 	}
 

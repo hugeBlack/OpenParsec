@@ -86,6 +86,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var onKeyboardVisibilityChanged: ((Bool) -> Void)?
 	var onMenuEdgeSwipe: (() -> Void)?
 	var menuEdgeSwipe: UIScreenEdgePanGestureRecognizer?
+	var menuEdgeSwipeRight: UIScreenEdgePanGestureRecognizer?
 	var scrollView: UIScrollView!
 	var contentView: UIView!
 	var lastLaidOutWidth: CGFloat = 0
@@ -252,14 +253,6 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		touchOverlay.inputDelegate = self
 		view.addSubview(touchOverlay)
 
-		if SettingsHandler.menuSwipeEdge != .off {
-			let menuEdgeGestureRecognizer = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
-			menuEdgeGestureRecognizer.edges = SettingsHandler.menuSwipeEdge == .left ? .left : .right
-			menuEdgeGestureRecognizer.allowedTouchTypes = [0]
-			menuEdgeGestureRecognizer.cancelsTouchesInView = true
-			view.addGestureRecognizer(menuEdgeGestureRecognizer)
-		}
-
 		// Cursor is a screen-space overlay ON TOP of everything (not inside the scroll view), so the
 		// zoom transform never scales it - keeping it crisp and a constant on-screen size.
 		u = UIImageView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
@@ -311,14 +304,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		longPressGestureRecognizer.cancelsTouchesInView = false
 		view.addGestureRecognizer(longPressGestureRecognizer)
 
-		let edgeSwipe = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
-		edgeSwipe.edges = .left
-		edgeSwipe.maximumNumberOfTouches = 1
-		edgeSwipe.allowedTouchTypes = [0]
-		edgeSwipe.delaysTouchesBegan = true
-		edgeSwipe.isEnabled = false
-		view.addGestureRecognizer(edgeSwipe)
-		menuEdgeSwipe = edgeSwipe
+		menuEdgeSwipe = addMenuEdgeSwipe(.left)
+		menuEdgeSwipeRight = addMenuEdgeSwipe(.right)
 
 		NotificationCenter.default.addObserver(
 			self,
@@ -685,14 +672,35 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		return true
 	}
 
-	func setMenuEdgeSwipeEnabled(_ enabled: Bool) {
-		menuEdgeSwipe?.isEnabled = enabled
+	// the delay stops a direct mode swipe from clicking at the edge first
+	private func addMenuEdgeSwipe(_ edge: UIRectEdge) -> UIScreenEdgePanGestureRecognizer {
+		let edgeSwipe = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handleMenuEdgeSwipe(_:)))
+		edgeSwipe.edges = edge
+		edgeSwipe.maximumNumberOfTouches = 1
+		edgeSwipe.allowedTouchTypes = [0]
+		edgeSwipe.delaysTouchesBegan = true
+		edgeSwipe.isEnabled = false
+		view.addGestureRecognizer(edgeSwipe)
+		return edgeSwipe
 	}
 
+	// left brings back a hidden menu button, slide over owns the right edge
+	func updateMenuEdgeSwipe(menuHidden: Bool) {
+		menuEdgeSwipe?.isEnabled = menuHidden || SettingsHandler.menuSwipeEdge == .left
+		menuEdgeSwipeRight?.isEnabled = SettingsHandler.menuSwipeEdge == .right
+	}
+
+	// switching it off mid swipe would hand the held touch to the stream
 	@objc private func handleMenuEdgeSwipe(_ gestureRecognizer: UIScreenEdgePanGestureRecognizer) {
-		guard gestureRecognizer.state == .began else { return }
-		onMenuEdgeSwipe?()
-		gestureRecognizer.isEnabled = false
+		switch gestureRecognizer.state {
+		case .began:
+			flushAllTouches()
+			onMenuEdgeSwipe?()
+		case .ended, .cancelled, .failed:
+			updateMenuEdgeSwipe(menuHidden: false)
+		default:
+			break
+		}
 	}
 
 	@objc func handlePinchGesture(_ gestureRecognizer: UIPinchGestureRecognizer) {
