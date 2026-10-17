@@ -186,6 +186,7 @@ class CParsec {
 	}
 
 	static var drawRate: Double = 0
+	static var setupError: (line: String, at: Date)?
 
 	static var parsecImpl: ParsecService!
 

@@ -88,7 +88,12 @@ class ParsecSDKBridge: ParsecService {
 
 		ParsecSetLogCallback(
 			{ (level, msg, _) in
-				os_log("%{public}@", log: sdkLog, type: .debug, "[\(level == LOG_DEBUG ? "D" : "I")] \(String(cString: msg!))")
+				let line = String(cString: msg!)
+				os_log("%{public}@", log: sdkLog, type: .debug, "[\(level == LOG_DEBUG ? "D" : "I")] \(line)")
+				if line.contains("signal_") && line.contains("] = -") {
+					let at = Date()
+					DispatchQueue.main.async { CParsec.setupError = (line, at) }
+				}
 			}, nil)
 
 		audio_init(&_audio)

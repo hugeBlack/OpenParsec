@@ -76,6 +76,15 @@ class SharedModel: ObservableObject {
 	@Published var displayConfigs: [ParsecDisplayConfig] = []
 	@Published var isBlocked = false
 
+	func reset() {
+		resolutionX = 0
+		resolutionY = 0
+		bitrate = 0
+		constantFps = false
+		output = "none"
+		displayConfigs = []
+		isBlocked = false
+	}
 }
 
 class DataManager {

@@ -562,7 +562,7 @@ struct ParsecView: View {
 	func disconnect(isBackgroundDisconnect: Bool = false) {
 		appNote("[stream] disconnect\(isBackgroundDisconnect ? " in the background" : "")")
 		if !isBackgroundDisconnect {
-			ParsecBackgroundManager.shared.disableAutoReconnect()
+			ParsecBackgroundManager.shared.endSession()
 		}
 
 		if #available(iOS 15.0, *) {

@@ -26,8 +26,12 @@ struct MainView: View {
 
 	@State var isConnecting: Bool = false
 	@State var waitingForApproval: Bool = false
+	@State var retryingConnect: Bool = false
+	@State var connectPolls = 0
 	@State var connectingToName: String = ""
 	@State var pollTimer: Timer?
+	@State var approvalStartedAt: Date?
+	@State var connectStartedAt = Date()
 
 	@State var isRefreshing: Bool = false
 	@State var refreshError: String?
@@ -397,6 +401,7 @@ struct MainView: View {
 				.zIndex(1)
 			}
 			.onAppear(perform: initView)
+			.onDisappear { ParsecBackgroundManager.shared.onShortcutReconnect = nil }
 			.disabled(busy) // disable view if busy
 
 			// Settings screen
@@ -412,7 +417,7 @@ struct MainView: View {
 					VStack {
 						ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
 							.padding()
-						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : "Requesting connection to \(connectingToName)...")
+						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : retryingConnect ? "\(connectingToName) didn't answer, trying again..." : "Requesting connection to \(connectingToName)...")
 							.multilineTextAlignment(.center)
 						Button(action: cancelConnection) {
 							ZStack {
@@ -449,8 +454,23 @@ struct MainView: View {
 			}
 		}
 
-		if SettingsHandler.autoConnectOnLaunch && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
-			reconnectLastHost()
+		NetworkWatcher.shared.onReturn = {
+			guard NetworkHandler.clinfo != nil, !ParsecBackgroundManager.shared.hasActiveConnection else { return }
+			refreshHosts()
+			refreshFriends()
+		}
+		NetworkWatcher.shared.start()
+
+		ParsecBackgroundManager.shared.onShortcutReconnect = {
+			if !isConnecting { reconnectLastHost() }
+		}
+		let pending = ParsecBackgroundManager.shared.reconnectPending
+		ParsecBackgroundManager.shared.reconnectPending = false
+
+		NetworkWatcher.shared.whenKnown {
+			if (SettingsHandler.autoConnectOnLaunch && ParsecBackgroundManager.shared.resumeOnLaunch || pending) && !isConnecting && !ParsecBackgroundManager.shared.hasActiveConnection, ParsecBackgroundManager.shared.lastPeerId != nil {
+				reconnectLastHost()
+			}
 		}
 	}
 
@@ -459,6 +479,7 @@ struct MainView: View {
 		let hostname = ParsecBackgroundManager.shared.lastHostname ?? peerId
 		let user = UserInfo(id: 0, name: "", warp: false, team_id: "")
 		let stub = IdentifiableHostInfo(id: peerId, hostname: hostname, user: user, connections: 0)
+		appNote("[connect] last host from the saved id, host list \(hosts.isEmpty ? "not loaded yet" : "loaded")")
 		connectTo(stub)
 	}
 
@@ -512,6 +533,10 @@ struct MainView: View {
 								datas.forEach { h in
 									hosts.append(IdentifiableHostInfo(id: h.peer_id, hostname: h.name, user: h.user, connections: h.players))
 								}
+							}
+							if let lastId = ParsecBackgroundManager.shared.lastPeerId, let current = hosts.first(where: { $0.id == lastId }), current.hostname != ParsecBackgroundManager.shared.lastHostname {
+								ParsecBackgroundManager.shared.lastHostname = current.hostname
+								if lastHostShown != nil { lastHostShown = current.hostname }
 							}
 
 							var grammar: String = "hosts"
@@ -633,50 +658,108 @@ struct MainView: View {
 		}
 	}
 
-	func connectTo(_ who: IdentifiableHostInfo) {
-		pollTimer?.invalidate()
-		pollTimer = nil
-		CParsec.initialize()
-		ParsecBackgroundManager.shared.reconnectAttempts = 0
-		connectingToName = who.hostname
-		withAnimation { isConnecting = true }
-
-		var status = CParsec.connect(who.id)
-		appNote("[connect] started, status \(status.rawValue)")
-		var approvalStarted: Date?
-
-		// Polling status
-		pollTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
-			status = CParsec.getStatus()
-
-			if status == PARSEC_CONNECTING { return } // wait
-
-			if status == CONNECT_WRN_APPROVAL {
-				let started = approvalStarted ?? Date()
-				approvalStarted = started
-				if !waitingForApproval { withAnimation { waitingForApproval = true } }
-				if Date().timeIntervalSince(started) < 60 { return }
-			}
-
+	func connectTo(_ who: IdentifiableHostInfo, retried: Bool = false) {
+		if NetworkWatcher.shared.noNetwork {
+			appNote("[connect] no network, not trying")
 			withAnimation {
 				isConnecting = false
 				waitingForApproval = false
+				retryingConnect = false
 			}
-			appNote("[connect] result \(status.rawValue)")
-
-			if status == PARSEC_OK {
-				ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: who.hostname)
-				if let c = controller {
-					c.setView(.parsec)
-				}
-			} else {
-				CParsec.disconnect()
-				baseAlertText = status.readable(connecting: true)
-				showBaseAlert = true
-			}
-
-			timer.invalidate()
+			baseAlertText = "No network connection"
+			showBaseAlert = true
+			return
 		}
+
+		if let window = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).flatMap({ $0.windows }).first(where: { $0.isKeyWindow }) {
+			let scale = window.screen.nativeScale
+			ParsecResolution.updateClientResolution(width: Int(window.bounds.width * scale), height: Int(window.bounds.height * scale))
+		}
+
+		pollTimer?.invalidate()
+		pollTimer = nil
+		CParsec.initialize()
+		DataManager.model.reset()
+		ParsecBackgroundManager.shared.reconnectAttempts = 0
+		connectingToName = who.hostname
+		retryingConnect = retried
+		withAnimation { isConnecting = true }
+
+		connectStartedAt = Date()
+		let status = CParsec.connect(who.id)
+		appNote("[connect] started, status \(status.rawValue)")
+		connectPolls = 0
+		approvalStartedAt = nil
+
+		// Polling status
+		pollTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+			MainActor.assumeIsolated {
+				pollConnect(who)
+			}
+		}
+	}
+
+	func pollConnect(_ who: IdentifiableHostInfo) {
+		let status = CParsec.getStatus()
+		connectPolls += 1
+
+		if let err = CParsec.setupError, err.at > connectStartedAt, status == PARSEC_CONNECTING || status == CONNECT_WRN_APPROVAL {
+			CParsec.setupError = nil
+			appNote("[connect] sdk setup failed after \(connectPolls) polls, retried \(retryingConnect): \(err.line)")
+			retryOrGiveUp(who)
+			return
+		}
+
+		if status == PARSEC_CONNECTING { return } // wait
+
+		if status == CONNECT_WRN_APPROVAL {
+			if approvalStartedAt == nil {
+				appNote("[connect] status \(status.rawValue) after \(connectPolls) polls, retried \(retryingConnect)")
+				if connectPolls >= 20 {
+					retryOrGiveUp(who)
+					return
+				}
+			}
+			let started = approvalStartedAt ?? Date()
+			approvalStartedAt = started
+			if !waitingForApproval { withAnimation { waitingForApproval = true } }
+			if Date().timeIntervalSince(started) < 60 { return }
+		}
+
+		withAnimation {
+			isConnecting = false
+			waitingForApproval = false
+			retryingConnect = false
+		}
+		appNote("[connect] result \(status.rawValue)")
+
+		if status == PARSEC_OK {
+			ParsecBackgroundManager.shared.connectionDidGoLive(peerId: who.id, hostname: hosts.first(where: { $0.id == who.id })?.hostname ?? who.hostname)
+			if let c = controller {
+				c.setView(.parsec)
+			}
+		} else {
+			CParsec.disconnect()
+			baseAlertText = status.readable(connecting: true)
+			showBaseAlert = true
+		}
+
+		pollTimer?.invalidate()
+	}
+
+	func retryOrGiveUp(_ who: IdentifiableHostInfo) {
+		pollTimer?.invalidate()
+		CParsec.disconnect()
+		if !retryingConnect {
+			connectTo(who, retried: true)
+			return
+		}
+		withAnimation {
+			isConnecting = false
+			retryingConnect = false
+		}
+		baseAlertText = "\(who.hostname) didn't answer the connection request"
+		showBaseAlert = true
 	}
 
 	func cancelConnection() {
@@ -684,6 +767,7 @@ struct MainView: View {
 		withAnimation {
 			isConnecting = false
 			waitingForApproval = false
+			retryingConnect = false
 		}
 
 		CParsec.disconnect()
