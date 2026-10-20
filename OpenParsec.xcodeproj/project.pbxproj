@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D42F8E000200000002 /* StreamRecovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F8E000200000001 /* StreamRecovery.swift */; };
 		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
 		17374D412CB8E35D00EDCEE7 /* KeyCodeTranslators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17374D402CB8E35500EDCEE7 /* KeyCodeTranslators.swift */; };
 		17840D1D2CB639530097374B /* ParsecUserData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17840D1C2CB6394D0097374B /* ParsecUserData.swift */; };
@@ -59,6 +60,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D42F8E000200000001 /* StreamRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamRecovery.swift; sourceTree = "<group>"; };
 		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
 		17374D402CB8E35500EDCEE7 /* KeyCodeTranslators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeTranslators.swift; sourceTree = "<group>"; };
 		17840D1C2CB6394D0097374B /* ParsecUserData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecUserData.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				E76224A02F8C017700A2F86F /* ParsecBackgroundManager.swift */,
+				A1B2C3D42F8E000200000001 /* StreamRecovery.swift */,
 				E762250A2F8D0A0000A2F86F /* PictureInPictureManager.swift */,
 				17374D402CB8E35500EDCEE7 /* KeyCodeTranslators.swift */,
 				17840D1C2CB6394D0097374B /* ParsecUserData.swift */,
@@ -290,6 +293,7 @@
 				27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */,
 				27B23A242B1B98EF00B52F14 /* ParsecMetalViewController.swift in Sources */,
 				E76224A12F8C017F00A2F86F /* ParsecBackgroundManager.swift in Sources */,
+				A1B2C3D42F8E000200000002 /* StreamRecovery.swift in Sources */,
 				E762250B2F8D0A0100A2F86F /* PictureInPictureManager.swift in Sources */,
 				27A923E029E8E53000F54BDA /* TouchHandlingView.swift in Sources */,
 				27E61A92292965FC00FF6563 /* AppDelegate.swift in Sources */,

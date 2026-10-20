@@ -38,6 +38,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 	private var pendingUnpause: DispatchWorkItem?
 
 	func sceneDidBecomeActive(_ scene: UIScene) {
+		ParsecBackgroundManager.shared.recoveryBudget.recordFailure()
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.stopPiP()
 			if PictureInPictureManager.shared.stopFramePump() {

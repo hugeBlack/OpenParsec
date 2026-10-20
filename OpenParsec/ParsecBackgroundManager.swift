@@ -27,7 +27,7 @@ class ParsecBackgroundManager {
 	}
 	private var didDisconnectDueToBackground = false
 	private(set) var isReconnecting = false
-	var reconnectAttempts = 0
+	var recoveryBudget = StreamRecoveryBudget()
 	var reconnectStartTime = Date()
 	var resumedAt: Date?
 	var isPaused = false
@@ -112,7 +112,7 @@ class ParsecBackgroundManager {
 	func endSession() {
 		didDisconnectDueToBackground = false
 		isReconnecting = false
-		reconnectAttempts = 0
+		recoveryBudget.reset()
 		resumeOnLaunch = false
 	}
 
