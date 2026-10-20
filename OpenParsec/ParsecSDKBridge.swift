@@ -373,6 +373,10 @@ class ParsecSDKBridge: ParsecService {
 			let size = event.cursor.size
 			let width = event.cursor.width
 			let height = event.cursor.height
+			guard width > 0, height > 0, Int(size) >= Int(width) * Int(height) * 4 else {
+				ParsecFree(pointer)
+				return
+			}
 			mouseInfo.cursorWidth = Int(width)
 			mouseInfo.cursorHeight = Int(height)
 
@@ -388,9 +392,8 @@ class ParsecSDKBridge: ParsecService {
 			let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
 			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
 			let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
-			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: pointer, length: Int(size)))
-			let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
-			if cgimage != nil {
+			if let providerRef = CGDataProvider(data: NSData(bytes: pointer, length: Int(size))),
+				let cgimage = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef, decode: nil, shouldInterpolate: true, intent: render) {
 				mouseInfo.cursorImg = cgimage
 			}
 			ParsecFree(pointer)
