@@ -212,8 +212,10 @@ class ParsecSDKBridge: ParsecService {
 
 	func getStatusEx(_ pcs: inout ParsecClientStatus) -> ParsecStatus {
 		let ans = ParsecClientGetStatus(_parsec, &pcs)
-		self.hostHeight = Float(pcs.decoder.0.height)
-		self.hostWidth = Float(pcs.decoder.0.width)
+		if pcs.decoder.0.width > 0 && pcs.decoder.0.height > 0 {
+			self.hostHeight = Float(pcs.decoder.0.height)
+			self.hostWidth = Float(pcs.decoder.0.width)
+		}
 
 		// the teardown release may not have made it out, this one goes over a socket we know is live
 		if ans == PARSEC_OK && !didReleaseOnConnect {
