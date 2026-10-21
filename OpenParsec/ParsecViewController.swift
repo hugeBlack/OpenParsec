@@ -52,7 +52,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	let staleMoveSlop: CGFloat = 24.0        // the moving finger must travel this far before a ghost is swept
 	var twoFingerDidMove = false            // true once a 2-finger gesture became a pinch/scroll (suppresses right-click)
 
-	var mouseSensitivity: Float = Float(SettingsHandler.mouseSensitivity)
+	var mouseSensitivity: Float { Float(SettingsHandler.mouseSensitivity) }
 	// Two-finger scroll-wheel accumulation, kept separate from cursor movement.
 	var lastScrollTranslation: CGPoint = .zero
 	var accumulatedScrollY: Float = 0.0
