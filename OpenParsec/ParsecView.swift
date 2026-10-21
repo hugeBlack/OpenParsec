@@ -198,6 +198,12 @@ struct ParsecView: View {
 	@State var preferH265: Bool = true
 	@State var isReconnecting: Bool = false
 	@State var connectionLost: Bool = false
+	@State var showSettings: Bool = false
+	@State var decoderAtOpen: DecoderPref = .h264
+	@State var fpsAtOpen: Int = 0
+	@State var pipAtOpen: Bool = false
+	@State var resolutionAtOpen: ParsecResolution = .client
+	@State var bitrateAtOpen: Int = 0
 
 	@State var resolutions: [ParsecResolution]
 	@State var bitrates: [Int]
@@ -417,6 +423,12 @@ struct ParsecView: View {
 									.frame(maxWidth: .infinity)
 									.multilineTextAlignment(.center)
 							}
+							Button(action: openSettings) {
+								Text("Settings")
+									.padding(8)
+									.frame(maxWidth: .infinity)
+									.multilineTextAlignment(.center)
+							}
 							Rectangle()
 								.fill(Color("Foreground"))
 								.opacity(0.25)
@@ -451,13 +463,12 @@ struct ParsecView: View {
 						return
 					}
 					showDCAlert = false
-					isReconnecting = true
-					ParsecBackgroundManager.shared.reconnectAttempts = 0
-					ParsecBackgroundManager.shared.reconnectStartTime = Date()
-					parsecViewController.resetKeyState()
-					CParsec.reconnect(peerId)
+					reconnectTo(peerId)
 				  }),
 				  secondaryButton: .cancel(Text("Close"), action: {disconnect()}))
+		}
+		.onChange(of: showSettings) { open in
+			if !open { applyStreamSettings() }
 		}
 		.onChange(of: isReconnecting) { reconnecting in
 			if !reconnecting {
@@ -475,6 +486,7 @@ struct ParsecView: View {
 			disconnect(isBackgroundDisconnect: true)
 		}
 		.edgesIgnoringSafeArea(.all)
+		.overlay(SettingsView(visible: $showSettings))
 
 	}
 
@@ -560,6 +572,62 @@ struct ParsecView: View {
 		}
 
 		parsecViewController.setKeyboardVisible(showKeyboard)
+	}
+
+	func openSettings() {
+		decoderAtOpen = SettingsHandler.decoder
+		fpsAtOpen = SettingsHandler.preferredFramesPerSecond
+		pipAtOpen = SettingsHandler.enablePiP
+		resolutionAtOpen = SettingsHandler.resolution
+		bitrateAtOpen = SettingsHandler.bitrate
+		showMenu = false
+		if showKeyboard { toggleKeyboard() }
+		withAnimation(.easeInOut(duration: 0.24)) { showSettings = true }
+	}
+
+	func applyStreamSettings() {
+		zoomEnabled = SettingsHandler.zoomEnabled
+		parsecViewController.setZoomEnabled(zoomEnabled)
+		parsecViewController.updatePanHandle()
+		parsecViewController.positionCursorOverlay()
+		hideOverlay = SettingsHandler.noOverlay
+		hideKeyboardButton = !SettingsHandler.showKeyboardButton
+		parsecViewController.updateMenuEdgeSwipe(menuHidden: hideOverlay)
+		offerHint()
+
+		var hostConfigChanged = false
+		if SettingsHandler.resolution != resolutionAtOpen {
+			DataManager.model.resolutionX = SettingsHandler.resolution.width
+			DataManager.model.resolutionY = SettingsHandler.resolution.height
+			hostConfigChanged = true
+		}
+		if SettingsHandler.constantFps != DataManager.model.constantFps {
+			DataManager.model.constantFps = SettingsHandler.constantFps
+			hostConfigChanged = true
+		}
+		if hostConfigChanged { CParsec.updateHostVideoConfig() }
+		if SettingsHandler.bitrate != bitrateAtOpen { applyBitrate() }
+		if SettingsHandler.preferredFramesPerSecond != fpsAtOpen { parsecViewController.applyFrameRate() }
+		if SettingsHandler.enablePiP != pipAtOpen {
+			ParsecBackgroundManager.shared.reconnectPending = true
+			disconnect()
+		} else if SettingsHandler.decoder != decoderAtOpen {
+			reconnectToApply()
+		}
+	}
+
+	func reconnectToApply() {
+		guard let peerId = ParsecBackgroundManager.shared.lastPeerId else { return }
+		appNote("[reconnect] to apply settings")
+		reconnectTo(peerId)
+	}
+
+	func reconnectTo(_ peerId: String) {
+		isReconnecting = true
+		ParsecBackgroundManager.shared.reconnectAttempts = 0
+		ParsecBackgroundManager.shared.reconnectStartTime = Date()
+		parsecViewController.resetKeyState()
+		CParsec.reconnect(peerId)
 	}
 
 	func disableOverlay() {
