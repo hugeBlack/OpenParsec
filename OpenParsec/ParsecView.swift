@@ -176,6 +176,14 @@ class ParsecSession: ObservableObject {
     }
 }
 
+struct MenuRowsHeightKey: PreferenceKey {
+	static let defaultValue: CGFloat = 0
+
+	static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+		value = max(value, nextValue())
+	}
+}
+
 struct ParsecView: View {
 	var controller: ContentView?
 
@@ -189,6 +197,8 @@ struct ParsecView: View {
 	@AppStorage("keyboardPanHintShown") var keyboardPanHintShown: Bool = false
 	@State var hint: String?
 	@State var showMenu: Bool = false
+	@State var menuRowsHeight: CGFloat = 0
+	@ScaledMetric var menuWidth: CGFloat = 230
 	@AppStorage("menuSwipeHintShown") var menuSwipeHintShown: Bool = false
 
 	@State var showKeyboard: Bool = false
@@ -335,118 +345,7 @@ struct ParsecView: View {
 				}
 				if showMenu {
 					HStack {
-						VStack(spacing: 3) {
-							Button(action: disableOverlay) {
-								Text("Hide Buttons")
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-							Button(action: toggleMute) {
-								Text("Sound: \(muted ? "OFF" : "ON")")
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-							Menu {
-								ForEach(resolutions, id: \.self) { resolution in
-									Button(action: {
-										changeResolution(res: resolution)
-									}) {
-										if resolution.width == dataModel.resolutionX && resolution.height == dataModel.resolutionY {
-											Label(resolution.desc, systemImage: "checkmark")
-										} else {
-											Text(resolution.desc)
-										}
-									}
-								}
-							} label: {
-								Text("Resolution")
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-							Menu {
-								Button(action: {
-									changeBitRate(bitrate: 0)
-								}) {
-									if settingsStore.bitrate == 0 {
-										Label("Host Default", systemImage: "checkmark")
-									} else {
-										Text("Host Default")
-									}
-								}
-								ForEach(bitrates, id: \.self) { bitrate in
-									Button(action: {
-										changeBitRate(bitrate: bitrate)
-									}) {
-                                        if bitrate == settingsStore.bitrate {
-                                            Label("\(bitrate) Mbps", systemImage: "checkmark")
-                                        } else {
-                                            Text("\(bitrate) Mbps")
-                                        }
-									}
-								}
-							} label: {
-								Text("Bitrate")
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-							if DataManager.model.displayConfigs.count > 1 {
-								Menu {
-									Button("Auto") {
-										changeDisplay(displayId: "none")
-									}
-									ForEach(DataManager.model.displayConfigs, id: \.self) { config in
-										Button("\(config.name) \(config.adapterName)") {
-											changeDisplay(displayId: config.id)
-										}
-									}
-								} label: {
-									Text("Switch Display")
-										.padding(8)
-										.frame(maxWidth: .infinity)
-										.multilineTextAlignment(.center)
-								}
-							}
-
-							Button(action: toggleConstantFps) {
-								Text("Constant Frame Rate: \(dataModel.constantFps ? "ON" : "OFF")")
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-							Button(action: toggleZoom) {
-								Text("Pinch to Zoom: \(zoomEnabled ? "ON" : "OFF")")
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-							Button(action: openSettings) {
-								Text("Settings")
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-							Rectangle()
-								.fill(Color("Foreground"))
-								.opacity(0.25)
-								.frame(height: 1)
-							Button(action: { disconnect()}) {
-								Text("Disconnect")
-									.foregroundColor(.red)
-									.padding(8)
-									.frame(maxWidth: .infinity)
-									.multilineTextAlignment(.center)
-							}
-						}
-						.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
-						.foregroundColor(Color("Foreground"))
-						.frame(maxWidth: 230)
-						.cornerRadius(8)
-						.padding(.horizontal)
-						// .edgesIgnoringSafeArea(.all)
+						menuPanel
 						Spacer()
 					}
 				}
@@ -488,6 +387,130 @@ struct ParsecView: View {
 		.edgesIgnoringSafeArea(.all)
 		.overlay(SettingsView(visible: $showSettings))
 
+	}
+
+	var menuPanel: some View {
+		VStack(spacing: 3) {
+			ScrollView {
+				VStack(spacing: 3) {
+					Button(action: disableOverlay) {
+						Text("Hide Buttons")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
+					Button(action: toggleMute) {
+						Text("Sound: \(muted ? "OFF" : "ON")")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
+					Menu {
+						ForEach(resolutions, id: \.self) { resolution in
+							Button(action: {
+								changeResolution(res: resolution)
+							}) {
+								if resolution.width == dataModel.resolutionX && resolution.height == dataModel.resolutionY {
+									Label(resolution.desc, systemImage: "checkmark")
+								} else {
+									Text(resolution.desc)
+								}
+							}
+						}
+					} label: {
+						Text("Resolution")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
+					Menu {
+						Button(action: {
+							changeBitRate(bitrate: 0)
+						}) {
+							if settingsStore.bitrate == 0 {
+								Label("Host Default", systemImage: "checkmark")
+							} else {
+								Text("Host Default")
+							}
+						}
+						ForEach(bitrates, id: \.self) { bitrate in
+							Button(action: {
+								changeBitRate(bitrate: bitrate)
+							}) {
+								if bitrate == settingsStore.bitrate {
+									Label("\(bitrate) Mbps", systemImage: "checkmark")
+								} else {
+									Text("\(bitrate) Mbps")
+								}
+							}
+						}
+					} label: {
+						Text("Bitrate")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
+					if DataManager.model.displayConfigs.count > 1 {
+						Menu {
+							Button("Auto") {
+								changeDisplay(displayId: "none")
+							}
+							ForEach(DataManager.model.displayConfigs, id: \.self) { config in
+								Button("\(config.name) \(config.adapterName)") {
+									changeDisplay(displayId: config.id)
+								}
+							}
+						} label: {
+							Text("Switch Display")
+								.padding(8)
+								.frame(maxWidth: .infinity)
+								.multilineTextAlignment(.center)
+						}
+					}
+
+					Button(action: toggleConstantFps) {
+						Text("Constant Frame Rate: \(dataModel.constantFps ? "ON" : "OFF")")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
+					Button(action: toggleZoom) {
+						Text("Pinch to Zoom: \(zoomEnabled ? "ON" : "OFF")")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
+					Button(action: openSettings) {
+						Text("Settings")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
+				}
+				.background(GeometryReader { proxy in
+					Color.clear.preference(key: MenuRowsHeightKey.self, value: proxy.size.height)
+				})
+			}
+			.frame(maxHeight: menuRowsHeight)
+			.onPreferenceChange(MenuRowsHeightKey.self) { menuRowsHeight = $0 }
+			Rectangle()
+				.fill(Color("Foreground"))
+				.opacity(0.25)
+				.frame(height: 1)
+			Button(action: { disconnect()}) {
+				Text("Disconnect")
+					.foregroundColor(.red)
+					.padding(8)
+					.frame(maxWidth: .infinity)
+					.multilineTextAlignment(.center)
+			}
+		}
+		.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
+		.foregroundColor(Color("Foreground"))
+		.frame(maxWidth: menuWidth)
+		.cornerRadius(8)
+		.padding(.horizontal)
+		// .edgesIgnoringSafeArea(.all)
 	}
 
 	func post() {
