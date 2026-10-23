@@ -268,7 +268,7 @@ struct ParsecView: View {
 							.font(.system(size: 15, weight: .semibold))
 							.foregroundColor(.white)
 							.padding(.horizontal, 20)
-							.padding(.vertical, 8)
+							.frame(minHeight: 44)
 							.background(Color.white.opacity(0.2))
 							.cornerRadius(8)
 					}

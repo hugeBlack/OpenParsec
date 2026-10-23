@@ -183,9 +183,11 @@ struct MainView: View {
 										Spacer()
 										Button(action: reconnectLastHost) {
 											Text("Reconnect")
+												.lineLimit(1)
+												.fixedSize()
 												.foregroundColor(.white)
-												.padding(.horizontal, 12)
-												.padding(.vertical, 6)
+												.padding(.horizontal, 16)
+												.frame(minHeight: 44)
 												.background(Color("AccentColor"))
 												.cornerRadius(8)
 										}
@@ -193,7 +195,8 @@ struct MainView: View {
 											Image(systemName: "xmark")
 												.foregroundColor(Color("Foreground"))
 												.opacity(0.5)
-												.padding(8)
+												.frame(width: 44, height: 44)
+												.contentShape(Rectangle())
 										}
 									}
 									.padding()
@@ -241,15 +244,14 @@ struct MainView: View {
 											.multilineTextAlignment(.center)
 											.opacity(0.5)
 										Button(action: { connectTo(i) }) {
-											ZStack {
-												Rectangle()
-													.fill(Color("AccentColor"))
-													.cornerRadius(8)
-												Text("Connect")
-													.foregroundColor(.white)
-													.padding(8)
-											}
-											.frame(maxWidth: 100)
+											Text("Connect")
+												.lineLimit(1)
+												.fixedSize()
+												.foregroundColor(.white)
+												.padding(.horizontal, 28)
+												.frame(minHeight: 44)
+												.background(Color("AccentColor"))
+												.cornerRadius(8)
 										}
 									}
 
@@ -421,7 +423,7 @@ struct MainView: View {
 							.font(.system(size: 15, weight: .semibold))
 							.foregroundColor(.white)
 							.padding(.horizontal, 20)
-							.padding(.vertical, 8)
+							.frame(minHeight: 44)
 							.background(Color.white.opacity(0.2))
 							.cornerRadius(8)
 					}
