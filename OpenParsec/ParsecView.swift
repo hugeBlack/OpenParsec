@@ -490,6 +490,12 @@ struct ParsecView: View {
 							.frame(maxWidth: .infinity)
 							.multilineTextAlignment(.center)
 					}
+					Button(action: toggleTouchMode) {
+						Text("Touch Mode: \(settingsStore.cursorMode == .direct ? "Direct" : "Touchpad")")
+							.padding(8)
+							.frame(maxWidth: .infinity)
+							.multilineTextAlignment(.center)
+					}
 					Button(action: openSettings) {
 						Text("Settings")
 							.padding(8)
@@ -784,6 +790,13 @@ struct ParsecView: View {
 			zoomEnabled.toggle()
 			parsecViewController.setZoomEnabled(zoomEnabled)
 			SettingsHandler.zoomEnabled = zoomEnabled
+		}
+	}
+
+	func toggleTouchMode() {
+		DispatchQueue.main.async {
+			SettingsHandler.cursorMode = SettingsHandler.cursorMode == .direct ? .touchpad : .direct
+			parsecViewController.updatePanHandle()
 		}
 	}
 
