@@ -203,6 +203,7 @@ struct ParsecView: View {
 
 	@State var showKeyboard: Bool = false
 	@State var zoomEnabled: Bool = false
+	@Environment(\.verticalSizeClass) var verticalSizeClass
 
 	@State var muted: Bool = false
 	@State var preferH265: Bool = true
@@ -302,54 +303,63 @@ struct ParsecView: View {
 					.zIndex(3)
 			}
 
-			VStack {
-				if !hideOverlay {
-					HStack {
-						Button(action: {
-							if showMenu {
-								showMenu = false
-							} else {
-								showMenu = true
-								ParsecView.getHostUserData()
+			HStack(alignment: .top, spacing: 0) {
+				VStack {
+					if !hideOverlay {
+						HStack {
+							Button(action: {
+								if showMenu {
+									showMenu = false
+								} else {
+									showMenu = true
+									ParsecView.getHostUserData()
+								}
+							}) {
+								Image("IconTransparent")
+									.resizable()
+									.aspectRatio(contentMode: .fit)
+									.frame(width: 48, height: 48)
+									.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showMenu ? 0.75 : 1)))
+									.cornerRadius(8)
+									.opacity(showMenu ? 1 : 0.25)
 							}
-						}) {
-							Image("IconTransparent")
-								.resizable()
-								.aspectRatio(contentMode: .fit)
-								.frame(width: 48, height: 48)
-								.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showMenu ? 0.75 : 1)))
-								.cornerRadius(8)
-								.opacity(showMenu ? 1 : 0.25)
+							.padding()
+							.edgesIgnoringSafeArea(.all)
+							Spacer()
 						}
-						.padding()
-						.edgesIgnoringSafeArea(.all)
-						Spacer()
 					}
-				}
-				if !hideKeyboardButton {
-					HStack {
-						Button(action: toggleKeyboard) {
-							Image(systemName: "keyboard")
-								.resizable()
-								.aspectRatio(contentMode: .fit)
-								.frame(width: 32, height: 32)
-								.foregroundColor(Color("Foreground"))
-								.padding(8)
-								.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showKeyboard ? 0.75 : 0.5)))
-								.cornerRadius(8)
+					if !hideKeyboardButton {
+						HStack {
+							Button(action: toggleKeyboard) {
+								Image(systemName: "keyboard")
+									.resizable()
+									.aspectRatio(contentMode: .fit)
+									.frame(width: 32, height: 32)
+									.foregroundColor(Color("Foreground"))
+									.padding(8)
+									.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showKeyboard ? 0.75 : 0.5)))
+									.cornerRadius(8)
+							}
+							.padding(.leading)
+							.edgesIgnoringSafeArea(.all)
+							Spacer()
 						}
-						.padding(.leading)
-						.edgesIgnoringSafeArea(.all)
-						Spacer()
 					}
-				}
-				if showMenu {
-					HStack {
-						menuPanel
-						Spacer()
+					if showMenu && verticalSizeClass != .compact {
+						HStack {
+							menuPanel
+							Spacer()
+						}
+						.layoutPriority(1)
 					}
+					Spacer()
 				}
-				Spacer()
+				.fixedSize(horizontal: showMenu && verticalSizeClass == .compact, vertical: false)
+				if showMenu && verticalSizeClass == .compact {
+					menuPanel
+						.padding(.top)
+					Spacer()
+				}
 			}
 			.zIndex(2)
 		}
