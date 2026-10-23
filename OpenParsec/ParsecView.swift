@@ -273,6 +273,9 @@ struct ParsecView: View {
 							.cornerRadius(8)
 					}
 					.padding(.top, 4)
+					if settingsStore.showConnectionLog {
+						ConnectionLogPanel()
+					}
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				.background(Color.black.opacity(0.6))

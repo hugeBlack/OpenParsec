@@ -172,6 +172,10 @@ struct SettingsView: View {
 											.frame(width: 80)
 									}
 								}
+								CatItem("Show Connection Log") {
+									Toggle("", isOn: $settings.showConnectionLog)
+										.frame(width: 80)
+								}
 							}
 							Text(getVersionInfo())
 								.multilineTextAlignment(.center)

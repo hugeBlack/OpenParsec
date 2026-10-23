@@ -426,6 +426,9 @@ struct MainView: View {
 							.cornerRadius(8)
 					}
 					.padding(.top, 4)
+					if SettingsHandler.showConnectionLog {
+						ConnectionLogPanel()
+					}
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				.background(Color.black.opacity(0.85).edgesIgnoringSafeArea(.all))
