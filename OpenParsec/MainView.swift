@@ -409,32 +409,26 @@ struct MainView: View {
 
 			// Loading elements
 			if isConnecting {
-				ZStack {
-					Rectangle() // Darken background
-						.fill(Color.black)
-						.opacity(0.5)
-						.edgesIgnoringSafeArea(.all)
-					VStack {
-						ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
-							.padding()
-						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : retryingConnect ? "\(connectingToName) didn't answer, trying again..." : "Requesting connection to \(connectingToName)...")
-							.multilineTextAlignment(.center)
-						Button(action: cancelConnection) {
-							ZStack {
-								Rectangle()
-									.fill(Color("BackgroundButton"))
-									.cornerRadius(8)
-								Text("Cancel")
-									.foregroundColor(.red)
-							}
-						}
-						.frame(maxWidth: 100, maxHeight: 48)
+				VStack(spacing: 12) {
+					ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
+					Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : retryingConnect ? "\(connectingToName) didn't answer, trying again..." : "Requesting connection to \(connectingToName)...")
+						.font(.system(size: 16, weight: .medium))
+						.foregroundColor(.white)
+						.multilineTextAlignment(.center)
+						.padding(.horizontal)
+					Button(action: cancelConnection) {
+						Text("Cancel")
+							.font(.system(size: 15, weight: .semibold))
+							.foregroundColor(.white)
+							.padding(.horizontal, 20)
+							.padding(.vertical, 8)
+							.background(Color.white.opacity(0.2))
+							.cornerRadius(8)
 					}
-					.padding()
-					.background(Rectangle().fill(Color("BackgroundPrompt")))
-					.cornerRadius(8)
-					.padding()
+					.padding(.top, 4)
 				}
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+				.background(Color.black.opacity(0.85).edgesIgnoringSafeArea(.all))
 			}
 		}
 		.foregroundColor(Color("Foreground"))
