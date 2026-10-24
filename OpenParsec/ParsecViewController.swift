@@ -91,6 +91,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var contentView: UIView!
 	var lastLaidOutWidth: CGFloat = 0
 	var lastLaidOutHeight: CGFloat = 0
+	var lastDisplayScale: CGFloat = 0
+	var displayScale: CGFloat { max(1, view.window?.screen.nativeScale ?? view.traitCollection.displayScale) }
 
 	override var prefersPointerLocked: Bool {
 		return true
@@ -127,10 +129,10 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	func computeRenderScale() -> CGFloat {
-		let nativeScale = UIScreen.main.nativeScale
+		let nativeScale = displayScale
 		guard scrollView.zoomScale > 1.01 else { return nativeScale }
-		let vw = glkView.renderView.frame.size.width
-		let vh = glkView.renderView.frame.size.height
+		let vw = glkView.renderView.bounds.width
+		let vh = glkView.renderView.bounds.height
 		let sw = CGFloat(CParsec.hostWidth)
 		let sh = CGFloat(CParsec.hostHeight)
 		guard vw > 0, vh > 0, sw > 0, sh > 0 else { return nativeScale }
@@ -339,41 +341,38 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
 		super.viewWillTransition(to: size, with: coordinator)
-
-		let h = size.height
-		let w = size.width
-
-		// Reset zoom on rotation
-		scrollView.zoomScale = 1.0
-
-		self.glkView.updateSize(width: w, height: h)
-		contentView.frame.size = CGSize(width: w, height: h)
-		scrollView.contentSize = CGSize(width: w, height: h)
-		CParsec.setFrame(w, h, UIScreen.main.scale)
-
-        // Reset accessory view to ensure correct width in new orientation
-        clearToolbarModifiers(sendToHost: true)
-        keyboardAccessoriesView = nil
-        if keyboardVisible {
-            reloadInputViews()
-        }
+		coordinator.animate(alongsideTransition: { [weak self] _ in
+			self?.view.setNeedsLayout()
+		}, completion: { [weak self] _ in
+			self?.view.setNeedsLayout()
+		})
 	}
 
 	override func viewDidLayoutSubviews() {
 		super.viewDidLayoutSubviews()
-		// glkView/contentView get sized from possibly-stale bounds in viewDidLoad and have no
-		// autoresizing, so the stream renders in a corner until a rotation re-applies the size.
-		// re-apply once layout settles; skip while zoomed so we dont stomp pan/zoom.
-		guard scrollView != nil, scrollView.zoomScale == 1.0 else { return }
-		let w = view.bounds.width
-		let h = view.bounds.height
-		guard w > 0, h > 0, w != lastLaidOutWidth || h != lastLaidOutHeight else { return }
-		lastLaidOutWidth = w
-		lastLaidOutHeight = h
-		glkView.updateSize(width: w, height: h)
-		contentView.frame.size = CGSize(width: w, height: h)
-		scrollView.contentSize = CGSize(width: w, height: h)
-		CParsec.setFrame(w, h, UIScreen.main.scale)
+		guard scrollView != nil else { return }
+		let size = view.bounds.size
+		let scale = displayScale
+		guard size.width > 0, size.height > 0,
+			size.width != lastLaidOutWidth || size.height != lastLaidOutHeight || scale != lastDisplayScale else { return }
+		// Folding and window resizing can change the viewport while it is zoomed.
+		// Release input and reset the old transform before fitting the new bounds.
+		flushAllTouches()
+		scrollView.setZoomScale(1, animated: false)
+		scrollView.contentOffset = .zero
+		lastLaidOutWidth = size.width
+		lastLaidOutHeight = size.height
+		lastDisplayScale = scale
+		glkView.updateSize(width: size.width, height: size.height)
+		contentView.frame = CGRect(origin: .zero, size: size)
+		scrollView.contentSize = size
+		updateRenderScale()
+		CParsec.setFrame(size.width, size.height, scale)
+		ParsecResolution.updateClientResolution(width: Int(size.width * scale), height: Int(size.height * scale))
+		positionCursorOverlay()
+		clearToolbarModifiers(sendToHost: true)
+		keyboardAccessoriesView = nil
+		if keyboardVisible { reloadInputViews() }
 	}
 
 	override func viewDidAppear(_ animated: Bool) {

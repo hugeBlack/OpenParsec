@@ -18,15 +18,7 @@ struct SettingsView: View {
 	var body: some View {
 		ZStack {
 			if visible {
-				// Background
-				Rectangle()
-					.fill(Color.init(red: 0, green: 0, blue: 0, opacity: 0.67))
-					.edgesIgnoringSafeArea(.all)
-			}
-		}
-
-		ZStack {
-			if visible {
+				Color.black.opacity(0.6).edgesIgnoringSafeArea(.all)
 				// Main controls
 				VStack {
 					// Navigation controls
@@ -37,8 +29,8 @@ struct SettingsView: View {
 							.shadow(color: Color("Shading"), radius: 4, y: 6)
 						ZStack {
 							HStack {
-								Button(action: saveAndExit, label: { Image(systemName: "xmark").scaleEffect(x: -1) })
-								 .padding()
+								Button(action: saveAndExit, label: { Image(systemName: "xmark").frame(width: 44, height: 44) })
+								 .accessibilityLabel("Close settings")
 								Spacer()
 							}
 							Text("Settings")
@@ -180,12 +172,15 @@ struct SettingsView: View {
                     .foregroundColor(Color("Foreground"))
 				}
 				.background(Rectangle().fill(Color("BackgroundGray")))
-				.cornerRadius(8)
-				.padding()
+				.cornerRadius(20)
+				.frame(maxWidth: 720)
+				.padding(16)
 			}
 		}
         .preferredColorScheme(appScheme)
-		.scaleEffect(visible ? 1 : 0, anchor: .zero)
+		.buttonStyle(PlainButtonStyle())
+		.allowsHitTesting(visible)
+		.accessibilityHidden(!visible)
 	}
 
 	func saveAndExit() {
