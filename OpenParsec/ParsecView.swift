@@ -81,7 +81,7 @@ struct ParsecStatusBar: View {
 		}
 
 		if status != PARSEC_OK {
-			if ParsecBackgroundManager.shared.isMarkedForReconnect {
+			if ParsecBackgroundManager.shared.isMarkedForReconnect || ParsecBackgroundManager.shared.endedByUser {
 				return
 			}
 

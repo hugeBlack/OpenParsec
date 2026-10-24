@@ -12,6 +12,7 @@ class ParsecBackgroundManager {
 	static let shared = ParsecBackgroundManager()
 
 	private(set) var hasActiveConnection = false
+	private(set) var endedByUser = false
 	private(set) var lastPeerId: String? {
 		didSet { UserDefaults.standard.set(lastPeerId, forKey: "lastConnectedPeerId") }
 	}
@@ -67,6 +68,7 @@ class ParsecBackgroundManager {
 	}
 
 	func connectionDidGoLive(peerId: String, hostname: String) {
+		endedByUser = false
 		lastPeerId = peerId
 		lastHostname = hostname
 		resumeOnLaunch = true
@@ -111,6 +113,7 @@ class ParsecBackgroundManager {
 
 	func endSession() {
 		didDisconnectDueToBackground = false
+		endedByUser = true
 		isReconnecting = false
 		reconnectAttempts = 0
 		resumeOnLaunch = false
