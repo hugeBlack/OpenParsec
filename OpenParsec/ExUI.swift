@@ -15,10 +15,13 @@ struct CatTitle: View {
 	var body: some View {
 		HStack {
 			Text(text)
+				.font(.subheadline.weight(.semibold))
+				.foregroundColor(Color("ForegroundInactive"))
 			Spacer()
 		}
 		.padding(.horizontal)
-		.padding(.vertical, 4)
+		.padding(.top, 16)
+		.padding(.bottom, 6)
 	}
 }
 
@@ -38,7 +41,7 @@ struct CatList<Content: View>: View {
 	var body: some View {
 		VStack(content: content)
 			.padding(.vertical, 10)
-			.background(Rectangle().fill(Color("BackgroundTab")).cornerRadius(10))
+			.background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color("BackgroundTab")))
 			.padding(.horizontal)
 	}
 }
@@ -52,6 +55,7 @@ struct CatList<Content: View>: View {
 struct CatItem<Content: View>: View {
 	var title: String
 	var content: () -> Content
+	@Environment(\.sizeCategory) private var sizeCategory
 
 	init(_ title: String, @ViewBuilder content: @escaping () -> Content) {
 		self.title = title
@@ -59,13 +63,23 @@ struct CatItem<Content: View>: View {
 	}
 
 	var body: some View {
-		HStack {
-			Text(title)
-				.lineLimit(1)
-			Spacer()
-			content()
+		Group {
+			if sizeCategory.isAccessibilityCategory {
+				VStack(alignment: .leading, spacing: 8) {
+					Text(title).fixedSize(horizontal: false, vertical: true)
+					content()
+				}
+				.frame(maxWidth: .infinity, alignment: .leading)
+			} else {
+				HStack(spacing: 12) {
+					Text(title).fixedSize(horizontal: false, vertical: true)
+					Spacer(minLength: 4)
+					content()
+				}
+			}
 		}
-		.padding(.horizontal)
+		.frame(minHeight: 44)
+		.padding(.horizontal, 16)
 	}
 }
 

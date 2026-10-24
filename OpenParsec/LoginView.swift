@@ -24,8 +24,10 @@ struct LoginView: View {
 				.fill(Color("BackgroundGray"))
 				.edgesIgnoringSafeArea(.all)
 
-			// Login controls
-			VStack(spacing: 8) {
+			// Keep sign-in reachable when folding, rotating, or opening the keyboard.
+			GeometryReader { geometry in
+			ScrollView {
+			VStack(spacing: 14) {
 				HStack(spacing: 2) {
 					Image("IconTransparent")
 						.resizable()
@@ -35,11 +37,12 @@ struct LoginView: View {
 						.aspectRatio(contentMode: .fit)
 						.padding([.top, .bottom, .trailing])
 				}
-				.frame(height: 80)
+				.frame(height: 64)
+				.padding(.bottom, 12)
 				TextField("Email", text: $inputEmail)
 					.padding()
 					.background(Rectangle().fill(Color("BackgroundField")))
-					.cornerRadius(8)
+					.cornerRadius(12)
 					.disableAutocorrection(true)
 					.autocapitalization(/*@START_MENU_TOKEN@*/.none/*@END_MENU_TOKEN@*/)
 					.keyboardType(.emailAddress)
@@ -47,7 +50,7 @@ struct LoginView: View {
 				SecureField("Password", text: $inputPassword, onCommit: { authenticate() })
 					.padding()
 					.background(Rectangle().fill(Color("BackgroundField")))
-					.cornerRadius(8)
+					.cornerRadius(12)
 					.disableAutocorrection(true)
 					.autocapitalization(/*@START_MENU_TOKEN@*/.none/*@END_MENU_TOKEN@*/)
 					.textContentType(.password)
@@ -55,17 +58,22 @@ struct LoginView: View {
 					ZStack {
 						Rectangle()
 							.fill(Color("AccentColor"))
-							.cornerRadius(8)
-						Text("Login")
+							.cornerRadius(12)
+						Text("Sign In").font(.headline)
 							.foregroundColor(.white)
 					}
 					.frame(height: 54)
 				}
 			}
 
-			.padding()
-			.frame(maxWidth: 400)
+			.padding(24)
+			.frame(maxWidth: 432)
+			.frame(maxWidth: .infinity)
+			.frame(minHeight: geometry.size.height)
 			.disabled(isLoading) // Disable when loading
+
+			}
+			}
 
 			// Loading elements
 			if isLoading || presentTFAAlert {
@@ -117,8 +125,9 @@ struct LoginView: View {
 					}
 					.padding()
 					.background(Rectangle().fill(Color("BackgroundPrompt")))
-					.cornerRadius(8)
-					.padding()
+					.cornerRadius(16)
+					.frame(maxWidth: 432)
+					.padding(20)
 				}
 			}
 		}

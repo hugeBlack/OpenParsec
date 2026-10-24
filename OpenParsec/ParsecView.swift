@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import ParsecSDK
 import Foundation
 import AVFoundation
@@ -31,17 +32,18 @@ struct ParsecStatusBar: View {
 		if showMenu || SettingsHandler.alwaysShowStatus {
 			VStack {
 				Text(metricInfo)
-					.frame(minWidth: 200, maxWidth: .infinity, maxHeight: 20)
+					.frame(maxWidth: .infinity, alignment: .leading)
+					.fixedSize(horizontal: false, vertical: true)
+					.padding(10)
 					.multilineTextAlignment(.leading)
-					.font(.system(size: 10))
-					.lineSpacing(20)
-					.lineLimit(nil)
+					.font(.caption2)
+					.lineLimit(4)
 			}
 			.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
 			.foregroundColor(Color("Foreground"))
 			.frame(maxHeight: .infinity, alignment: .top)
 			.zIndex(1)
-			.edgesIgnoringSafeArea(.all)
+			.padding(.leading, 80)
 
 		}
 		EmptyView()
@@ -153,7 +155,7 @@ struct ParsecStatusBar: View {
 			}
 			// SDK forgets stream dims on reconnect, re-send them so the frame fills not corners
 			if let vc = parsecViewController {
-				CParsec.setFrame(vc.view.bounds.width, vc.view.bounds.height, UIScreen.main.scale)
+				CParsec.setFrame(vc.view.bounds.width, vc.view.bounds.height, vc.displayScale)
 			}
 		}
 
@@ -232,9 +234,11 @@ struct ParsecView: View {
     // Let's use onAppear/post.
 
 	var body: some View {
+		GeometryReader { geometry in
 		ZStack {
 
 			UIViewControllerWrapper(self.parsecViewController)
+				.edgesIgnoringSafeArea(.all)
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 
@@ -303,10 +307,10 @@ struct ParsecView: View {
 								.frame(width: 48, height: 48)
 								.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showMenu ? 0.75 : 1)))
 								.cornerRadius(8)
-								.opacity(showMenu ? 1 : 0.25)
+								.opacity(showMenu ? 1 : 0.65)
+								.accessibilityLabel("Stream menu")
 						}
 						.padding()
-						.edgesIgnoringSafeArea(.all)
 						Spacer()
 					}
 				}
@@ -322,13 +326,14 @@ struct ParsecView: View {
 								.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showKeyboard ? 0.75 : 0.5)))
 								.cornerRadius(8)
 						}
+						.accessibilityLabel(showKeyboard ? "Hide keyboard" : "Show keyboard")
 						.padding(.leading)
-						.edgesIgnoringSafeArea(.all)
 						Spacer()
 					}
 				}
 				if showMenu {
 					HStack {
+						ScrollView {
 						VStack(spacing: 3) {
 							Button(action: disableOverlay) {
 								Text("Hide Buttons")
@@ -429,9 +434,10 @@ struct ParsecView: View {
 									.multilineTextAlignment(.center)
 							}
 						}
-						.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.75)))
+						}
+						.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.95)))
 						.foregroundColor(Color("Foreground"))
-						.frame(maxWidth: 230)
+						.frame(maxWidth: 280, maxHeight: max(100, geometry.size.height - (hideOverlay ? 0 : 80) - (hideKeyboardButton ? 0 : 56)))
 						.cornerRadius(8)
 						.padding(.horizontal)
 						// .edgesIgnoringSafeArea(.all)
@@ -474,7 +480,7 @@ struct ParsecView: View {
 			}
 			disconnect(isBackgroundDisconnect: true)
 		}
-		.edgesIgnoringSafeArea(.all)
+		}
 
 	}
 
@@ -523,8 +529,8 @@ struct ParsecView: View {
 
 		DataManager.model.constantFps = SettingsHandler.constantFps
 
-		let screenSize: CGSize = self.parsecViewController.view.frame.size
-		let scaleFactor = UIScreen.main.nativeScale
+		let screenSize: CGSize = self.parsecViewController.view.bounds.size
+		let scaleFactor = parsecViewController.displayScale
 		ParsecResolution.updateClientResolution(width: Int(screenSize.width * scaleFactor), height: Int(screenSize.height * scaleFactor))
 
 		ParsecView.getHostUserData()
