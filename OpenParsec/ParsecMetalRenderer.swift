@@ -45,6 +45,7 @@ class ParsecMetalRenderer: NSObject, MTKViewDelegate {
 	var device: MTLDevice { queue.device }
 
 	private var lastWidth: CGFloat = 1.0
+	private var lastSize = CGSize.zero
 	private var lastScale: CGFloat = 0
 	private var drawnFrames = 0
 	private var lastRateSample = CACurrentMediaTime()
@@ -110,11 +111,23 @@ class ParsecMetalRenderer: NSObject, MTKViewDelegate {
 	func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) { }
 
 	func draw(in view: MTKView) {
-		let deltaWidth: CGFloat = view.frame.size.width - lastWidth
-		if deltaWidth > 0.1 || deltaWidth < -0.1 || abs(view.contentScaleFactor - lastScale) > 0.01 {
-			CParsec.setFrame(view.frame.size.width, view.frame.size.height, view.contentScaleFactor)
-			lastWidth = view.frame.size.width
-			lastScale = view.contentScaleFactor
+		if DuoSupport.isDuo {
+			guard AdaptiveGeometry.valid(view.bounds.size) else { return }
+			if view.bounds.size != lastSize || abs(view.contentScaleFactor - lastScale) > 0.01 {
+				CParsec.setFrame(view.bounds.width, view.bounds.height, view.contentScaleFactor)
+				lastSize = view.bounds.size
+				lastScale = view.contentScaleFactor
+			}
+			if SettingsHandler.preferredFramesPerSecond == 0 {
+				view.preferredFramesPerSecond = view.window?.windowScene?.screen.maximumFramesPerSecond ?? 60
+			}
+		} else {
+			let deltaWidth: CGFloat = view.frame.size.width - lastWidth
+			if deltaWidth > 0.1 || deltaWidth < -0.1 || abs(view.contentScaleFactor - lastScale) > 0.01 {
+				CParsec.setFrame(view.frame.size.width, view.frame.size.height, view.contentScaleFactor)
+				lastWidth = view.frame.size.width
+				lastScale = view.contentScaleFactor
+			}
 		}
 		let size = CGSize(width: (view.bounds.width * view.contentScaleFactor).rounded(), height: (view.bounds.height * view.contentScaleFactor).rounded())
 		if view.drawableSize != size {
