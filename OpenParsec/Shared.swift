@@ -94,6 +94,15 @@ class DataManager {
 }
 
 extension ParsecStatus {
+	var isPeerConnectionFailure: Bool {
+		self == NAT_ERR_PEER_PHASE || self == NAT_ERR_NO_CANDIDATES || self == NAT_ERR_STUN_PHASE
+	}
+
+	func connectionMessage(connecting: Bool = false) -> String {
+		let message = "\(readable(connecting: connecting)) (code \(rawValue))."
+		guard isPeerConnectionFailure else { return message }
+		return message + "\n\nFor a host on the same Wi-Fi, allow OpenParsec in Settings → Privacy & Security → Local Network, then retry. If access is already allowed, check guest Wi-Fi/client isolation, VPN routing, and the host firewall. A working cellular connection does not confirm LAN access."
+	}
 	func readable(connecting: Bool = false) -> String {
 		switch self {
 		case WS_ERR_AUTH:               return "Authentication failed"

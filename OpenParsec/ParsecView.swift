@@ -2,6 +2,7 @@ import SwiftUI
 import ParsecSDK
 import Foundation
 import AVFoundation
+import Combine
 
 struct ParsecStatusBar: View {
 	@Binding var showMenu: Bool
@@ -51,6 +52,7 @@ struct ParsecStatusBar: View {
 	}
 
 	func poll() {
+		guard UIApplication.shared.applicationState != .inactive else { return }
 		if showDCAlert || ParsecBackgroundManager.shared.isPaused {
 			return
 		}
@@ -135,7 +137,7 @@ struct ParsecStatusBar: View {
 				// silent: auto-reconnect spent its retries, dont nag with an alert
 				onSilentDisconnect()
 			} else {
-				DCAlertText = status.readable()
+				DCAlertText = status.connectionMessage()
 				showDCAlert = true
 			}
 			return

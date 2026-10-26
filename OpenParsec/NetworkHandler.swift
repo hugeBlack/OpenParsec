@@ -13,6 +13,7 @@ class NetworkWatcher {
 	private var running = false
 	private var offline = false
 	private(set) var noNetwork = false
+	private(set) var interfaceDescription = "unknown"
 	private var known = false
 	private var waiting: [() -> Void] = []
 
@@ -24,9 +25,12 @@ class NetworkWatcher {
 
 		monitor.pathUpdateHandler = { [weak self] path in
 			let status = path.status
+			let interface = path.usesInterfaceType(.wifi) ? "Wi-Fi" : path.usesInterfaceType(.cellular) ? "cellular" : path.usesInterfaceType(.wiredEthernet) ? "Ethernet" : "other"
 			DispatchQueue.main.async {
 				guard let self = self else { return }
 				self.noNetwork = status == .unsatisfied
+				self.interfaceDescription = interface
+				appNote("[network] \(interface), \(status == .satisfied ? "available" : "unavailable"); LAN permission unknown")
 				if !self.known {
 					self.known = true
 					let runs = self.waiting
