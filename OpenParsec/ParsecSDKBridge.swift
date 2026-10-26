@@ -225,6 +225,26 @@ class ParsecSDKBridge: ParsecService {
 	}
 
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat) {
+		if !DuoSupport.isDuo {
+			ParsecClientSetDimensions(_parsec, UInt8(DEFAULT_STREAM), UInt32(width), UInt32(height), Float(scale))
+
+			let oldSize = CGSize(width: CGFloat(clientWidth), height: CGFloat(clientHeight))
+			clientWidth = Float(width)
+			clientHeight = Float(height)
+			guard hasFrame, oldSize.width > 0, oldSize.height > 0 else {
+				hasFrame = true
+				mouseInfo.mouseX = Int32(width / 2)
+				mouseInfo.mouseY = Int32(height / 2)
+				return
+			}
+			let moved = carryCursor(CGPoint(x: CGFloat(mouseInfo.mouseX), y: CGFloat(mouseInfo.mouseY)), from: oldSize, to: CGSize(width: width, height: height))
+			mouseInfo.mouseX = Int32(moved.x.rounded())
+			mouseInfo.mouseY = Int32(moved.y.rounded())
+
+			return
+		}
+		guard width.isFinite, height.isFinite, scale.isFinite,
+			  width > 0, height > 0, scale > 0 else { return }
 
 		ParsecClientSetDimensions(_parsec, UInt8(DEFAULT_STREAM), UInt32(width), UInt32(height), Float(scale))
 
@@ -237,11 +257,13 @@ class ParsecSDKBridge: ParsecService {
 			mouseInfo.mouseY = Int32(height / 2)
 			return
 		}
-		let moved = carryCursor(CGPoint(x: CGFloat(mouseInfo.mouseX), y: CGFloat(mouseInfo.mouseY)), from: oldSize, to: CGSize(width: width, height: height))
+		let moved = AdaptiveGeometry.carryCursor(CGPoint(x: CGFloat(mouseInfo.mouseX), y: CGFloat(mouseInfo.mouseY)), from: oldSize, to: CGSize(width: width, height: height), host: CGSize(width: CGFloat(hostWidth), height: CGFloat(hostHeight)))
 		mouseInfo.mouseX = Int32(moved.x.rounded())
 		mouseInfo.mouseY = Int32(moved.y.rounded())
 	}
 
+
+	// timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 	private func carryCursor(_ point: CGPoint, from old: CGSize, to new: CGSize) -> CGPoint {
 		let host = CGSize(width: CGFloat(hostWidth), height: CGFloat(hostHeight))
 		guard host.width > 0, host.height > 0 else {
@@ -256,7 +278,6 @@ class ParsecSDKBridge: ParsecService {
 		return CGPoint(x: min(max(x, 0), new.width), y: min(max(y, 0), new.height))
 	}
 
-	// timeout in ms, 16 == 60 FPS, 8 == 120 FPS, etc.
 	func renderGLFrame(timeout: UInt32 = 16) {
 
 		ParsecClientGLRenderFrame(_parsec, UInt8(DEFAULT_STREAM), nil, nil, timeout)
@@ -575,7 +596,7 @@ class ParsecSDKBridge: ParsecService {
 		keyboardMessagePress.keyboard.mod = capsLock ? MOD_CAPS : MOD_NONE
 		ParsecClientSendMessage(_parsec, &keyboardMessagePress)
 	}
-	
+
 	func sendGameControllerButtonMessage(controllerId: UInt32, _ button:ParsecGamepadButton, pressed: Bool)
 	{
 		var pmsg = ParsecMessage()

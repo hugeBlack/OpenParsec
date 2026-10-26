@@ -6,6 +6,7 @@ class ParsecGLKRenderer: NSObject, GLKViewDelegate, GLKViewControllerDelegate {
 	var glkViewController: GLKViewController
 
 	var lastWidth: CGFloat = 1.0
+	var lastSize = CGSize.zero
 	var lastScale: CGFloat = 0
 
 	var lastImg: CGImage?
@@ -34,11 +35,23 @@ class ParsecGLKRenderer: NSObject, GLKViewDelegate, GLKViewControllerDelegate {
 
 	func glkView(_ view: GLKView, drawIn rect: CGRect) {
 		if glkViewController.isPaused { return }
-		let deltaWidth: CGFloat = view.frame.size.width - lastWidth
-		if deltaWidth > 0.1 || deltaWidth < -0.1 || abs(view.contentScaleFactor - lastScale) > 0.01 {
-			CParsec.setFrame(view.frame.size.width, view.frame.size.height, view.contentScaleFactor)
-			lastWidth = view.frame.size.width
-			lastScale = view.contentScaleFactor
+		if DuoSupport.isDuo {
+			guard AdaptiveGeometry.valid(view.bounds.size) else { return }
+			if view.bounds.size != lastSize || abs(view.contentScaleFactor - lastScale) > 0.01 {
+				CParsec.setFrame(view.bounds.width, view.bounds.height, view.contentScaleFactor)
+				lastSize = view.bounds.size
+				lastScale = view.contentScaleFactor
+			}
+			if SettingsHandler.preferredFramesPerSecond == 0 {
+				glkViewController.preferredFramesPerSecond = view.window?.windowScene?.screen.maximumFramesPerSecond ?? 60
+			}
+		} else {
+			let deltaWidth: CGFloat = view.frame.size.width - lastWidth
+			if deltaWidth > 0.1 || deltaWidth < -0.1 || abs(view.contentScaleFactor - lastScale) > 0.01 {
+				CParsec.setFrame(view.frame.size.width, view.frame.size.height, view.contentScaleFactor)
+				lastWidth = view.frame.size.width
+				lastScale = view.contentScaleFactor
+			}
 		}
 
 		// timeout in ms: 16ms = ~60fps, 8ms = ~120fps

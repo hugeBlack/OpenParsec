@@ -41,7 +41,7 @@ class ParsecGLKViewController: ParsecPlayground {
 	}
 
 	public func viewDidLoad() {
-		glkView = GLKView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height))
+		glkView = GLKView(frame: DuoSupport.isDuo ? (viewController?.view.bounds ?? .zero) : UIScreen.main.bounds)
 		glkRenderer = ParsecGLKRenderer(glkView, glkViewController, updateImage)
 		self.viewController?.view.addSubview(glkView)
 		setupGLKViewController()
@@ -57,7 +57,7 @@ class ParsecGLKViewController: ParsecPlayground {
 		let fps = SettingsHandler.preferredFramesPerSecond
 		if fps == 0 {
 			// Use device's maximum refresh rate (120Hz on ProMotion iPads)
-			glkViewController.preferredFramesPerSecond = Int(UIScreen.main.maximumFramesPerSecond)
+			glkViewController.preferredFramesPerSecond = DuoSupport.isDuo ? (viewController?.view.window?.windowScene?.screen.maximumFramesPerSecond ?? 60) : Int(UIScreen.main.maximumFramesPerSecond)
 		} else {
 			glkViewController.preferredFramesPerSecond = fps
 		}

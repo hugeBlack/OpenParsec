@@ -91,6 +91,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var contentView: UIView!
 	var lastLaidOutWidth: CGFloat = 0
 	var lastLaidOutHeight: CGFloat = 0
+	private var lastDisplayScale: CGFloat = 0
+	private var pendingResolution: DispatchWorkItem?
+	private var layingOutStream = false
 
 	override var prefersPointerLocked: Bool {
 		return true
@@ -127,7 +130,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	func computeRenderScale() -> CGFloat {
-		let nativeScale = UIScreen.main.nativeScale
+		let nativeScale = DuoSupport.isDuo ? max(view.traitCollection.displayScale, 1) : UIScreen.main.nativeScale
 		guard scrollView.zoomScale > 1.01 else { return nativeScale }
 		let vw = glkView.renderView.frame.size.width
 		let vh = glkView.renderView.frame.size.height
@@ -143,8 +146,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		let target = computeRenderScale()
 		if abs(target - appliedRenderScale) > 0.01 {
 			appliedRenderScale = target
-			DispatchQueue.main.async { [weak self] in
-				self?.glkView.renderView.contentScaleFactor = target
+			if DuoSupport.isDuo {
+				glkView.renderView.contentScaleFactor = target
+			} else {
+				DispatchQueue.main.async { [weak self] in
+					self?.glkView.renderView.contentScaleFactor = target
+				}
 			}
 		}
 	}
@@ -201,6 +208,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	override func viewDidLoad() {
+		super.viewDidLoad()
 		// ScrollView Setup
 		scrollView = UIScrollView(frame: view.bounds)
 		scrollView.delegate = self
@@ -214,6 +222,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		scrollView.pinchGestureRecognizer?.isEnabled = false
 		scrollView.isScrollEnabled = false
 		scrollView.bouncesZoom = false
+		if DuoSupport.isDuo { scrollView.contentInsetAdjustmentBehavior = .never }
 		view.addSubview(scrollView)
 
         // ContentView
@@ -286,8 +295,6 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		twoFingerTapGestureRecognizer.cancelsTouchesInView = false
 		twoFingerTapGestureRecognizer.delaysTouchesEnded = false
 		view.addGestureRecognizer(twoFingerTapGestureRecognizer)
-		//		view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
-		//		view.backgroundColor = UIColor(red: 0x66, green: 0xcc, blue: 0xff, alpha: 1.0)
 
 		let threeFingerTapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleThreeFinderTap(_:)))
 		threeFingerTapGestureRecognizer.numberOfTouchesRequired = 3
@@ -310,7 +317,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		NotificationCenter.default.addObserver(
 			self,
 			selector: #selector(keyboardWillShow),
-			name: UIResponder.keyboardWillShowNotification,
+			name: DuoSupport.isDuo ? UIResponder.keyboardWillChangeFrameNotification : UIResponder.keyboardWillShowNotification,
 			object: nil
 		)
 		NotificationCenter.default.addObserver(
@@ -338,42 +345,107 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+		if !DuoSupport.isDuo {
+			super.viewWillTransition(to: size, with: coordinator)
+
+			let h = size.height
+			let w = size.width
+
+			// Reset zoom on rotation
+			scrollView.zoomScale = 1.0
+
+			self.glkView.updateSize(width: w, height: h)
+			contentView.frame.size = CGSize(width: w, height: h)
+			scrollView.contentSize = CGSize(width: w, height: h)
+			CParsec.setFrame(w, h, UIScreen.main.scale)
+
+	        // Reset accessory view to ensure correct width in new orientation
+	        clearToolbarModifiers(sendToHost: true)
+	        keyboardAccessoriesView = nil
+	        if keyboardVisible {
+	            reloadInputViews()
+	        }
+
+			return
+		}
 		super.viewWillTransition(to: size, with: coordinator)
-
-		let h = size.height
-		let w = size.width
-
-		// Reset zoom on rotation
-		scrollView.zoomScale = 1.0
-
-		self.glkView.updateSize(width: w, height: h)
-		contentView.frame.size = CGSize(width: w, height: h)
-		scrollView.contentSize = CGSize(width: w, height: h)
-		CParsec.setFrame(w, h, UIScreen.main.scale)
-
-        // Reset accessory view to ensure correct width in new orientation
-        clearToolbarModifiers(sendToHost: true)
-        keyboardAccessoriesView = nil
-        if keyboardVisible {
-            reloadInputViews()
-        }
+		flushAllTouches()
+		coordinator.animate(alongsideTransition: { _ in
+			self.view.setNeedsLayout()
+			self.view.layoutIfNeeded()
+		})
 	}
 
 	override func viewDidLayoutSubviews() {
+		if !DuoSupport.isDuo {
+			super.viewDidLayoutSubviews()
+			// glkView/contentView get sized from possibly-stale bounds in viewDidLoad and have no
+			// autoresizing, so the stream renders in a corner until a rotation re-applies the size.
+			// re-apply once layout settles; skip while zoomed so we dont stomp pan/zoom.
+			guard scrollView != nil, scrollView.zoomScale == 1.0 else { return }
+			let w = view.bounds.width
+			let h = view.bounds.height
+			guard w > 0, h > 0, w != lastLaidOutWidth || h != lastLaidOutHeight else { return }
+			lastLaidOutWidth = w
+			lastLaidOutHeight = h
+			glkView.updateSize(width: w, height: h)
+			contentView.frame.size = CGSize(width: w, height: h)
+			scrollView.contentSize = CGSize(width: w, height: h)
+			CParsec.setFrame(w, h, UIScreen.main.scale)
+
+			return
+		}
 		super.viewDidLayoutSubviews()
-		// glkView/contentView get sized from possibly-stale bounds in viewDidLoad and have no
-		// autoresizing, so the stream renders in a corner until a rotation re-applies the size.
-		// re-apply once layout settles; skip while zoomed so we dont stomp pan/zoom.
-		guard scrollView != nil, scrollView.zoomScale == 1.0 else { return }
-		let w = view.bounds.width
-		let h = view.bounds.height
-		guard w > 0, h > 0, w != lastLaidOutWidth || h != lastLaidOutHeight else { return }
-		lastLaidOutWidth = w
-		lastLaidOutHeight = h
-		glkView.updateSize(width: w, height: h)
-		contentView.frame.size = CGSize(width: w, height: h)
-		scrollView.contentSize = CGSize(width: w, height: h)
-		CParsec.setFrame(w, h, UIScreen.main.scale)
+		guard scrollView != nil, !layingOutStream else { return }
+		layoutKeyBar()
+		let size = view.bounds.size
+		let scale = max(view.traitCollection.displayScale, 1)
+		let old = CGSize(width: lastLaidOutWidth, height: lastLaidOutHeight)
+		guard AdaptiveGeometry.valid(size), size != old || scale != lastDisplayScale else { return }
+		layingOutStream = true
+		defer { layingOutStream = false }
+		lastLaidOutWidth = size.width
+		lastLaidOutHeight = size.height
+		lastDisplayScale = scale
+		let zoom = scrollView.zoomScale
+		let oldCenter = CGPoint(x: (scrollView.contentOffset.x + old.width / 2) / zoom,
+							   y: (scrollView.contentOffset.y + old.height / 2) / zoom)
+		let host = CGSize(width: CGFloat(CParsec.hostWidth), height: CGFloat(CParsec.hostHeight))
+		let center = AdaptiveGeometry.carryCursor(oldCenter, from: old, to: size, host: host)
+		flushAllTouches()
+		scrollView.zoomScale = 1
+		scrollView.frame = view.bounds
+		contentView.frame = CGRect(origin: .zero, size: size)
+		glkView.updateSize(width: size.width, height: size.height)
+		scrollView.contentSize = size
+		scrollView.zoomScale = zoom
+		CParsec.setFrame(size.width, size.height, scale)
+		cursorContentPos = CGPoint(x: CGFloat(CParsec.mouseInfo.mouseX), y: CGFloat(CParsec.mouseInfo.mouseY))
+		let offset = CGPoint(x: center.x * zoom - size.width / 2, y: center.y * zoom - size.height / 2)
+		pinnedToKeyboard = false
+		scrollView.contentInset.top = 0
+		scrollView.setContentOffset(AdaptiveGeometry.clampedOffset(offset, content: scrollView.contentSize,
+									viewport: size, bottomInset: keyboardHeight), animated: false)
+		updateRenderScale()
+		positionCursorOverlay()
+		scheduleClientResolutionUpdate()
+	}
+
+	func scheduleClientResolutionUpdate() {
+		guard DuoSupport.isDuo else { return }
+		pendingResolution?.cancel()
+		let work = DispatchWorkItem { [weak self] in
+			guard let self = self, self.view.window != nil,
+				  let pixels = AdaptiveGeometry.pixelSize(self.view.bounds.size, scale: self.view.traitCollection.displayScale) else { return }
+			ParsecResolution.updateClientResolution(width: Int(pixels.width), height: Int(pixels.height))
+			guard SettingsHandler.resolution == .client, CParsec.getStatus() == PARSEC_OK,
+				  DataManager.model.resolutionX != Int(pixels.width) || DataManager.model.resolutionY != Int(pixels.height) else { return }
+			DataManager.model.resolutionX = Int(pixels.width)
+			DataManager.model.resolutionY = Int(pixels.height)
+			CParsec.updateHostVideoConfig()
+		}
+		pendingResolution = work
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
 	}
 
 	override func viewDidAppear(_ animated: Bool) {
@@ -391,18 +463,19 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 
 	override func viewWillDisappear(_ animated: Bool) {
 		super.viewWillDisappear(animated)
+		pendingResolution?.cancel()
 		UIApplication.shared.isIdleTimerDisabled = false
 		stopMomentum()
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
 			parent.setChildViewControllerForPointerLock(nil)
 		}
-		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+		NotificationCenter.default.removeObserver(self, name: DuoSupport.isDuo ? UIResponder.keyboardWillChangeFrameNotification : UIResponder.keyboardWillShowNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
 		NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
 	}
-	
-	
+
+
 	private var repeatTimer: Timer?
 	private var repeatKeyCode: Int = -1
 	private var optCmdRemapActive = false
@@ -611,7 +684,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		let inset = bar.safeAreaInsets
 		handle.frame.origin.x = 4 + inset.left
 		let left = (handle.isHidden ? 8 : 48) + inset.left
-		keys.frame = CGRect(x: left, y: 0, width: bar.bounds.width - 72 - left - inset.right, height: 44)
+		keys.frame = CGRect(x: left, y: 0, width: DuoSupport.isDuo ? max(0, bar.bounds.width - 72 - left - inset.right) : bar.bounds.width - 72 - left - inset.right, height: 44)
 		keyBarDone?.frame.origin.x = bar.bounds.width - 70 - inset.right
 	}
 
