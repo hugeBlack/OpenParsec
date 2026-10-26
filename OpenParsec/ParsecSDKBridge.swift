@@ -89,11 +89,12 @@ class ParsecSDKBridge: ParsecService {
 
 		ParsecSetLogCallback(
 			{ (level, msg, _) in
-				let line = String(cString: msg!)
-				os_log("%{public}@", log: sdkLog, type: .debug, "[\(level == LOG_DEBUG ? "D" : "I")] \(line)")
+				guard let msg = msg else { return }
+				let line = String(cString: msg)
+				// SDK payloads can contain session credentials. Never log them verbatim.
 				if line.contains("signal_") && line.contains("] = -") {
 					let at = Date()
-					DispatchQueue.main.async { CParsec.setupError = (line, at) }
+					DispatchQueue.main.async { CParsec.setupError = ("SDK signaling failed", at) }
 				}
 			}, nil)
 
