@@ -146,7 +146,7 @@ struct SettingsView: View {
 									Choice("Right Edge", MenuSwipeEdge.right)
 								])
 							}
-							CatItem(UIDevice.current.userInterfaceIdiom == .pad ? "Hide iPad Status Bar" : "Hide iPhone Status Bar") {
+							CatItem("Hide Status Bar") {
 								Toggle("", isOn: $settings.hideStatusBar)
 									.frame(width: 80)
 							}

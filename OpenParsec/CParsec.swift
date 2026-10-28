@@ -112,8 +112,11 @@ enum ParsecResolution: String, CaseIterable, Hashable {
 
 	static var bitrates = [3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
-	static func updateClientResolution(width: Int, height: Int) {
+	@discardableResult
+	static func updateClientResolution(width: Int, height: Int) -> Bool {
+		guard clientSize.width != width || clientSize.height != height else { return false }
 		clientSize = (width, height)
+		return true
 	}
 }
 

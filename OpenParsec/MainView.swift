@@ -3,6 +3,7 @@ import ParsecSDK
 
 struct MainView: View {
 	var controller: ContentView?
+	@Environment(\.displayScale) private var displayScale
 
 	@State private var page: Page = .hosts
 
@@ -40,6 +41,7 @@ struct MainView: View {
 	@State var sessionExpired: Bool = false
 
 	@State private var lastHostShown: String?
+	@State private var viewportSize: CGSize = .zero
 
 	var busy: Bool {
 		isConnecting || inSettings
@@ -438,6 +440,22 @@ struct MainView: View {
 			}
 		}
 		.foregroundColor(Color("Foreground"))
+		.background(
+			GeometryReader { proxy in
+				Color.clear
+					.onAppear { updateClientResolution(for: proxy.size) }
+					.onChange(of: proxy.size) { updateClientResolution(for: $0) }
+			}
+		)
+	}
+
+	private func updateClientResolution(for size: CGSize) {
+		guard size.width > 0, size.height > 0 else { return }
+		viewportSize = size
+		ParsecResolution.updateClientResolution(
+			width: Int((size.width * displayScale).rounded()),
+			height: Int((size.height * displayScale).rounded())
+		)
 	}
 
 	func initView() {
@@ -671,10 +689,7 @@ struct MainView: View {
 			return
 		}
 
-		if let window = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).flatMap({ $0.windows }).first(where: { $0.isKeyWindow }) {
-			let scale = window.screen.nativeScale
-			ParsecResolution.updateClientResolution(width: Int(window.bounds.width * scale), height: Int(window.bounds.height * scale))
-		}
+		updateClientResolution(for: viewportSize)
 
 		pollTimer?.invalidate()
 		pollTimer = nil
