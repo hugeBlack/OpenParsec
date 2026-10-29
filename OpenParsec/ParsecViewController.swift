@@ -204,12 +204,14 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	override func viewDidLoad() {
+		#if compiler(>=6.4)
 		if #available(iOS 27.1, *) {
 			let hingeInteraction = UIHingeInteraction { [weak self] _, update in
 				self?.hingeDidUpdate(update.hinge)
 			}
 			view.addInteraction(hingeInteraction)
 		}
+		#endif
 
 		// ScrollView Setup
 		scrollView = UIScrollView(frame: view.bounds)
@@ -426,6 +428,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	}
 
 	private func streamViewportFrame(in bounds: CGRect) -> CGRect {
+		#if compiler(>=6.4)
 		guard #available(iOS 27.1, *),
 			  isHingePartiallyOpen,
 			  bounds.height > bounds.width else { return bounds }
@@ -438,8 +441,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		let topHeight = horizontalFold.frame.minY - bounds.minY
 		guard topHeight > 0, topHeight < bounds.height else { return bounds }
 		return CGRect(x: bounds.minX, y: bounds.minY, width: bounds.width, height: topHeight)
+		#else
+		return bounds
+		#endif
 	}
 
+	#if compiler(>=6.4)
 	@available(iOS 27.1, *)
 	private func hingeDidUpdate(_ hinge: UIHinge?) {
 		let partiallyOpen = hinge?.status == .partiallyOpen
@@ -455,6 +462,8 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			self.view.setNeedsLayout()
 		}
 	}
+
+	#endif
 
 	override func viewDidAppear(_ animated: Bool) {
 		super.viewDidAppear(animated)
