@@ -24,7 +24,14 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var zoomEnabled = false
 	var appliedRenderScale: CGFloat = 0       // last contentScaleFactor applied (avoids redundant reallocations)
 	let maxRenderScale: CGFloat = 6.0         // cap on drawable density
-	var clickHoldActive = false        // left button held via long-press (file drag)
+	var clickHoldActive = false        // left button held via long-press or tap-then-drag
+	var tapDragCandidate = false
+	var tapDragActive = false
+	var suppressSingleFingerTap = false
+	var lastTapTime: CFTimeInterval?
+	var lastTapScreen: CGPoint = .zero
+	let tapDragInterval: CFTimeInterval = 0.3
+	let tapDragRadius: CGFloat = 44.0
 	// Flick-to-glide momentum (cursor glide can be disabled in Settings).
 	var momentumLink: CADisplayLink?
 	var cursorMomentumActive = false
@@ -392,7 +399,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	override func viewWillDisappear(_ animated: Bool) {
 		super.viewWillDisappear(animated)
 		UIApplication.shared.isIdleTimerDisabled = false
-		stopMomentum()
+		flushAllTouches()
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
 			parent.setChildViewControllerForPointerLock(nil)
@@ -750,7 +757,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		edgeScrollActive = false
 		if new > old { stopMomentum() }   // any new finger cancels an in-progress glide
 		if new == 0 {
-			let flingCursor = (old == 1) && isDragging && !twoFingerResidual && !clickHoldActive
+			let flingCursor = (old == 1) && isDragging && !twoFingerResidual && !clickHoldActive && !suppressSingleFingerTap
 			let flingScroll = (old >= 2) && (twoFingerMode == .scroll)
 			releaseClickHoldIfNeeded()   // defensive: the left button must never stay stuck down
 			endCursorIfNeeded()
@@ -770,13 +777,27 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 				startCursor()
 			}
 		} else if new >= 2 {
+			lastTapTime = nil
+			tapDragCandidate = false
+			suppressSingleFingerTap = true
 			releaseClickHoldIfNeeded()   // can't keep the button held during a two-finger gesture
 			if isDragging { endCursorIfNeeded(); isDragging = false }
 			beginTwoFinger()
 		}
 	}
 
+	private func beginClickHold() {
+		guard !clickHoldActive else { return }
+		stopMomentum()
+		suppressSingleFingerTap = true
+		lastTapTime = nil
+		clickHoldActive = true
+		CParsec.sendMouseClickMessage(ParsecMouseButton.init(rawValue: 1), true)
+	}
+
 	private func releaseClickHoldIfNeeded() {
+		tapDragCandidate = false
+		tapDragActive = false
 		if clickHoldActive {
 			CParsec.sendMouseClickMessage(ParsecMouseButton.init(rawValue: 1), false)
 			clickHoldActive = false
@@ -794,13 +815,27 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		twoFingerResidual = false
 		twoFingerMode = .undecided
 		activeTouches = []
+		touchOrigins = [:]
+		lastTapTime = nil
+		suppressSingleFingerTap = true
 	}
+
+	func parsecTouchesCancelled() { flushAllTouches() }
 
 	private func startCursor() {
 		isDragging = true
 		twoFingerResidual = false
 		cursorDidMoveThisTouch = false
 		singleTouchStartScreen = activeTouches.first?.location(in: view) ?? .zero
+		suppressSingleFingerTap = false
+		// Only a real preceding click arms the second touch. A second stationary tap
+		// still clicks normally; movement turns it into a held-button drag.
+		tapDragCandidate = SettingsHandler.cursorMode == .touchpad && lastTapTime.map {
+			CACurrentMediaTime() - $0 <= tapDragInterval
+				&& hypot(singleTouchStartScreen.x - lastTapScreen.x,
+						 singleTouchStartScreen.y - lastTapScreen.y) <= tapDragRadius
+		} == true
+		lastTapTime = nil
 		if SettingsHandler.cursorMode == .direct {
 			if let t = activeTouches.first {
 				cursorContentPos = clampToContent(contentView.convert(t.location(in: view), from: view))
@@ -851,6 +886,11 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		let prev = t.previousLocation(in: view)
 		if hypot(loc.x - singleTouchStartScreen.x, loc.y - singleTouchStartScreen.y) > tapMoveSlop {
 			cursorDidMoveThisTouch = true
+			if tapDragCandidate && SettingsHandler.cursorMode == .touchpad {
+				tapDragCandidate = false
+				tapDragActive = true
+				beginClickHold() // button-down must precede the first drag movement
+			}
 		}
 
 		if CParsec.mouseInfo.mousePositionRelative {
@@ -937,7 +977,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	}
 
 	private func startCursorMomentum() {
-		guard SettingsHandler.cursorMomentum, SettingsHandler.cursorMode == .touchpad, !CParsec.mouseInfo.mousePositionRelative else { return }
+		guard !clickHoldActive, SettingsHandler.cursorMomentum, SettingsHandler.cursorMode == .touchpad, !CParsec.mouseInfo.mousePositionRelative else { return }
 		guard CACurrentMediaTime() - lastCursorMoveTime < 0.06 else { return }   // finger was still moving at release
 		guard hypot(cursorVelocity.x, cursorVelocity.y) > flingMinSpeed else { return }
 		// Less glide when zoomed out: at 1x the cursor crosses the screen instead of panning the view.
@@ -979,7 +1019,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		var stillActive = false
 
 		// Stop an existing cursor glide too if the setting changes mid-flight.
-		if !SettingsHandler.cursorMomentum {
+		if !SettingsHandler.cursorMomentum || clickHoldActive {
 			cursorMomentumActive = false
 			cursorVelocity = .zero
 		}
@@ -1089,11 +1129,13 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 
 	@objc func handleSingleFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
 		// Only click if the finger stayed put; a moved finger was a cursor nudge, not a tap.
-		if cursorDidMoveThisTouch { return }
+		if cursorDidMoveThisTouch || suppressSingleFingerTap || clickHoldActive { return }
 		if SettingsHandler.cursorMode == .direct { return }
 		let location = gestureRecognizer.location(in: gestureRecognizer.view)
 		let adjustedLocation = contentView.convert(location, from: view)
 		touchController.onTap(typeOfTap: 1, location: adjustedLocation)
+		lastTapTime = CACurrentMediaTime()
+		lastTapScreen = gestureRecognizer.location(in: view)
 	}
 
 	@objc func handleTwoFingerTap(_ gestureRecognizer: UITapGestureRecognizer) {
@@ -1128,10 +1170,12 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		switch gestureRecognizer.state {
 		case .began:
 			// Click-and-hold (file drag): hold the left button; the overlay keeps moving the cursor.
-			clickHoldActive = true
-			CParsec.sendMouseClickMessage(ParsecMouseButton.init(rawValue: 1), true)
+			guard activeTouches.count == 1, !twoFingerResidual else { return }
+			beginClickHold()
 		case .ended, .cancelled, .failed:
-			releaseClickHoldIfNeeded()
+			// A long-press recognizer can fail when a quick tap-drag moves beyond
+			// its slop. Only the raw touch lift/cancel owns that drag's release.
+			if !tapDragActive && clickHoldActive { releaseClickHoldIfNeeded() }
 		default:
 			break
 		}
@@ -1463,6 +1507,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 	}
 
 	@objc private func inputWasReleased() {
+		flushAllTouches()
 		clearToolbarModifiers(sendToHost: false)
 	}
 
@@ -1541,6 +1586,7 @@ extension ParsecViewController: UIKeyInput, UITextInputTraits {
 protocol ParsecTouchInputDelegate: AnyObject {
 	// Called on every touch change with the authoritative set of currently-active touches.
 	func parsecTouchesUpdated(_ activeTouches: Set<UITouch>, moved: Bool)
+	func parsecTouchesCancelled()
 }
 
 // A transparent overlay that owns every raw touch and forwards it to the controller. Sitting on
@@ -1563,7 +1609,7 @@ class TouchOverlayView: UIView {
 	override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
 	override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: true) }
 	override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
-	override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { forward(event, moved: false) }
+	override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { inputDelegate?.parsecTouchesCancelled() }
 }
 
 final class AccessoryContainerView: UIView {
