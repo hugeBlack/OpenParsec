@@ -674,6 +674,11 @@ struct MainView: View {
 		if let window = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).flatMap({ $0.windows }).first(where: { $0.isKeyWindow }) {
 			let scale = window.screen.nativeScale
 			ParsecResolution.updateClientResolution(width: Int(window.bounds.width * scale), height: Int(window.bounds.height * scale))
+		} else {
+			// no key window yet on a launch reconnect, without this it asks the host for 3840x2160
+			let screen = UIScreen.main
+			let scale = screen.nativeScale
+			ParsecResolution.updateClientResolution(width: Int(screen.bounds.width * scale), height: Int(screen.bounds.height * scale))
 		}
 
 		pollTimer?.invalidate()

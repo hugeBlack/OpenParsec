@@ -28,7 +28,7 @@ private let frameCallback: ParsecFrameCallback = { frame, image, opaque in
 extension ParsecFrame {
 	var isWholeNV12: Bool {
 		let w = Int(width), h = Int(height), stride = Int(fullWidth), rows = Int(fullHeight)
-		return format == FORMAT_NV12 && w > 0 && h > 0 && stride >= w && rows >= h && Int(size) >= stride * rows + stride * ((h + 1) / 2)
+		return format == FORMAT_NV12 && w > 0 && h > 0 && stride >= 2 * ((w + 1) / 2) && rows >= h && Int(size) >= stride * rows + stride * ((h + 1) / 2)
 	}
 }
 
