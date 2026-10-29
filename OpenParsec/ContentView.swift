@@ -27,6 +27,10 @@ struct ContentView: View {
 				TestView(self)
 			 }
 		}
+		// ParsecViewController already manages the keyboard with scroll-view insets.
+		// Prevent the root hosting view from also shrinking the SwiftUI controls,
+		// which can push the menu button above the screen in landscape.
+		.ignoresSafeArea(.keyboard, edges: curView == .parsec ? .bottom : [])
 		.onAppear(perform: initApp)
 		.background(Rectangle().fill(Color.black).edgesIgnoringSafeArea(.all))
 	}
