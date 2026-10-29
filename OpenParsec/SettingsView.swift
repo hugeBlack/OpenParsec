@@ -21,6 +21,7 @@ struct SettingsView: View {
 						Text("Middle").tag(RightClickPosition.middle)
 						Text("Second Finger").tag(RightClickPosition.secondFinger)
 					}
+					Toggle("Cursor momentum", isOn: $settings.cursorMomentum)
 					sliderRow("Pointer Speed", value: $settings.mouseSensitivity, range: 0.1...4, step: 0.1)
 					sliderRow("Cursor Size", value: $settings.cursorScale, range: 0.1...4, step: 0.1)
 					sliderRow("Scroll Speed", value: $settings.scrollSensitivity, range: 0.5...5, step: 0.5)

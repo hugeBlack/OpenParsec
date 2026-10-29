@@ -25,7 +25,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	var appliedRenderScale: CGFloat = 0       // last contentScaleFactor applied (avoids redundant reallocations)
 	let maxRenderScale: CGFloat = 6.0         // cap on drawable density
 	var clickHoldActive = false        // left button held via long-press (file drag)
-	// Flick-to-glide momentum (tuned constants, not user settings).
+	// Flick-to-glide momentum (cursor glide can be disabled in Settings).
 	var momentumLink: CADisplayLink?
 	var cursorMomentumActive = false
 	var scrollMomentumActive = false
@@ -937,7 +937,7 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 	}
 
 	private func startCursorMomentum() {
-		guard SettingsHandler.cursorMode == .touchpad, !CParsec.mouseInfo.mousePositionRelative else { return }
+		guard SettingsHandler.cursorMomentum, SettingsHandler.cursorMode == .touchpad, !CParsec.mouseInfo.mousePositionRelative else { return }
 		guard CACurrentMediaTime() - lastCursorMoveTime < 0.06 else { return }   // finger was still moving at release
 		guard hypot(cursorVelocity.x, cursorVelocity.y) > flingMinSpeed else { return }
 		// Less glide when zoomed out: at 1x the cursor crosses the screen instead of panning the view.
@@ -978,6 +978,11 @@ extension ParsecViewController: UIGestureRecognizerDelegate {
 		if dt <= 0 { return }
 		var stillActive = false
 
+		// Stop an existing cursor glide too if the setting changes mid-flight.
+		if !SettingsHandler.cursorMomentum {
+			cursorMomentumActive = false
+			cursorVelocity = .zero
+		}
 		if cursorMomentumActive {
 			let decay = CGFloat(pow(cursorDecayPerSec, Double(dt)))
 			cursorVelocity.x *= decay
