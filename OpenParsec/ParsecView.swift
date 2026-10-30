@@ -55,6 +55,8 @@ struct ParsecStatusBar: View {
 			return
 		}
 
+		let mgr = ParsecBackgroundManager.shared
+		let now = ProcessInfo.processInfo.systemUptime
 		var pcs = ParsecClientStatus()
 		var status = CParsec.getStatusEx(&pcs)
 
@@ -63,7 +65,7 @@ struct ParsecStatusBar: View {
 			pipActive = PictureInPictureManager.shared.isPiPActive
 		}
 
-		if status == PARSEC_OK && pcs.networkFailure && !isReconnecting && !pipActive {
+		if status == PARSEC_OK && pcs.networkFailure && !pipActive {
 			if networkFailureSince == nil { networkFailureSince = Date() }
 			let lost = Date().timeIntervalSince(networkFailureSince!)
 			let justResumed = Date().timeIntervalSince(ParsecBackgroundManager.shared.resumedAt ?? .distantPast) < 10
@@ -81,6 +83,7 @@ struct ParsecStatusBar: View {
 		}
 
 		if status != PARSEC_OK {
+			mgr.recoveryBudget.recordFailure()
 			if ParsecBackgroundManager.shared.isMarkedForReconnect {
 				return
 			}
@@ -110,21 +113,16 @@ struct ParsecStatusBar: View {
 			}
 
 			if SettingsHandler.autoReconnect, !status.isPermanentFailure, let peerId = ParsecBackgroundManager.shared.lastPeerId {
-				let mgr = ParsecBackgroundManager.shared
-				if mgr.reconnectAttempts < 3 {
-					let gap: TimeInterval = mgr.reconnectAttempts == 0 ? 0 : mgr.reconnectAttempts == 1 ? 2 : 5
-					if Date().timeIntervalSince(mgr.reconnectStartTime) < gap {
-						return
-					}
-					mgr.reconnectAttempts += 1
-					appNote("[reconnect] attempt \(mgr.reconnectAttempts) after status \(status.rawValue)")
+				if !mgr.recoveryBudget.isExhausted {
+					guard mgr.recoveryBudget.beginAttempt(at: now) else { return }
+					appNote("[reconnect] attempt \(mgr.recoveryBudget.attempts) after status \(status.rawValue)")
 					isReconnecting = true
 					mgr.reconnectStartTime = Date()
+					mgr.glkViewController?.isPaused = true
 					parsecViewController?.resetKeyState()
 					CParsec.reconnect(peerId)
 					return
 				}
-				mgr.reconnectAttempts = 0
 			}
 
 			isReconnecting = false
@@ -141,8 +139,13 @@ struct ParsecStatusBar: View {
 			return
 		}
 
+		if pcs.networkFailure {
+			mgr.recoveryBudget.recordFailure()
+			return
+		}
+		let stable = mgr.recoveryBudget.recordHealthy(at: now)
 		if isReconnecting {
-			ParsecBackgroundManager.shared.reconnectAttempts = 0
+			guard stable else { return }
 			isReconnecting = false
 			appNote("[reconnect] live again")
 			ParsecView.getHostUserData()
@@ -258,7 +261,7 @@ struct ParsecView: View {
 					.padding(.top, 4)
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
-				.background(Color.black.opacity(0.6))
+				.background(Color.black)
 				.zIndex(10)
 			}
 
@@ -452,8 +455,11 @@ struct ParsecView: View {
 					}
 					showDCAlert = false
 					isReconnecting = true
-					ParsecBackgroundManager.shared.reconnectAttempts = 0
-					ParsecBackgroundManager.shared.reconnectStartTime = Date()
+					let mgr = ParsecBackgroundManager.shared
+					mgr.recoveryBudget.reset()
+					_ = mgr.recoveryBudget.beginAttempt(at: ProcessInfo.processInfo.systemUptime)
+					mgr.reconnectStartTime = Date()
+					mgr.glkViewController?.isPaused = true
 					parsecViewController.resetKeyState()
 					CParsec.reconnect(peerId)
 				  }),

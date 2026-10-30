@@ -685,7 +685,7 @@ struct MainView: View {
 		pollTimer = nil
 		CParsec.initialize()
 		DataManager.model.reset()
-		ParsecBackgroundManager.shared.reconnectAttempts = 0
+		ParsecBackgroundManager.shared.recoveryBudget.reset()
 		connectingToName = who.hostname
 		retryingConnect = retried
 		withAnimation { isConnecting = true }
