@@ -28,7 +28,6 @@ struct ContentView: View {
 			 }
 		}
 		.onAppear(perform: initApp)
-		.background(Rectangle().fill(Color.black).edgesIgnoringSafeArea(.all))
 	}
 
 	func retryRestore() {

@@ -18,113 +18,92 @@ struct LoginView: View {
 	}
 
 	var body: some View {
-		ZStack {
-			// Background
-			Rectangle()
-				.fill(Color("BackgroundGray"))
-				.edgesIgnoringSafeArea(.all)
-
-			// Login controls
-			VStack(spacing: 8) {
-				HStack(spacing: 2) {
-					Image("IconTransparent")
-						.resizable()
-						.aspectRatio(contentMode: .fit)
-					Image("LogoShadow")
-						.resizable()
-						.aspectRatio(contentMode: .fit)
-						.padding([.top, .bottom, .trailing])
-				}
-				.frame(height: 80)
-				TextField("Email", text: $inputEmail)
-					.padding()
-					.background(Rectangle().fill(Color("BackgroundField")))
-					.cornerRadius(8)
-					.disableAutocorrection(true)
-					.autocapitalization(/*@START_MENU_TOKEN@*/.none/*@END_MENU_TOKEN@*/)
-					.keyboardType(.emailAddress)
-					.textContentType(.emailAddress)
-				SecureField("Password", text: $inputPassword, onCommit: { authenticate() })
-					.padding()
-					.background(Rectangle().fill(Color("BackgroundField")))
-					.cornerRadius(8)
-					.disableAutocorrection(true)
-					.autocapitalization(/*@START_MENU_TOKEN@*/.none/*@END_MENU_TOKEN@*/)
-					.textContentType(.password)
-				Button(action: {authenticate()}) {
-					ZStack {
-						Rectangle()
-							.fill(Color("AccentColor"))
-							.cornerRadius(8)
-						Text("Login")
-							.foregroundColor(.white)
+		NavigationStack {
+			Form {
+				Section {
+					HStack {
+						Spacer()
+						Image("IconTransparent")
+							.resizable()
+							.aspectRatio(contentMode: .fit)
+							.frame(height: 72)
+							.accessibilityHidden(true)
+						Spacer()
 					}
-					.frame(height: 54)
+					.listRowBackground(Color.clear)
 				}
-			}
-
-			.padding()
-			.frame(maxWidth: 400)
-			.disabled(isLoading) // Disable when loading
-
-			// Loading elements
-			if isLoading || presentTFAAlert {
-				ZStack {
-					Rectangle() // Darken background
-						.fill(Color.black)
-						.opacity(0.5)
-						.edgesIgnoringSafeArea(.all)
-					VStack {
-						if isLoading {
-							ActivityIndicator(isAnimating: $isLoading, style: .large, tint: .white)
-							 .padding()
-						 Text("Loading...")
-							 .multilineTextAlignment(.center)
-						} else if presentTFAAlert {
-							Text("Please enter your 2FA code from your authenticator app")
-								.multilineTextAlignment(.center)
-							SecureField("2FA Code", text: $inputTFA)
-								.padding()
-								.background(Rectangle().fill(Color("BackgroundField")))
-								.foregroundColor(Color("Foreground"))
-								.cornerRadius(8)
-								.disableAutocorrection(true)
-								.autocapitalization(/*@START_MENU_TOKEN@*/.none/*@END_MENU_TOKEN@*/)
-								.textContentType(.oneTimeCode)
-							HStack {
-								Button(action: {presentTFAAlert = false}) {
-									ZStack {
-										Rectangle()
-											.fill(Color("BackgroundButton"))
-											.cornerRadius(8)
-										Text("Cancel")
-											.foregroundColor(Color("Foreground"))
-									}
-									.frame(height: 54)
-								}
-								Button(action: {authenticate(inputTFA)}) {
-									ZStack {
-										Rectangle()
-											.fill(Color("AccentColor"))
-											.cornerRadius(8)
-										Text("Enter")
-											.foregroundColor(.white)
-									}
-									.frame(height: 54)
-								}
+				Section("Parsec Account") {
+					TextField("Email", text: $inputEmail)
+						.disableAutocorrection(true)
+						.textInputAutocapitalization(.never)
+						.keyboardType(.emailAddress)
+						.textContentType(.emailAddress)
+					SecureField("Password", text: $inputPassword, onCommit: { authenticate() })
+						.disableAutocorrection(true)
+						.textInputAutocapitalization(.never)
+						.textContentType(.password)
+				}
+				Section {
+					Button(action: { authenticate() }) {
+						Group {
+							if isLoading && !presentTFAAlert {
+								ProgressView()
+							} else {
+								Text("Sign In")
 							}
 						}
+						.frame(maxWidth: .infinity)
 					}
-					.padding()
-					.background(Rectangle().fill(Color("BackgroundPrompt")))
-					.cornerRadius(8)
-					.padding()
+					.buttonStyle(.glassProminent)
+					.controlSize(.large)
+					.listRowBackground(Color.clear)
+					.listRowInsets(EdgeInsets())
 				}
 			}
+			.navigationTitle("OpenParsec")
+			.disabled(isLoading)
+			.accessibilityElement(children: .contain)
 		}
-		.foregroundColor(Color("Foreground"))
-		.alert(isPresented: $showAlert) {
-			Alert(title: Text("Login Failed"), message: Text(alertText))
+		.sheet(isPresented: $presentTFAAlert) {
+			NavigationStack {
+				Form {
+					Section {
+						SecureField("2FA Code", text: $inputTFA, onCommit: { authenticate(inputTFA) })
+							.disableAutocorrection(true)
+							.textInputAutocapitalization(.never)
+							.textContentType(.oneTimeCode)
+					} footer: {
+						Text("Enter the code from your authenticator app.")
+					}
+					if isLoading {
+						Section {
+							HStack(spacing: 12) {
+								ProgressView()
+								Text("Verifying...")
+							}
+							.accessibilityElement(children: .combine)
+						}
+					}
+				}
+				.navigationTitle("Two-Factor Code")
+				.navigationBarTitleDisplayMode(.inline)
+				.toolbar {
+					ToolbarItem(placement: .cancellationAction) {
+						Button("Cancel") { presentTFAAlert = false }
+					}
+					ToolbarItem(placement: .confirmationAction) {
+						Button("Confirm") { authenticate(inputTFA) }
+							.disabled(inputTFA.isEmpty || isLoading)
+					}
+				}
+				.disabled(isLoading)
+			}
+			.presentationDetents([.medium])
+		}
+		.alert("Login Failed", isPresented: $showAlert) {
+			Button("OK", role: .cancel) {}
+		} message: {
+			Text(alertText)
 		}
 		.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in retryRestore() }
 		.onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in retryRestore() }

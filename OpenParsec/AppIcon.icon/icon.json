@@ -1,0 +1,106 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "extended-srgb:0.18,0,0.53,1",
+          "extended-srgb:0.35,0,0.54,1"
+        ]
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "extended-srgb:0.07,0.01,0.16,1",
+          "extended-srgb:0.17,0.02,0.26,1"
+        ]
+      }
+    }
+  ],
+  "groups": [
+    {
+      "name": "Cobalt Depth",
+      "layers": [
+        {
+          "name": "Cobalt Depth",
+          "image-name": "CobaltDepth.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "extended-srgb:0.15,0.08,0.98,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.28,0.22,1,1"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-srgb:0.55,0.55,0.55,1"
+              }
+            }
+          ]
+        }
+      ],
+      "lighting": "individual",
+      "specular": "inside",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.05
+      }
+    },
+    {
+      "name": "Magenta Face",
+      "layers": [
+        {
+          "name": "Magenta Face",
+          "image-name": "MagentaFace.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "extended-srgb:0.79,0.05,0.95,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.88,0.25,1,1"
+              }
+            },
+            {
+              "appearance": "tinted",
+              "value": {
+                "solid": "extended-srgb:1,1,1,1"
+              }
+            }
+          ]
+        }
+      ],
+      "lighting": "individual",
+      "specular": "inside",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.05
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "iOS"
+    ]
+  }
+}
