@@ -96,6 +96,28 @@ struct CatSlider: View {
 	}
 }
 
+struct ConnectionLogPanel: View {
+	@ObservedObject var log = ConnectionLog.shared
+
+	var body: some View {
+		VStack(alignment: .leading, spacing: 2) {
+			ForEach(Array(log.lines.suffix(14).enumerated()), id: \.offset) { _, line in
+				Text(line)
+					.font(.system(size: 10, design: .monospaced))
+					.foregroundColor(.white.opacity(0.85))
+					.lineLimit(2)
+					.frame(maxWidth: .infinity, alignment: .leading)
+			}
+		}
+		.padding(10)
+		.frame(maxWidth: 640)
+		.background(Color.black.opacity(0.55))
+		.cornerRadius(8)
+		.padding(.horizontal, 16)
+		.padding(.top, 8)
+	}
+}
+
 /**
  * Choice
  *

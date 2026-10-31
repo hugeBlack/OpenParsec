@@ -81,7 +81,7 @@ struct ParsecStatusBar: View {
 		}
 
 		if status != PARSEC_OK {
-			if ParsecBackgroundManager.shared.isMarkedForReconnect {
+			if ParsecBackgroundManager.shared.isMarkedForReconnect || ParsecBackgroundManager.shared.endedByUser {
 				return
 			}
 
@@ -268,11 +268,14 @@ struct ParsecView: View {
 							.font(.system(size: 15, weight: .semibold))
 							.foregroundColor(.white)
 							.padding(.horizontal, 20)
-							.padding(.vertical, 8)
+							.frame(minHeight: 44)
 							.background(Color.white.opacity(0.2))
 							.cornerRadius(8)
 					}
 					.padding(.top, 4)
+					if settingsStore.showConnectionLog {
+						ConnectionLogPanel()
+					}
 				}
 				.frame(maxWidth: .infinity, maxHeight: .infinity)
 				.background(Color.black.opacity(0.6))

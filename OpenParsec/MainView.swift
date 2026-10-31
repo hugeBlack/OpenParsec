@@ -183,9 +183,11 @@ struct MainView: View {
 										Spacer()
 										Button(action: reconnectLastHost) {
 											Text("Reconnect")
+												.lineLimit(1)
+												.fixedSize()
 												.foregroundColor(.white)
-												.padding(.horizontal, 12)
-												.padding(.vertical, 6)
+												.padding(.horizontal, 16)
+												.frame(minHeight: 44)
 												.background(Color("AccentColor"))
 												.cornerRadius(8)
 										}
@@ -193,7 +195,8 @@ struct MainView: View {
 											Image(systemName: "xmark")
 												.foregroundColor(Color("Foreground"))
 												.opacity(0.5)
-												.padding(8)
+												.frame(width: 44, height: 44)
+												.contentShape(Rectangle())
 										}
 									}
 									.padding()
@@ -241,15 +244,14 @@ struct MainView: View {
 											.multilineTextAlignment(.center)
 											.opacity(0.5)
 										Button(action: { connectTo(i) }) {
-											ZStack {
-												Rectangle()
-													.fill(Color("AccentColor"))
-													.cornerRadius(8)
-												Text("Connect")
-													.foregroundColor(.white)
-													.padding(8)
-											}
-											.frame(maxWidth: 100)
+											Text("Connect")
+												.lineLimit(1)
+												.fixedSize()
+												.foregroundColor(.white)
+												.padding(.horizontal, 28)
+												.frame(minHeight: 44)
+												.background(Color("AccentColor"))
+												.cornerRadius(8)
 										}
 									}
 
@@ -409,32 +411,29 @@ struct MainView: View {
 
 			// Loading elements
 			if isConnecting {
-				ZStack {
-					Rectangle() // Darken background
-						.fill(Color.black)
-						.opacity(0.5)
-						.edgesIgnoringSafeArea(.all)
-					VStack {
-						ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
-							.padding()
-						Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : retryingConnect ? "\(connectingToName) didn't answer, trying again..." : "Requesting connection to \(connectingToName)...")
-							.multilineTextAlignment(.center)
-						Button(action: cancelConnection) {
-							ZStack {
-								Rectangle()
-									.fill(Color("BackgroundButton"))
-									.cornerRadius(8)
-								Text("Cancel")
-									.foregroundColor(.red)
-							}
-						}
-						.frame(maxWidth: 100, maxHeight: 48)
+				VStack(spacing: 12) {
+					ActivityIndicator(isAnimating: $isConnecting, style: .large, tint: .white)
+					Text(waitingForApproval ? "Waiting for \(connectingToName) to approve you..." : retryingConnect ? "\(connectingToName) didn't answer, trying again..." : "Requesting connection to \(connectingToName)...")
+						.font(.system(size: 16, weight: .medium))
+						.foregroundColor(.white)
+						.multilineTextAlignment(.center)
+						.padding(.horizontal)
+					Button(action: cancelConnection) {
+						Text("Cancel")
+							.font(.system(size: 15, weight: .semibold))
+							.foregroundColor(.white)
+							.padding(.horizontal, 20)
+							.frame(minHeight: 44)
+							.background(Color.white.opacity(0.2))
+							.cornerRadius(8)
 					}
-					.padding()
-					.background(Rectangle().fill(Color("BackgroundPrompt")))
-					.cornerRadius(8)
-					.padding()
+					.padding(.top, 4)
+					if SettingsHandler.showConnectionLog {
+						ConnectionLogPanel()
+					}
 				}
+				.frame(maxWidth: .infinity, maxHeight: .infinity)
+				.background(Color.black.opacity(0.85).edgesIgnoringSafeArea(.all))
 			}
 		}
 		.foregroundColor(Color("Foreground"))
