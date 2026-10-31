@@ -52,130 +52,132 @@ struct SettingsView: View {
 					.zIndex(1)
 
 					ScrollView {
-						CatTitle("Touch & Mouse")
-						CatList {
-							CatItem("Touch Mode") {
-								MultiPicker(selection: $settings.cursorMode, options:
-								[
-									Choice("Touchpad", CursorMode.touchpad),
-									Choice("Direct", CursorMode.direct)
-								])
-							}
-							CatItem("Right Click") {
-								MultiPicker(selection: $settings.rightClickPosition, options:
-								[
-									Choice("First Finger", RightClickPosition.firstFinger),
-									Choice("Middle", RightClickPosition.middle),
-									Choice("Second Finger", RightClickPosition.secondFinger)
-								])
-							}
-							CatSlider("Pointer Speed", value: $settings.mouseSensitivity, in: 0.1...4, step: 0.1)
-							CatSlider("Cursor Size", value: $settings.cursorScale, in: 0.1...4, step: 0.1)
-							CatSlider("Scroll Speed", value: $settings.scrollSensitivity, in: 0.5...5, step: 0.5)
-							CatItem("Reverse Scrolling") {
-								Toggle("", isOn: $settings.reverseScrollDirection)
-									.frame(width: 80)
-							}
-							CatItem("Pinch to Zoom") {
-								Toggle("", isOn: $settings.zoomEnabled)
-									.frame(width: 80)
-							}
-						}
-						CatTitle("Keyboard")
-						CatList {
-							CatItem("Show Keyboard Button") {
-								Toggle("", isOn: $settings.showKeyboardButton)
-									.frame(width: 80)
-							}
-							CatItem("Option Key as Command") {
-								Toggle("", isOn: $settings.optionAsCommand)
-									.frame(width: 80)
-							}
-						}
-						CatTitle("Video")
-						CatList {
-							CatItem("Renderer") {
-								SegmentPicker(selection: $settings.renderer, options: [
-									Choice("OpenGL", RendererType.opengl),
-									Choice("Metal", RendererType.metal)
-								])
-								.frame(width: 165)
-							}
-							CatItem("Resolution") {
-								MultiPicker(selection: $settings.resolution, options: resolutionChoices)
-							}
-							CatItem("Bitrate") {
-								MultiPicker(selection: $settings.bitrate, options: [Choice("Host Default", 0)] + ParsecResolution.bitrates.map { Choice("\($0) Mbps", $0) })
-							}
-							CatItem("Frame Rate") {
-								MultiPicker(selection: $settings.preferredFramesPerSecond, options:
-								[
-									Choice("Auto (Device Max)", 0),
-									Choice("120 FPS", 120),
-									Choice("60 FPS", 60),
-									Choice("30 FPS", 30)
-								])
-							}
-							CatItem("Constant Frame Rate") {
-								Toggle("", isOn: $settings.constantFps)
-									.frame(width: 80)
-							}
-							CatItem("Codec") {
-								MultiPicker(selection: $settings.decoder, options:
-								[
-									Choice("H.264", DecoderPref.h264),
-									Choice("Prefer H.265", DecoderPref.h265)
-								])
-							}
-						}
-						CatTitle("During a Stream")
-						CatList {
-							CatItem("Show Stream Stats") {
-								Toggle("", isOn: $settings.alwaysShowStatus)
-									.frame(width: 80)
-							}
-							CatItem("Show Menu Button") {
-								Toggle("", isOn: Binding(get: { !settings.noOverlay }, set: { settings.noOverlay = !$0 }))
-									.frame(width: 80)
-							}
-							CatItem("Menu Edge Swipe") {
-								MultiPicker(selection: $settings.menuSwipeEdge, options:
-								[
-									Choice("Off", MenuSwipeEdge.off),
-									Choice("Left Edge", MenuSwipeEdge.left),
-									Choice("Right Edge", MenuSwipeEdge.right)
-								])
-							}
-							CatItem(UIDevice.current.userInterfaceIdiom == .pad ? "Hide iPad Status Bar" : "Hide iPhone Status Bar") {
-								Toggle("", isOn: $settings.hideStatusBar)
-									.frame(width: 80)
-							}
-							CatItem("Picture in Picture") {
-								Toggle("", isOn: $settings.enablePiP)
-									.frame(width: 80)
-							}
-							CatItem("Start Muted") {
-								Toggle("", isOn: $settings.startMuted)
-									.frame(width: 80)
-							}
-						}
-						CatTitle("Developer")
-						CatList {
-							CatItem("Auto Reconnect") {
-								Toggle("", isOn: $settings.autoReconnect)
-									.frame(width: 80)
-							}
-							if settings.autoReconnect {
-								CatItem("Show Reconnect Errors") {
-									Toggle("", isOn: $settings.errorPrompts)
+						VStack {
+							CatTitle("Touch & Mouse")
+							CatList {
+								CatItem("Touch Mode") {
+									MultiPicker(selection: $settings.cursorMode, options:
+									[
+										Choice("Touchpad", CursorMode.touchpad),
+										Choice("Direct", CursorMode.direct)
+									])
+								}
+								CatItem("Right Click") {
+									MultiPicker(selection: $settings.rightClickPosition, options:
+									[
+										Choice("First Finger", RightClickPosition.firstFinger),
+										Choice("Middle", RightClickPosition.middle),
+										Choice("Second Finger", RightClickPosition.secondFinger)
+									])
+								}
+								CatSlider("Pointer Speed", value: $settings.mouseSensitivity, in: 0.1...4, step: 0.1)
+								CatSlider("Cursor Size", value: $settings.cursorScale, in: 0.1...4, step: 0.1)
+								CatSlider("Scroll Speed", value: $settings.scrollSensitivity, in: 0.5...5, step: 0.5)
+								CatItem("Reverse Scrolling") {
+									Toggle("", isOn: $settings.reverseScrollDirection)
+										.frame(width: 80)
+								}
+								CatItem("Pinch to Zoom") {
+									Toggle("", isOn: $settings.zoomEnabled)
 										.frame(width: 80)
 								}
 							}
+							CatTitle("Keyboard")
+							CatList {
+								CatItem("Show Keyboard Button") {
+									Toggle("", isOn: $settings.showKeyboardButton)
+										.frame(width: 80)
+								}
+								CatItem("Option Key as Command") {
+									Toggle("", isOn: $settings.optionAsCommand)
+										.frame(width: 80)
+								}
+							}
+							CatTitle("Video")
+							CatList {
+								CatItem("Renderer") {
+									SegmentPicker(selection: $settings.renderer, options: [
+										Choice("OpenGL", RendererType.opengl),
+										Choice("Metal", RendererType.metal)
+									])
+									.frame(width: 165)
+								}
+								CatItem("Resolution") {
+									MultiPicker(selection: $settings.resolution, options: resolutionChoices)
+								}
+								CatItem("Bitrate") {
+									MultiPicker(selection: $settings.bitrate, options: [Choice("Host Default", 0)] + ParsecResolution.bitrates.map { Choice("\($0) Mbps", $0) })
+								}
+								CatItem("Frame Rate") {
+									MultiPicker(selection: $settings.preferredFramesPerSecond, options:
+									[
+										Choice("Auto (Device Max)", 0),
+										Choice("120 FPS", 120),
+										Choice("60 FPS", 60),
+										Choice("30 FPS", 30)
+									])
+								}
+								CatItem("Constant Frame Rate") {
+									Toggle("", isOn: $settings.constantFps)
+										.frame(width: 80)
+								}
+								CatItem("Codec") {
+									MultiPicker(selection: $settings.decoder, options:
+									[
+										Choice("H.264", DecoderPref.h264),
+										Choice("Prefer H.265", DecoderPref.h265)
+									])
+								}
+							}
+							CatTitle("During a Stream")
+							CatList {
+								CatItem("Show Stream Stats") {
+									Toggle("", isOn: $settings.alwaysShowStatus)
+										.frame(width: 80)
+								}
+								CatItem("Show Menu Button") {
+									Toggle("", isOn: Binding(get: { !settings.noOverlay }, set: { settings.noOverlay = !$0 }))
+										.frame(width: 80)
+								}
+								CatItem("Menu Edge Swipe") {
+									MultiPicker(selection: $settings.menuSwipeEdge, options:
+									[
+										Choice("Off", MenuSwipeEdge.off),
+										Choice("Left Edge", MenuSwipeEdge.left),
+										Choice("Right Edge", MenuSwipeEdge.right)
+									])
+								}
+								CatItem(UIDevice.current.userInterfaceIdiom == .pad ? "Hide iPad Status Bar" : "Hide iPhone Status Bar") {
+									Toggle("", isOn: $settings.hideStatusBar)
+										.frame(width: 80)
+								}
+								CatItem("Picture in Picture") {
+									Toggle("", isOn: $settings.enablePiP)
+										.frame(width: 80)
+								}
+								CatItem("Start Muted") {
+									Toggle("", isOn: $settings.startMuted)
+										.frame(width: 80)
+								}
+							}
+							CatTitle("Developer")
+							CatList {
+								CatItem("Auto Reconnect") {
+									Toggle("", isOn: $settings.autoReconnect)
+										.frame(width: 80)
+								}
+								if settings.autoReconnect {
+									CatItem("Show Reconnect Errors") {
+										Toggle("", isOn: $settings.errorPrompts)
+											.frame(width: 80)
+									}
+								}
+							}
+							Text(getVersionInfo())
+								.multilineTextAlignment(.center)
+								.opacity(0.5)
+								.padding()
 						}
-						Text(getVersionInfo())
-							.multilineTextAlignment(.center)
-							.opacity(0.5)
-							.padding()
 					}
                     .foregroundColor(Color("Foreground"))
 				}
