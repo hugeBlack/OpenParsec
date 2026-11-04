@@ -40,7 +40,7 @@ class PictureInPictureManager: NSObject {
 	}
 
 	private var cachedFormatDescription: CMVideoFormatDescription?
-	private var displayLayerFlushes = 0
+	private var displayLayerRecovery = StreamRecoveryBudget()
 	private var displayLayerGaveUp = false
 
 	private(set) var isPiPActive = false
@@ -283,18 +283,22 @@ class PictureInPictureManager: NSObject {
 	}
 
 	private func displayLayerTakesFrames(_ displayLayer: AVSampleBufferDisplayLayer) -> Bool {
+		guard !displayLayerGaveUp else { return false }
+		let now = ProcessInfo.processInfo.systemUptime
 		if displayLayer.status == .failed {
-			guard !displayLayerGaveUp else { return false }
-			guard displayLayerFlushes < 3 else {
+			displayLayerRecovery.recordFailure()
+			guard !displayLayerRecovery.isExhausted else {
 				displayLayerGaveUp = true
 				handleTerminalDisplayLayerFailure(displayLayer)
 				return false
 			}
-			displayLayerFlushes += 1
+			guard displayLayerRecovery.beginAttempt(at: now) else { return false }
 			displayLayer.flush()
 			cachedFormatDescription = nil
 		} else if displayLayer.status == .rendering {
-			displayLayerFlushes = 0
+			displayLayerRecovery.recordHealthy(at: now)
+		} else {
+			displayLayerRecovery.recordFailure()
 		}
 		return displayLayer.isReadyForMoreMediaData
 	}
@@ -413,7 +417,7 @@ class PictureInPictureManager: NSObject {
 	}
 
 	private func resetDisplayLayerFailureState() {
-		displayLayerFlushes = 0
+		displayLayerRecovery.reset()
 		displayLayerGaveUp = false
 	}
 
