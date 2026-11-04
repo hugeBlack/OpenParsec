@@ -6,8 +6,62 @@ import os
 let sdkLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "sdk")
 let appLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "app")
 
+final class ConnectionLog: ObservableObject {
+	static let shared = ConnectionLog()
+
+	private struct Entry {
+		var time: String
+		let text: String
+		var count: Int
+	}
+
+	@Published private(set) var lines: [String] = []
+	private var entries: [Entry] = []
+	private let lock = NSLock()
+	private var pending: [(time: String, text: String)] = []
+	private var flushScheduled = false
+	private let clock: DateFormatter = {
+		let f = DateFormatter()
+		f.dateFormat = "HH:mm:ss.S"
+		return f
+	}()
+
+	func add(_ text: String) {
+		let time = clock.string(from: Date())
+		lock.lock()
+		pending.append((time, text))
+		let schedule = !flushScheduled
+		flushScheduled = true
+		lock.unlock()
+		if schedule {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.flush() }
+		}
+	}
+
+	private func flush() {
+		lock.lock()
+		let fresh = pending
+		pending.removeAll()
+		flushScheduled = false
+		lock.unlock()
+		for item in fresh {
+			if let last = entries.indices.last, entries[last].text == item.text {
+				entries[last].count += 1
+				entries[last].time = item.time
+			} else {
+				entries.append(Entry(time: item.time, text: item.text, count: 1))
+			}
+		}
+		if entries.count > 200 {
+			entries.removeFirst(entries.count - 200)
+		}
+		lines = entries.map { "\($0.time) \($0.text)\($0.count > 1 ? " x\($0.count)" : "")" }
+	}
+}
+
 func appNote(_ text: String) {
 	os_log("%{public}@", log: appLog, text)
+	ConnectionLog.shared.add(text)
 }
 
 enum RendererType: Int {
@@ -89,8 +143,9 @@ class ParsecSDKBridge: ParsecService {
 
 		ParsecSetLogCallback(
 			{ (level, msg, _) in
-				let line = String(cString: msg!)
-				os_log("%{public}@", log: sdkLog, type: .debug, "[\(level == LOG_DEBUG ? "D" : "I")] \(line)")
+				let line = "[\(level == LOG_DEBUG ? "D" : "I")] \(String(cString: msg!))"
+				os_log("%{public}@", log: sdkLog, type: level == LOG_DEBUG ? .info : .default, line)
+				ConnectionLog.shared.add("sdk \(line)")
 				if line.contains("signal_") && line.contains("] = -") {
 					let at = Date()
 					DispatchQueue.main.async { CParsec.setupError = (line, at) }
@@ -212,8 +267,10 @@ class ParsecSDKBridge: ParsecService {
 
 	func getStatusEx(_ pcs: inout ParsecClientStatus) -> ParsecStatus {
 		let ans = ParsecClientGetStatus(_parsec, &pcs)
-		self.hostHeight = Float(pcs.decoder.0.height)
-		self.hostWidth = Float(pcs.decoder.0.width)
+		if pcs.decoder.0.width > 0 && pcs.decoder.0.height > 0 {
+			self.hostHeight = Float(pcs.decoder.0.height)
+			self.hostWidth = Float(pcs.decoder.0.width)
+		}
 
 		// the teardown release may not have made it out, this one goes over a socket we know is live
 		if ans == PARSEC_OK && !didReleaseOnConnect {
@@ -373,6 +430,10 @@ class ParsecSDKBridge: ParsecService {
 			let size = event.cursor.size
 			let width = event.cursor.width
 			let height = event.cursor.height
+			guard width > 0, height > 0, Int(size) >= Int(width) * Int(height) * 4 else {
+				ParsecFree(pointer)
+				return
+			}
 			mouseInfo.cursorWidth = Int(width)
 			mouseInfo.cursorHeight = Int(height)
 
@@ -388,9 +449,8 @@ class ParsecSDKBridge: ParsecService {
 			let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
 			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
 			let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
-			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: pointer, length: Int(size)))
-			let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
-			if cgimage != nil {
+			if let providerRef = CGDataProvider(data: NSData(bytes: pointer, length: Int(size))),
+				let cgimage = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef, decode: nil, shouldInterpolate: true, intent: render) {
 				mouseInfo.cursorImg = cgimage
 			}
 			ParsecFree(pointer)
