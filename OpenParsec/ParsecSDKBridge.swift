@@ -367,6 +367,8 @@ class ParsecSDKBridge: ParsecService {
 			return
 		}
 		switch event.id {
+		case ParsecUserDataType.clipboard.rawValue:
+			ClipboardSync.shared.receive(String(cString: pointer!.assumingMemoryBound(to: CChar.self)))
 		case 11:
 			do {
 				let decoder = JSONDecoder()
