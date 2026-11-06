@@ -318,13 +318,13 @@ struct ParsecView: View {
 						.font(.system(size: 16, weight: .medium))
 						.foregroundColor(.white)
 					if waitingForNetwork {
-						Text("Reconnects when the network is back")
+						Text("OpenParsec will reconnect when you're back online")
 							.font(.system(size: 13))
 							.foregroundColor(.white)
 							.opacity(0.7)
 					}
 					Button(action: { disconnect() }) {
-						Text("Disconnect")
+						Text("Close")
 							.font(.system(size: 15, weight: .semibold))
 							.foregroundColor(.white)
 							.padding(.horizontal, 20)
