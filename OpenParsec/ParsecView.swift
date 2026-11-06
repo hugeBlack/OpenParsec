@@ -11,6 +11,7 @@ struct ParsecStatusBar: View {
 	@Binding var isReconnecting: Bool
 	@Binding var connectionLost: Bool
 	@State var networkFailureSince: Date?
+	@State var frameHeld = false
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
@@ -50,6 +51,18 @@ struct ParsecStatusBar: View {
 			}
 	}
 
+	func holdFrame(_ hold: Bool) {
+		var pumping = false
+		if #available(iOS 15.0, *) { pumping = PictureInPictureManager.shared.isPumping }
+		if hold {
+			frameHeld = true
+			if !pumping { ParsecBackgroundManager.shared.glkViewController?.isPaused = true }
+		} else if frameHeld {
+			frameHeld = false
+			if !pumping { ParsecBackgroundManager.shared.glkViewController?.isPaused = false }
+		}
+	}
+
 	func poll() {
 		if showDCAlert || ParsecBackgroundManager.shared.isPaused {
 			return
@@ -81,7 +94,11 @@ struct ParsecStatusBar: View {
 		}
 
 		if status != PARSEC_OK {
-			if ParsecBackgroundManager.shared.isMarkedForReconnect || ParsecBackgroundManager.shared.endedByUser {
+			if ParsecBackgroundManager.shared.endedByUser {
+				return
+			}
+			holdFrame(true)
+			if ParsecBackgroundManager.shared.isMarkedForReconnect {
 				return
 			}
 
@@ -141,16 +158,13 @@ struct ParsecStatusBar: View {
 			return
 		}
 
+		holdFrame(connectionLost)
+
 		if isReconnecting {
 			ParsecBackgroundManager.shared.reconnectAttempts = 0
 			isReconnecting = false
 			appNote("[reconnect] live again")
 			ParsecView.getHostUserData()
-			var pumping = false
-			if #available(iOS 15.0, *) { pumping = PictureInPictureManager.shared.isPumping }
-			if !pumping {
-				ParsecBackgroundManager.shared.glkViewController?.isPaused = false
-			}
 			// SDK forgets stream dims on reconnect, re-send them so the frame fills not corners
 			if let vc = parsecViewController {
 				CParsec.setFrame(vc.view.bounds.width, vc.view.bounds.height, UIScreen.main.scale)
