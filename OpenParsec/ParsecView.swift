@@ -603,6 +603,12 @@ struct ParsecView: View {
 		ParsecBackgroundManager.shared.onShouldDisconnect = {
 			NotificationCenter.default.post(name: NSNotification.Name("ParsecBackgroundDisconnect"), object: nil)
 		}
+		ParsecBackgroundManager.shared.onResumeEndedSession = { [self] in
+			guard let peerId = ParsecBackgroundManager.shared.lastPeerId else { return }
+			appNote("[reconnect] back from the background, reconnecting")
+			reconnectTo(peerId)
+			ParsecBackgroundManager.shared.reconnectAttempts = 1
+		}
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.onPiPStopped = { [self] in
 				if UIApplication.shared.applicationState != .active {

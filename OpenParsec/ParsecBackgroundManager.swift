@@ -32,6 +32,10 @@ class ParsecBackgroundManager {
 	var reconnectStartTime = Date()
 	var resumedAt: Date?
 	var isPaused = false
+	private var holdTask: UIBackgroundTaskIdentifier = .invalid
+	private var backgroundAt: Date?
+	private var endedInBackground = false
+	var onResumeEndedSession: (() -> Void)?
 	weak var glkViewController: RenderLoop?
 
 	var onShouldReconnect: ((String) -> Void)?
@@ -106,6 +110,48 @@ class ParsecBackgroundManager {
 		}
 	}
 
+	func holdSessionInBackground() {
+		backgroundAt = Date()
+		holdTask = UIApplication.shared.beginBackgroundTask(withName: "stream") { [weak self] in
+			self?.endSessionInBackground("background time ran out")
+		}
+		guard holdTask != .invalid else {
+			endSessionInBackground("no background time")
+			return
+		}
+		appNote("[background] holding stream")
+	}
+
+	private func endSessionInBackground(_ reason: String) {
+		if hasActiveConnection && !endedInBackground {
+			appNote("[background] \(reason), ending stream")
+			CParsec.disconnect()
+			isPaused = true
+			endedInBackground = true
+		}
+		endHoldTask()
+	}
+
+	private func endHoldTask() {
+		guard holdTask != .invalid else { return }
+		UIApplication.shared.endBackgroundTask(holdTask)
+		holdTask = .invalid
+	}
+
+	func sceneWillEnterForeground() {
+		guard backgroundAt != nil else { return }
+		backgroundAt = nil
+		endHoldTask()
+		if endedInBackground {
+			endedInBackground = false
+			isPaused = false
+			appNote("[foreground] stream ended in the background")
+			onResumeEndedSession?()
+		} else if hasActiveConnection {
+			appNote("[foreground] stream held, resuming")
+		}
+	}
+
 	func markForReconnect() {
 		guard lastPeerId != nil else { return }
 		didDisconnectDueToBackground = true
@@ -114,6 +160,7 @@ class ParsecBackgroundManager {
 	func endSession() {
 		didDisconnectDueToBackground = false
 		endedByUser = true
+		endedInBackground = false
 		isReconnecting = false
 		reconnectAttempts = 0
 		resumeOnLaunch = false
