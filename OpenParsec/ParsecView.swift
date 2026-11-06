@@ -10,6 +10,7 @@ struct ParsecStatusBar: View {
 	@Binding var DCAlertText: String
 	@Binding var isReconnecting: Bool
 	@Binding var connectionLost: Bool
+	@Binding var waitingForNetwork: Bool
 	@State var networkFailureSince: Date?
 	@State var frameHeld = false
 	@State var parsecViewController: ParsecViewController?
@@ -17,12 +18,13 @@ struct ParsecStatusBar: View {
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 	let onSilentDisconnect: () -> Void
 
-	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>, connectionLost: Binding<Bool>, onSilentDisconnect: @escaping () -> Void) {
+	init(showMenu: Binding<Bool>, showDCAlert: Binding<Bool>, DCAlertText: Binding<String>, parsecViewController: ParsecViewController, isReconnecting: Binding<Bool>, connectionLost: Binding<Bool>, waitingForNetwork: Binding<Bool>, onSilentDisconnect: @escaping () -> Void) {
 		_showMenu = showMenu
 		_showDCAlert = showDCAlert
 		_DCAlertText = DCAlertText
 		_isReconnecting = isReconnecting
 		_connectionLost = connectionLost
+		_waitingForNetwork = waitingForNetwork
 		self.parsecViewController = parsecViewController
 		self.onSilentDisconnect = onSilentDisconnect
 	}
@@ -64,7 +66,7 @@ struct ParsecStatusBar: View {
 	}
 
 	func poll() {
-		if showDCAlert || ParsecBackgroundManager.shared.isPaused {
+		if showDCAlert || ParsecBackgroundManager.shared.isPaused || ParsecBackgroundManager.shared.endedByUser {
 			return
 		}
 
@@ -75,13 +77,32 @@ struct ParsecStatusBar: View {
 		if #available(iOS 15.0, *) {
 			pipActive = PictureInPictureManager.shared.isPiPActive
 		}
+		let offline = NetworkWatcher.shared.noNetwork
+
+		if waitingForNetwork {
+			if offline {
+				holdFrame(true)
+				return
+			}
+			waitingForNetwork = false
+			if let peerId = ParsecBackgroundManager.shared.lastPeerId {
+				let mgr = ParsecBackgroundManager.shared
+				mgr.reconnectAttempts = 1
+				appNote("[reconnect] network back, reconnecting")
+				isReconnecting = true
+				parsecViewController?.resetKeyState()
+				CParsec.reconnect(peerId)
+				mgr.reconnectStartTime = Date()
+				return
+			}
+		}
 
 		if status == PARSEC_OK && pcs.networkFailure && !isReconnecting && !pipActive {
 			if networkFailureSince == nil { networkFailureSince = Date() }
 			let lost = Date().timeIntervalSince(networkFailureSince!)
 			let justResumed = Date().timeIntervalSince(ParsecBackgroundManager.shared.resumedAt ?? .distantPast) < 10
 			connectionLost = true
-			if lost >= 3 || justResumed {
+			if lost >= 3 || justResumed || offline {
 				networkFailureSince = nil
 				connectionLost = false
 				ParsecBackgroundManager.shared.resumedAt = nil
@@ -94,11 +115,23 @@ struct ParsecStatusBar: View {
 		}
 
 		if status != PARSEC_OK {
-			if ParsecBackgroundManager.shared.endedByUser {
-				return
-			}
 			holdFrame(true)
 			if ParsecBackgroundManager.shared.isMarkedForReconnect {
+				return
+			}
+
+			if offline && !pipActive {
+				isReconnecting = false
+				connectionLost = false
+				if SettingsHandler.autoReconnect && ParsecBackgroundManager.shared.lastPeerId != nil {
+					ParsecBackgroundManager.shared.reconnectAttempts = 0
+					waitingForNetwork = true
+					appNote("[stream] no network, waiting")
+					return
+				}
+				appNote("[stream] ended, no network, alert")
+				DCAlertText = "No network connection"
+				showDCAlert = true
 				return
 			}
 
@@ -229,6 +262,7 @@ struct ParsecView: View {
 	@State var pipAtOpen: Bool = false
 	@State var resolutionAtOpen: ParsecResolution = .client
 	@State var bitrateAtOpen: Int = 0
+	@State var waitingForNetwork: Bool = false
 
 	@State var resolutions: [ParsecResolution]
 	@State var bitrates: [Int]
@@ -269,14 +303,26 @@ struct ParsecView: View {
 				.zIndex(1)
 				.prefersPersistentSystemOverlaysHidden()
 
-			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting, connectionLost: $connectionLost, onSilentDisconnect: { disconnect() })
+			ParsecStatusBar(showMenu: $showMenu, showDCAlert: $showDCAlert, DCAlertText: $DCAlertText, parsecViewController: parsecViewController, isReconnecting: $isReconnecting, connectionLost: $connectionLost, waitingForNetwork: $waitingForNetwork, onSilentDisconnect: { disconnect() })
 
-			if isReconnecting || connectionLost {
+			if isReconnecting || connectionLost || waitingForNetwork {
 				VStack(spacing: 12) {
-					ActivityIndicator(isAnimating: .constant(true), style: .large, tint: .white)
-					Text(isReconnecting ? ParsecBackgroundManager.shared.lastHostname.map { "Reconnecting to \($0)..." } ?? "Reconnecting..." : "Connection lost...")
+					if waitingForNetwork {
+						Image(systemName: "wifi.slash")
+							.font(.system(size: 34, weight: .medium))
+							.foregroundColor(.white)
+					} else {
+						ActivityIndicator(isAnimating: .constant(true), style: .large, tint: .white)
+					}
+					Text(waitingForNetwork ? "No network connection" : isReconnecting ? ParsecBackgroundManager.shared.lastHostname.map { "Reconnecting to \($0)..." } ?? "Reconnecting..." : "Connection lost...")
 						.font(.system(size: 16, weight: .medium))
 						.foregroundColor(.white)
+					if waitingForNetwork {
+						Text("Reconnects when the network is back")
+							.font(.system(size: 13))
+							.foregroundColor(.white)
+							.opacity(0.7)
+					}
 					Button(action: { disconnect() }) {
 						Text("Disconnect")
 							.font(.system(size: 15, weight: .semibold))
@@ -386,6 +432,13 @@ struct ParsecView: View {
 				  primaryButton: .default(Text("Reconnect"), action: {
 					guard let peerId = ParsecBackgroundManager.shared.lastPeerId else {
 						disconnect()
+						return
+					}
+					if NetworkWatcher.shared.noNetwork {
+						DispatchQueue.main.async {
+							DCAlertText = "No network connection"
+							showDCAlert = true
+						}
 						return
 					}
 					showDCAlert = false
