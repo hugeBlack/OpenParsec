@@ -17,6 +17,7 @@ struct ParsecStatusBar: View {
 	@State var parsecViewController: ParsecViewController?
 	@State var wasDisconnected: Bool = true
 	@State var liveSince: CFTimeInterval?
+	@State var seenInterfaceChanges = NetworkWatcher.shared.interfaceChanges
 	let timer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
 	let onSilentDisconnect: () -> Void
 
@@ -99,6 +100,7 @@ struct ParsecStatusBar: View {
 				return
 			}
 			waitingForNetwork = false
+			ParsecBackgroundManager.shared.resumedAt = Date()
 			if let peerId = ParsecBackgroundManager.shared.lastPeerId {
 				let mgr = ParsecBackgroundManager.shared
 				mgr.reconnectAttempts = 1
@@ -111,12 +113,23 @@ struct ParsecStatusBar: View {
 			}
 		}
 
+		if status == PARSEC_OK && !isReconnecting && !pipActive {
+			if offline {
+				appNote("[stream] no network, not waiting on sdk")
+				status = NETWORK_ERR_INTERRUPTED
+			} else if SettingsHandler.autoReconnect && NetworkWatcher.shared.interfaceChanges != seenInterfaceChanges {
+				appNote("[stream] network interface changed, reconnecting")
+				status = NETWORK_ERR_INTERRUPTED
+			}
+		}
+		seenInterfaceChanges = NetworkWatcher.shared.interfaceChanges
+
 		if status == PARSEC_OK && pcs.networkFailure && !isReconnecting && !pipActive {
 			if networkFailureSince == nil { networkFailureSince = Date() }
 			let lost = Date().timeIntervalSince(networkFailureSince!)
 			let justResumed = Date().timeIntervalSince(ParsecBackgroundManager.shared.resumedAt ?? .distantPast) < 10
 			connectionLost = true
-			if lost >= 3 || justResumed || offline {
+			if lost >= 3 || justResumed {
 				networkFailureSince = nil
 				connectionLost = false
 				ParsecBackgroundManager.shared.resumedAt = nil
