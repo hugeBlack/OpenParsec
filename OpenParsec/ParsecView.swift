@@ -644,7 +644,14 @@ struct ParsecView: View {
 		ParsecBackgroundManager.shared.onShouldDisconnect = {
 			NotificationCenter.default.post(name: NSNotification.Name("ParsecBackgroundDisconnect"), object: nil)
 		}
+		ParsecBackgroundManager.shared.onEndedInBackground = { [self] in
+			ParsecBackgroundManager.shared.onNextFrame = nil
+			waitingForStream = false
+			if showDCAlert || waitingForNetwork { return }
+			isReconnecting = true
+		}
 		ParsecBackgroundManager.shared.onResumeEndedSession = { [self] in
+			if showDCAlert || waitingForNetwork { return }
 			guard let peerId = ParsecBackgroundManager.shared.lastPeerId else { return }
 			appNote("[reconnect] back from the background, reconnecting")
 			reconnectTo(peerId)
@@ -657,6 +664,9 @@ struct ParsecView: View {
 					CParsec.sendReleaseMessage()
 					CParsec.pause()
 					ParsecBackgroundManager.shared.isPaused = true
+					if UIApplication.shared.applicationState == .background {
+						ParsecBackgroundManager.shared.holdSessionInBackground()
+					}
 				} else {
 					if ParsecBackgroundManager.shared.isReconnecting {
 						return
@@ -680,6 +690,9 @@ struct ParsecView: View {
 					CParsec.sendReleaseMessage()
 					CParsec.pause()
 					ParsecBackgroundManager.shared.isPaused = true
+					if UIApplication.shared.applicationState == .background {
+						ParsecBackgroundManager.shared.holdSessionInBackground()
+					}
 				}
 			}
 		}
@@ -847,6 +860,9 @@ struct ParsecView: View {
 		if !isBackgroundDisconnect {
 			ParsecBackgroundManager.shared.endSession()
 		}
+		ParsecBackgroundManager.shared.onResumeEndedSession = nil
+		ParsecBackgroundManager.shared.onEndedInBackground = nil
+		ParsecBackgroundManager.shared.onNextFrame = nil
 
 		if #available(iOS 15.0, *) {
 			PictureInPictureManager.shared.teardown()

@@ -36,6 +36,7 @@ class ParsecBackgroundManager {
 	private var backgroundAt: Date?
 	private var endedInBackground = false
 	var onResumeEndedSession: (() -> Void)?
+	var onEndedInBackground: (() -> Void)?
 	var onNextFrame: (() -> Void)?
 	weak var glkViewController: RenderLoop?
 
@@ -112,6 +113,7 @@ class ParsecBackgroundManager {
 	}
 
 	func holdSessionInBackground() {
+		guard holdTask == .invalid else { return }
 		backgroundAt = Date()
 		holdTask = UIApplication.shared.beginBackgroundTask(withName: "stream") { [weak self] in
 			self?.endSessionInBackground("background time ran out")
@@ -129,6 +131,11 @@ class ParsecBackgroundManager {
 			CParsec.disconnect()
 			isPaused = true
 			endedInBackground = true
+			onEndedInBackground?()
+			RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.2))
+			for scene in UIApplication.shared.connectedScenes {
+				UIApplication.shared.requestSceneSessionRefresh(scene.session)
+			}
 		}
 		endHoldTask()
 	}
@@ -147,6 +154,7 @@ class ParsecBackgroundManager {
 			endedInBackground = false
 			isPaused = false
 			appNote("[foreground] stream ended in the background")
+			glkViewController?.isPaused = false
 			onResumeEndedSession?()
 		} else if hasActiveConnection {
 			appNote("[foreground] stream held, resuming")
