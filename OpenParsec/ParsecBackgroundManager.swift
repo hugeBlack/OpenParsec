@@ -36,6 +36,7 @@ class ParsecBackgroundManager {
 	private var backgroundAt: Date?
 	private var endedInBackground = false
 	var onResumeEndedSession: (() -> Void)?
+	var onNextFrame: (() -> Void)?
 	weak var glkViewController: RenderLoop?
 
 	var onShouldReconnect: ((String) -> Void)?
