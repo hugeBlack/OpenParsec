@@ -165,13 +165,15 @@ struct ParsecStatusBar: View {
 				return
 			}
 
-			if status == PARSEC_CONNECTING && isReconnecting {
+			let setupFailure = isReconnecting ? CParsec.setupError.flatMap { $0.at > ParsecBackgroundManager.shared.reconnectStartTime ? $0.line : nil } : nil
+
+			if status == PARSEC_CONNECTING && isReconnecting && setupFailure == nil {
 				if Date().timeIntervalSince(ParsecBackgroundManager.shared.reconnectStartTime) < 15 {
 					return
 				}
 			}
 
-			if status == CONNECT_WRN_APPROVAL && isReconnecting {
+			if status == CONNECT_WRN_APPROVAL && isReconnecting && setupFailure == nil {
 				if Date().timeIntervalSince(ParsecBackgroundManager.shared.reconnectStartTime) < 60 {
 					return
 				}
@@ -189,7 +191,7 @@ struct ParsecStatusBar: View {
 				return
 			}
 
-			if SettingsHandler.autoReconnect, !status.isPermanentFailure, let peerId = ParsecBackgroundManager.shared.lastPeerId {
+			if SettingsHandler.autoReconnect, !status.isPermanentFailure || (status == CONNECT_WRN_APPROVAL && setupFailure != nil), let peerId = ParsecBackgroundManager.shared.lastPeerId {
 				let mgr = ParsecBackgroundManager.shared
 				if mgr.reconnectAttempts < 3 {
 					let gap: TimeInterval = mgr.reconnectAttempts == 0 ? 0 : mgr.reconnectAttempts == 1 ? 2 : 5
@@ -197,11 +199,11 @@ struct ParsecStatusBar: View {
 						return
 					}
 					mgr.reconnectAttempts += 1
-					appNote("[reconnect] attempt \(mgr.reconnectAttempts) after status \(status.rawValue)")
+					appNote("[reconnect] attempt \(mgr.reconnectAttempts) after status \(status.rawValue)\(setupFailure.map { ", sdk setup failed: \($0)" } ?? "")")
 					isReconnecting = true
-					mgr.reconnectStartTime = Date()
 					parsecViewController?.resetKeyState()
 					CParsec.reconnect(peerId)
+					mgr.reconnectStartTime = Date()
 					return
 				}
 				mgr.reconnectAttempts = 0
@@ -807,9 +809,9 @@ struct ParsecView: View {
 	func reconnectTo(_ peerId: String) {
 		isReconnecting = true
 		ParsecBackgroundManager.shared.reconnectAttempts = 0
-		ParsecBackgroundManager.shared.reconnectStartTime = Date()
 		parsecViewController.resetKeyState()
 		CParsec.reconnect(peerId)
+		ParsecBackgroundManager.shared.reconnectStartTime = Date()
 	}
 
 	func disableOverlay() {
