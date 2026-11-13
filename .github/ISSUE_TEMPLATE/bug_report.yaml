@@ -1,0 +1,95 @@
+name: Bug report
+description: Something in OpenParsec isn't working
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check the [Troubleshooting](https://github.com/hugeBlack/OpenParsec#troubleshooting) section of the README and Parsec's [error codes page](https://support.parsec.app/hc/en-us/articles/32381281333012-All-Error-Codes) before opening an issue.
+
+  - type: checkboxes
+    attributes:
+      label: I searched existing issues, open and closed, and this isn't a duplicate.
+      options:
+        - label: 'Yes'
+          required: true
+
+  - type: checkboxes
+    attributes:
+      label: I tried the latest nightly and it still happens.
+      options:
+        - label: 'Yes'
+          required: true
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: The bug
+      description: What were you trying to do, and what happened instead?
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: OpenParsec version
+      description: The version line at the bottom of Settings.
+      placeholder: Version 2.0.0-Release (main/abc1234)
+
+  - type: dropdown
+    validations:
+      required: true
+    attributes:
+      label: Installed with
+      options:
+        - AltStore
+        - SideStore
+        - LiveContainer
+        - TrollStore
+        - Built from source
+        - Other
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Device and iOS version
+      placeholder: iPad Pro 11-inch (M4), iPadOS 26.1
+
+  - type: input
+    validations:
+      required: true
+    attributes:
+      label: Host OS
+      placeholder: Windows 11, macOS 15.6
+
+  - type: dropdown
+    attributes:
+      label: Renderer
+      description: The Renderer setting under Video in Settings.
+      options:
+        - Metal
+        - OpenGL
+
+  - type: textarea
+    id: repro
+    validations:
+      required: true
+    attributes:
+      label: Reproduction steps
+      value: |
+        1.
+        2.
+        3.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please type out the relevant lines from the log on the connecting or reconnecting screen, or screenshot it while it's still showing and attach that under Additional information. Code formatting is enabled, no need for backticks.
+      render: shell
+
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: Screenshots, a screen recording, or anything else that helps.
