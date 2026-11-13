@@ -227,6 +227,7 @@ class ParsecSDKBridge: ParsecService {
 		didSetResolution = false
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
+		audio_hold(false, _audioPtr)
 		ParsecBackgroundManager.shared.connectionDidEnd()
 		let status = connect(peerID)
 		if status != PARSEC_OK && status != PARSEC_CONNECTING {
