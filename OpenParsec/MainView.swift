@@ -279,7 +279,11 @@ struct MainView: View {
 							}
 						}
 						.padding()
+						.frame(maxWidth: .infinity)
 					}
+					.frame(maxWidth: .infinity, maxHeight: .infinity)
+					.background(Color("BackgroundGray"))
+					.contentShape(Rectangle())
 					.zIndex(page == .hosts ? 0 : -1)
 					.disabled(page != .hosts)
 					.opacity(page == .hosts ? 1 : 0)
