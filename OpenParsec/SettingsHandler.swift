@@ -26,6 +26,7 @@ final class SettingsStore: ObservableObject {
 			"alwaysShowStatus": false,
 			"enablePiP": false,
 			"startMuted": false,
+			"clipboardSync": false,
 			"autoReconnectEnabled": true,
 			"errorPrompts": false,
 			"showConnectionLog": true,
@@ -141,6 +142,11 @@ final class SettingsStore: ObservableObject {
 		set { store(newValue, "startMuted") }
 	}
 
+	var clipboardSync: Bool {
+		get { defaults.bool(forKey: "clipboardSync") }
+		set { store(newValue, "clipboardSync") }
+	}
+
 	var autoReconnect: Bool {
 		get { defaults.bool(forKey: "autoReconnectEnabled") }
 		set { store(newValue, "autoReconnectEnabled") }
@@ -192,6 +198,7 @@ struct SettingsHandler {
 	static var alwaysShowStatus: Bool { get { SettingsStore.shared.alwaysShowStatus } set { SettingsStore.shared.alwaysShowStatus = newValue } }
 	static var enablePiP: Bool { get { SettingsStore.shared.enablePiP } set { SettingsStore.shared.enablePiP = newValue } }
 	static var startMuted: Bool { get { SettingsStore.shared.startMuted } set { SettingsStore.shared.startMuted = newValue } }
+	static var clipboardSync: Bool { get { SettingsStore.shared.clipboardSync } set { SettingsStore.shared.clipboardSync = newValue } }
 	static var autoReconnect: Bool { get { SettingsStore.shared.autoReconnect } set { SettingsStore.shared.autoReconnect = newValue } }
 	static var errorPrompts: Bool { get { SettingsStore.shared.errorPrompts } set { SettingsStore.shared.errorPrompts = newValue } }
 	static var showConnectionLog: Bool { get { SettingsStore.shared.showConnectionLog } set { SettingsStore.shared.showConnectionLog = newValue } }

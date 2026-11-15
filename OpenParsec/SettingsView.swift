@@ -159,6 +159,10 @@ struct SettingsView: View {
 									Toggle("", isOn: $settings.startMuted)
 										.frame(width: 80)
 								}
+								CatItem("Sync Clipboard") {
+									Toggle("", isOn: $settings.clipboardSync)
+										.frame(width: 80)
+								}
 							}
 							CatTitle("Developer")
 							CatList {

@@ -33,6 +33,8 @@ final class ClipboardSync {
 	}
 
 	func receive(_ text: String) {
+		// Off by default because the host would otherwise overwrite the local clipboard.
+		guard SettingsHandler.clipboardSync else { return }
 		DispatchQueue.main.async {
 			UIPasteboard.general.string = text
 			self.lastChangeCount = UIPasteboard.general.changeCount

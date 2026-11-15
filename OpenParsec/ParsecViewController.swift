@@ -393,7 +393,9 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			becomeFirstResponder()
 		}
 		// (Pinch-to-zoom is driven manually via touchOverlay; the scroll view's pinch stays off.)
-		ClipboardSync.shared.start()
+		if SettingsHandler.clipboardSync {
+			ClipboardSync.shared.start()
+		}
 	}
 
 	override func viewWillDisappear(_ animated: Bool) {
