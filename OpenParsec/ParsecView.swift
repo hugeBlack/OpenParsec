@@ -279,6 +279,7 @@ struct ParsecView: View {
 
 	@State var hideOverlay: Bool = false
 	@State var hideKeyboardButton: Bool = false
+	@State var koreanKeyboard: Bool = false
 	@AppStorage("keyboardHintShown") var keyboardHintShown: Bool = false
 	@AppStorage("keyboardPanHintShown") var keyboardPanHintShown: Bool = false
 	@State var hint: String?
@@ -446,6 +447,22 @@ struct ParsecView: View {
 									.background(Rectangle().fill(Color("BackgroundPrompt").opacity(showKeyboard ? 0.75 : 0.5)))
 									.cornerRadius(8)
 							}
+							.padding(.leading)
+							.edgesIgnoringSafeArea(.all)
+							Spacer()
+						}
+					}
+					if koreanKeyboard {
+						HStack {
+							Button(action: { parsecViewController.toggleKoreanInput() }) {
+								Text("한/영")
+									.font(.system(size: 16, weight: .semibold))
+									.foregroundColor(Color("Foreground"))
+									.padding(10)
+									.background(Rectangle().fill(Color("BackgroundPrompt").opacity(0.5)))
+									.cornerRadius(8)
+							}
+							.accessibilityLabel("Toggle Korean input on Windows")
 							.padding(.leading)
 							.edgesIgnoringSafeArea(.all)
 							Spacer()
@@ -727,6 +744,7 @@ struct ParsecView: View {
 
 		hideOverlay = SettingsHandler.noOverlay
 		hideKeyboardButton = !SettingsHandler.showKeyboardButton
+		koreanKeyboard = SettingsHandler.koreanKeyboard
 		parsecViewController.updateMenuEdgeSwipe(menuHidden: hideOverlay)
 		offerHint()
 
@@ -776,6 +794,8 @@ struct ParsecView: View {
 		parsecViewController.positionCursorOverlay()
 		hideOverlay = SettingsHandler.noOverlay
 		hideKeyboardButton = !SettingsHandler.showKeyboardButton
+		koreanKeyboard = SettingsHandler.koreanKeyboard
+		parsecViewController.applyKoreanKeyboardSetting()
 		parsecViewController.updateMenuEdgeSwipe(menuHidden: hideOverlay)
 		offerHint()
 

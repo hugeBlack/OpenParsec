@@ -38,6 +38,8 @@ Hardware mice and keyboards are supported.
 
 Option Key as Command can be turned on in Settings for Mac hosts.
 
+Windows Korean Keyboard (Settings > Keyboard, off by default) is for Windows hosts using Korean Microsoft IME with the Korean keyboard set to 101-key Type 1. It turns Right Alt, Hangul/한영, Ctrl+Space and Shift+Space into a single Right Alt tap so the host IME switches reliably, and adds a 한/영 button during a stream. It overrides Option Key as Command and repurposes Right Alt, so leave it off if you need AltGr. Backtick (~) as 한/영 is a separate option for keyboards that send ~ for 한/영; it also remaps the real backtick key.
+
 ## Game Controllers
 One controller is supported. Pressing any trigger during a stream registers it with Parsec. The host needs the virtual USB driver installed.
 

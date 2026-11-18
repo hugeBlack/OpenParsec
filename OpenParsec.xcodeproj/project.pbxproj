@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A11000000000000000000001 /* KoreanKeyboardRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11000000000000000000002 /* KoreanKeyboardRouter.swift */; };
 		170E0A772BEF5AFF00B0EA32 /* ParsecViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */; };
 		17374D412CB8E35D00EDCEE7 /* KeyCodeTranslators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17374D402CB8E35500EDCEE7 /* KeyCodeTranslators.swift */; };
 		17840D1D2CB639530097374B /* ParsecUserData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17840D1C2CB6394D0097374B /* ParsecUserData.swift */; };
@@ -59,6 +60,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A11000000000000000000002 /* KoreanKeyboardRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanKeyboardRouter.swift; sourceTree = "<group>"; };
 		170E0A762BEF5AFF00B0EA32 /* ParsecViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecViewController.swift; sourceTree = "<group>"; };
 		17374D402CB8E35500EDCEE7 /* KeyCodeTranslators.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCodeTranslators.swift; sourceTree = "<group>"; };
 		17840D1C2CB6394D0097374B /* ParsecUserData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParsecUserData.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 		27E61A90292965FC00FF6563 /* OpenParsec */ = {
 			isa = PBXGroup;
 			children = (
+				A11000000000000000000002 /* KoreanKeyboardRouter.swift */,
 				E76224A02F8C017700A2F86F /* ParsecBackgroundManager.swift */,
 				E762250A2F8D0A0000A2F86F /* PictureInPictureManager.swift */,
 				17374D402CB8E35500EDCEE7 /* KeyCodeTranslators.swift */,
@@ -285,6 +288,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A11000000000000000000001 /* KoreanKeyboardRouter.swift in Sources */,
 				FC16A7AD29A97BDA00BB70A7 /* Shared.swift in Sources */,
 				84480EBE2ADC4FDA007DE5F1 /* GameController.swift in Sources */,
 				27AC751829EA339B00E8CAF7 /* URLImage.swift in Sources */,

@@ -92,6 +92,22 @@ struct SettingsView: View {
 									Toggle("", isOn: $settings.optionAsCommand)
 										.frame(width: 80)
 								}
+								CatItem("Windows Korean Keyboard") {
+									Toggle("", isOn: $settings.koreanKeyboard)
+										.frame(width: 80)
+								}
+								if settings.koreanKeyboard {
+									Text("Right Alt, 한/영, Shift+Space and Ctrl+Space toggle the host IME. Use Korean 101-key Type 1 on Windows. Overrides Option Key as Command during a stream.")
+										.font(.footnote)
+										.padding(8)
+									CatItem("Backtick (~) as 한/영") {
+										Toggle("", isOn: $settings.koreanBacktick)
+											.frame(width: 80)
+									}
+									Text("Enable only if your keyboard sends ~ for 한/영. This also remaps the real backtick key. Reconnect after changing keyboard settings.")
+										.font(.footnote)
+										.padding(8)
+								}
 							}
 							CatTitle("Video")
 							CatList {
