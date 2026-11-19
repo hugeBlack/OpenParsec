@@ -424,6 +424,8 @@ class ParsecSDKBridge: ParsecService {
 	}
 
 	func handleCursorEvent(event: ParsecClientCursorEvent, sawCursor: inout Bool) {
+		let prevHidden = mouseInfo.cursorHidden
+		let prevRelative = mouseInfo.mousePositionRelative
 		mouseInfo.cursorHidden = event.cursor.hidden
 		mouseInfo.mousePositionRelative = event.cursor.relative
 
@@ -435,7 +437,7 @@ class ParsecSDKBridge: ParsecService {
 		// a report at the picture's top left corner carries no position
 		let scale = min(clientWidth / hostWidth, clientHeight / hostHeight)
 		let atOrigin = abs(Float(event.cursor.positionX) - (clientWidth - hostWidth * scale) / 2) < 1 && abs(Float(event.cursor.positionY) - (clientHeight - hostHeight * scale) / 2) < 1
-		if didSetDimensions && !settling && !atOrigin && !isEcho && !event.cursor.relative && !event.cursor.hidden {
+		if didSetDimensions && !settling && !atOrigin && (prevHidden || prevRelative || !isEcho) && !event.cursor.relative && !event.cursor.hidden {
 			mouseInfo.mouseX = ParsecSDKBridge.clamp(Int32(clamping: event.cursor.positionX), minValue: 0, maxValue: Int32(clientWidth))
 			mouseInfo.mouseY = ParsecSDKBridge.clamp(Int32(clamping: event.cursor.positionY), minValue: 0, maxValue: Int32(clientHeight))
 		}
