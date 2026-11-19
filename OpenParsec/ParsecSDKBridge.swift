@@ -138,6 +138,7 @@ class ParsecSDKBridge: ParsecService {
 	public var mouseInfo = MouseInfo()
 	// when we last told the host where to put the cursor
 	private var lastMoveSent: CFTimeInterval = 0
+	private var dimsSetAt: CFTimeInterval = 0
 
 	init() {
 		os_log("%{public}@", log: sdkLog, "Parsec SDK Version: " + String(ParsecSDKBridge.PARSEC_VER))
@@ -289,6 +290,7 @@ class ParsecSDKBridge: ParsecService {
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat) {
 
 		ParsecClientSetDimensions(_parsec, UInt8(DEFAULT_STREAM), UInt32(width), UInt32(height), Float(scale))
+		if !didSetDimensions { dimsSetAt = CACurrentMediaTime() }
 		didSetDimensions = true
 
 		let oldSize = CGSize(width: CGFloat(clientWidth), height: CGFloat(clientHeight))
@@ -429,10 +431,11 @@ class ParsecSDKBridge: ParsecService {
 		// on the host or another guest may have moved it. an event right after our own move is just
 		// that move coming back, and before setFrame the sdk has no dims to scale the position with
 		let isEcho = CACurrentMediaTime() - lastMoveSent < 0.3
+		let settling = CACurrentMediaTime() - dimsSetAt < 1
 		// a report at the picture's top left corner carries no position
 		let scale = min(clientWidth / hostWidth, clientHeight / hostHeight)
 		let atOrigin = abs(Float(event.cursor.positionX) - (clientWidth - hostWidth * scale) / 2) < 1 && abs(Float(event.cursor.positionY) - (clientHeight - hostHeight * scale) / 2) < 1
-		if didSetDimensions && !atOrigin && !isEcho && !event.cursor.relative && !event.cursor.hidden {
+		if didSetDimensions && !settling && !atOrigin && !isEcho && !event.cursor.relative && !event.cursor.hidden {
 			mouseInfo.mouseX = ParsecSDKBridge.clamp(Int32(clamping: event.cursor.positionX), minValue: 0, maxValue: Int32(clientWidth))
 			mouseInfo.mouseY = ParsecSDKBridge.clamp(Int32(clamping: event.cursor.positionY), minValue: 0, maxValue: Int32(clientHeight))
 		}
