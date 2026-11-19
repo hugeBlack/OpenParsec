@@ -42,6 +42,7 @@ final class ClipboardSync {
 	}
 
 	private func sendIfChanged() {
+		guard SettingsHandler.clipboardSync else { return }
 		let pasteboard = UIPasteboard.general
 		guard pasteboard.changeCount != lastChangeCount,
 			UIApplication.shared.applicationState == .active,

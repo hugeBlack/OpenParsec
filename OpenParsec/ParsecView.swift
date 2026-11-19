@@ -778,6 +778,7 @@ struct ParsecView: View {
 		hideKeyboardButton = !SettingsHandler.showKeyboardButton
 		parsecViewController.updateMenuEdgeSwipe(menuHidden: hideOverlay)
 		offerHint()
+		if SettingsHandler.clipboardSync { ClipboardSync.shared.start() } else { ClipboardSync.shared.stop() }
 
 		var hostConfigChanged = false
 		if SettingsHandler.resolution != resolutionAtOpen {
