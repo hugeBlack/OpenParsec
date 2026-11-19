@@ -25,6 +25,7 @@ struct ParsecDisplayConfig: Codable, Hashable {
 }
 
 enum ParsecUserDataType: UInt32 {
+	case clipboard = 7
 	case getVideoConfig = 9
 	case getAdapterInfo = 10
 	case setVideoConfig = 11
