@@ -15,6 +15,8 @@ final class SettingsStore: ObservableObject {
 			"cursorScale": 0.5,
 			"mouseSensitivity": 1.0,
 			"optionAsCommand": false,
+			"koreanKeyboard": false,
+			"koreanBacktick": false,
 			"menuSwipeEdge": MenuSwipeEdge.off.rawValue,
 			"noOverlay": false,
 			"hideStatusBar": true,
@@ -85,6 +87,16 @@ final class SettingsStore: ObservableObject {
 	var optionAsCommand: Bool {
 		get { defaults.bool(forKey: "optionAsCommand") }
 		set { store(newValue, "optionAsCommand") }
+	}
+
+	var koreanKeyboard: Bool {
+		get { defaults.bool(forKey: "koreanKeyboard") }
+		set { store(newValue, "koreanKeyboard") }
+	}
+
+	var koreanBacktick: Bool {
+		get { defaults.bool(forKey: "koreanBacktick") }
+		set { store(newValue, "koreanBacktick") }
 	}
 
 	var menuSwipeEdge: MenuSwipeEdge {
@@ -187,6 +199,8 @@ struct SettingsHandler {
 	static var cursorScale: Double { get { SettingsStore.shared.cursorScale } set { SettingsStore.shared.cursorScale = newValue } }
 	static var mouseSensitivity: Double { get { SettingsStore.shared.mouseSensitivity } set { SettingsStore.shared.mouseSensitivity = newValue } }
 	static var optionAsCommand: Bool { get { SettingsStore.shared.optionAsCommand } set { SettingsStore.shared.optionAsCommand = newValue } }
+	static var koreanKeyboard: Bool { get { SettingsStore.shared.koreanKeyboard } set { SettingsStore.shared.koreanKeyboard = newValue } }
+	static var koreanBacktick: Bool { get { SettingsStore.shared.koreanBacktick } set { SettingsStore.shared.koreanBacktick = newValue } }
 	static var menuSwipeEdge: MenuSwipeEdge { get { SettingsStore.shared.menuSwipeEdge } set { SettingsStore.shared.menuSwipeEdge = newValue } }
 	static var noOverlay: Bool { get { SettingsStore.shared.noOverlay } set { SettingsStore.shared.noOverlay = newValue } }
 	static var hideStatusBar: Bool { get { SettingsStore.shared.hideStatusBar } set { SettingsStore.shared.hideStatusBar = newValue } }
