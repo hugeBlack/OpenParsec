@@ -607,6 +607,7 @@ struct MainView: View {
 							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 							baseAlertText = "Error gathering user info: \(info.error)"
+							showConnectionHelp = false
 							showBaseAlert = true
 						}
 					}
@@ -660,6 +661,7 @@ struct MainView: View {
 							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 							baseAlertText = "Error gathering friends: \(info.error)"
+							showConnectionHelp = false
 							showBaseAlert = true
 						}
 					}
@@ -770,7 +772,7 @@ struct MainView: View {
 		} else {
 			CParsec.disconnect()
 			baseAlertText = status.connectionMessage(connecting: true)
-			showConnectionHelp = status.isPeerConnectionFailure
+			showConnectionHelp = status.isLocalNetworkFailure
 			showBaseAlert = true
 		}
 
@@ -789,8 +791,7 @@ struct MainView: View {
 			retryingConnect = false
 			waitingForApproval = false
 		}
-		baseAlertText = "The host didn't answer the connection request within the retry limit. Check that it is online and that OpenParsec has Local Network access for same-Wi-Fi connections."
-		showConnectionHelp = true
+		baseAlertText = "\(who.hostname) didn't answer the connection request"
 		showBaseAlert = true
 	}
 
