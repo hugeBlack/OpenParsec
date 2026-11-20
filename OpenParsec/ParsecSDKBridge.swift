@@ -153,7 +153,7 @@ class ParsecSDKBridge: ParsecService {
 				ConnectionLog.shared.add("sdk \(line)")
 				if line.contains("signal_") && line.contains("] = -") {
 					let at = Date()
-					DispatchQueue.main.async { CParsec.setupError = ("SDK signaling failed", at) }
+					DispatchQueue.main.async { CParsec.setupError = (line, at) }
 				}
 			}, nil)
 
