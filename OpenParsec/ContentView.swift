@@ -43,7 +43,7 @@ struct ContentView: View {
 		if let data = loadFromKeychain(key: GLBDataModel.shared.SessionKeyChainKey) {
 			let decoder = JSONDecoder()
 
-			print("Retrieved data from keychain: \(data).\nTrying to restore session.")
+			appNote("[session] restoring saved session")
 			NetworkHandler.clinfo = try? decoder.decode(ClientInfo.self, from: data)
 			if NetworkHandler.clinfo != nil {
 				curView = .main

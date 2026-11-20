@@ -147,7 +147,8 @@ class ParsecSDKBridge: ParsecService {
 
 		ParsecSetLogCallback(
 			{ (level, msg, _) in
-				let line = "[\(level == LOG_DEBUG ? "D" : "I")] \(String(cString: msg!))"
+				guard let msg = msg else { return }
+				let line = "[\(level == LOG_DEBUG ? "D" : "I")] \(String(cString: msg))"
 				os_log("%{public}@", log: sdkLog, type: level == LOG_DEBUG ? .info : .default, line)
 				ConnectionLog.shared.add("sdk \(line)")
 				if line.contains("signal_") && line.contains("] = -") {

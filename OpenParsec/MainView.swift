@@ -32,6 +32,9 @@ struct MainView: View {
 	@State var pollTimer: Timer?
 	@State var approvalStartedAt: Date?
 	@State var connectStartedAt = Date()
+	@State private var attemptPolicy = ConnectionAttemptPolicy()
+	@State private var approvalPolls = 0
+	@State private var showConnectionHelp = false
 
 	@State var isRefreshing: Bool = false
 	@State var refreshError: String?
@@ -367,7 +370,13 @@ struct MainView: View {
 				.padding(.top, -8)
 				.frame(maxWidth: .infinity)
 				.alert(isPresented: $showBaseAlert) {
-					Alert(title: Text(baseAlertText))
+					if showConnectionHelp {
+						return Alert(title: Text("Connection failed"), message: Text(baseAlertText),
+							primaryButton: .default(Text("Open App Settings"), action: {
+								if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+							}), secondaryButton: .cancel(Text("OK")))
+					}
+					return Alert(title: Text(baseAlertText))
 				}
 
 				// Page controls
@@ -403,7 +412,10 @@ struct MainView: View {
 				.zIndex(1)
 			}
 			.onAppear(perform: initView)
-			.onDisappear { ParsecBackgroundManager.shared.onShortcutReconnect = nil }
+			.onDisappear {
+				pollTimer?.invalidate()
+				ParsecBackgroundManager.shared.onShortcutReconnect = nil
+			}
 			.disabled(busy) // disable view if busy
 
 			// Settings screen
@@ -595,6 +607,7 @@ struct MainView: View {
 							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 							baseAlertText = "Error gathering user info: \(info.error)"
+							showConnectionHelp = false
 							showBaseAlert = true
 						}
 					}
@@ -648,6 +661,7 @@ struct MainView: View {
 							guard let info: ErrorInfo = try? decoder.decode(ErrorInfo.self, from: data) else { return }
 
 							baseAlertText = "Error gathering friends: \(info.error)"
+							showConnectionHelp = false
 							showBaseAlert = true
 						}
 					}
@@ -658,6 +672,7 @@ struct MainView: View {
 	}
 
 	func connectTo(_ who: IdentifiableHostInfo, retried: Bool = false) {
+		showConnectionHelp = false
 		if NetworkWatcher.shared.noNetwork {
 			appNote("[connect] no network, not trying")
 			withAnimation {
@@ -691,8 +706,10 @@ struct MainView: View {
 
 		connectStartedAt = Date()
 		let status = CParsec.connect(who.id)
-		appNote("[connect] started, status \(status.rawValue)")
+		appNote("[connect] started, status \(status.rawValue), network \(NetworkWatcher.shared.interfaceDescription)")
 		connectPolls = 0
+		attemptPolicy = ConnectionAttemptPolicy()
+		approvalPolls = 0
 		approvalStartedAt = nil
 
 		// Polling status
@@ -704,6 +721,7 @@ struct MainView: View {
 	}
 
 	func pollConnect(_ who: IdentifiableHostInfo) {
+		guard isConnecting, attemptPolicy.tick(isActive: UIApplication.shared.applicationState == .active) else { return }
 		let status = CParsec.getStatus()
 		connectPolls += 1
 
@@ -714,7 +732,16 @@ struct MainView: View {
 			return
 		}
 
-		if status == PARSEC_CONNECTING { return } // wait
+		if status == PARSEC_CONNECTING {
+			if attemptPolicy.timedOut { retryOrGiveUp(who) }
+			return
+		}
+
+		if ConnectionAttemptPolicy.shouldRetry(isPeerFailure: status.isPeerConnectionFailure, alreadyRetried: retryingConnect) {
+			appNote("[connect] retrying peer setup, code \(status.rawValue)")
+			retryOrGiveUp(who)
+			return
+		}
 
 		if status == CONNECT_WRN_APPROVAL {
 			if approvalStartedAt == nil {
@@ -724,10 +751,11 @@ struct MainView: View {
 					return
 				}
 			}
-			let started = approvalStartedAt ?? Date()
-			approvalStartedAt = started
+			approvalStartedAt = approvalStartedAt ?? Date()
+			approvalPolls += 1
+			attemptPolicy = ConnectionAttemptPolicy()
 			if !waitingForApproval { withAnimation { waitingForApproval = true } }
-			if Date().timeIntervalSince(started) < 60 { return }
+			if approvalPolls < 60 { return }
 		}
 
 		withAnimation {
@@ -744,7 +772,8 @@ struct MainView: View {
 			}
 		} else {
 			CParsec.disconnect()
-			baseAlertText = status.readable(connecting: true)
+			baseAlertText = status.connectionMessage(connecting: true)
+			showConnectionHelp = status.isLocalNetworkFailure
 			showBaseAlert = true
 		}
 
@@ -761,6 +790,7 @@ struct MainView: View {
 		withAnimation {
 			isConnecting = false
 			retryingConnect = false
+			waitingForApproval = false
 		}
 		baseAlertText = "\(who.hostname) didn't answer the connection request"
 		showBaseAlert = true
