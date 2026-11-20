@@ -6,8 +6,62 @@ import os
 let sdkLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "sdk")
 let appLog = OSLog(subsystem: "com.aigch.OpenParsec", category: "app")
 
+final class ConnectionLog: ObservableObject {
+	static let shared = ConnectionLog()
+
+	private struct Entry {
+		var time: String
+		let text: String
+		var count: Int
+	}
+
+	@Published private(set) var lines: [String] = []
+	private var entries: [Entry] = []
+	private let lock = NSLock()
+	private var pending: [(time: String, text: String)] = []
+	private var flushScheduled = false
+	private let clock: DateFormatter = {
+		let f = DateFormatter()
+		f.dateFormat = "HH:mm:ss.S"
+		return f
+	}()
+
+	func add(_ text: String) {
+		let time = clock.string(from: Date())
+		lock.lock()
+		pending.append((time, text))
+		let schedule = !flushScheduled
+		flushScheduled = true
+		lock.unlock()
+		if schedule {
+			DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.flush() }
+		}
+	}
+
+	private func flush() {
+		lock.lock()
+		let fresh = pending
+		pending.removeAll()
+		flushScheduled = false
+		lock.unlock()
+		for item in fresh {
+			if let last = entries.indices.last, entries[last].text == item.text {
+				entries[last].count += 1
+				entries[last].time = item.time
+			} else {
+				entries.append(Entry(time: item.time, text: item.text, count: 1))
+			}
+		}
+		if entries.count > 200 {
+			entries.removeFirst(entries.count - 200)
+		}
+		lines = entries.map { "\($0.time) \($0.text)\($0.count > 1 ? " x\($0.count)" : "")" }
+	}
+}
+
 func appNote(_ text: String) {
 	os_log("%{public}@", log: appLog, text)
+	ConnectionLog.shared.add(text)
 }
 
 enum RendererType: Int {
@@ -58,6 +112,7 @@ class ParsecSDKBridge: ParsecService {
 	public var clientWidth: Float = 1920
 	public var clientHeight: Float = 1080
 	private var hasFrame = false
+	private var didSetDimensions = false
 
 	public var netProtocol: Int32 = 1
 	public var mediaContainer: Int32 = 0
@@ -81,6 +136,9 @@ class ParsecSDKBridge: ParsecService {
 	private var capsLock = false
 
 	public var mouseInfo = MouseInfo()
+	// when we last told the host where to put the cursor
+	private var lastMoveSent: CFTimeInterval = 0
+	private var dimsSetAt: CFTimeInterval = 0
 
 	init() {
 		os_log("%{public}@", log: sdkLog, "Parsec SDK Version: " + String(ParsecSDKBridge.PARSEC_VER))
@@ -90,8 +148,9 @@ class ParsecSDKBridge: ParsecService {
 		ParsecSetLogCallback(
 			{ (level, msg, _) in
 				guard let msg = msg else { return }
-				let line = String(cString: msg)
-				// SDK payloads can contain session credentials. Never log them verbatim.
+				let line = "[\(level == LOG_DEBUG ? "D" : "I")] \(String(cString: msg))"
+				os_log("%{public}@", log: sdkLog, type: level == LOG_DEBUG ? .info : .default, line)
+				ConnectionLog.shared.add("sdk \(line)")
 				if line.contains("signal_") && line.contains("] = -") {
 					let at = Date()
 					DispatchQueue.main.async { CParsec.setupError = ("SDK signaling failed", at) }
@@ -146,6 +205,7 @@ class ParsecSDKBridge: ParsecService {
 
 		self.startBackgroundTask()
 		didReleaseOnConnect = false
+		didSetDimensions = false
 
 		let status = ParsecClientConnect(_parsec, &parsecClientCfg, NetworkHandler.clinfo?.session_id, peerID)
 
@@ -173,6 +233,7 @@ class ParsecSDKBridge: ParsecService {
 		didSetResolution = false
 		ParsecClientDisconnect(_parsec)
 		audio_clear(&_audio)
+		audio_hold(false, _audioPtr)
 		ParsecBackgroundManager.shared.connectionDidEnd()
 		let status = connect(peerID)
 		if status != PARSEC_OK && status != PARSEC_CONNECTING {
@@ -213,8 +274,10 @@ class ParsecSDKBridge: ParsecService {
 
 	func getStatusEx(_ pcs: inout ParsecClientStatus) -> ParsecStatus {
 		let ans = ParsecClientGetStatus(_parsec, &pcs)
-		self.hostHeight = Float(pcs.decoder.0.height)
-		self.hostWidth = Float(pcs.decoder.0.width)
+		if pcs.decoder.0.width > 0 && pcs.decoder.0.height > 0 {
+			self.hostHeight = Float(pcs.decoder.0.height)
+			self.hostWidth = Float(pcs.decoder.0.width)
+		}
 
 		// the teardown release may not have made it out, this one goes over a socket we know is live
 		if ans == PARSEC_OK && !didReleaseOnConnect {
@@ -228,6 +291,8 @@ class ParsecSDKBridge: ParsecService {
 	func setFrame(_ width: CGFloat, _ height: CGFloat, _ scale: CGFloat) {
 
 		ParsecClientSetDimensions(_parsec, UInt8(DEFAULT_STREAM), UInt32(width), UInt32(height), Float(scale))
+		if !didSetDimensions { dimsSetAt = CACurrentMediaTime() }
+		didSetDimensions = true
 
 		let oldSize = CGSize(width: CGFloat(clientWidth), height: CGFloat(clientHeight))
 		clientWidth = Float(width)
@@ -311,6 +376,8 @@ class ParsecSDKBridge: ParsecService {
 			return
 		}
 		switch event.id {
+		case ParsecUserDataType.clipboard.rawValue:
+			ClipboardSync.shared.receive(String(cString: pointer!.assumingMemoryBound(to: CChar.self)))
 		case 11:
 			do {
 				let decoder = JSONDecoder()
@@ -361,8 +428,22 @@ class ParsecSDKBridge: ParsecService {
 
 	func handleCursorEvent(event: ParsecClientCursorEvent, sawCursor: inout Bool) {
 		let prevHidden = mouseInfo.cursorHidden
+		let prevRelative = mouseInfo.mousePositionRelative
 		mouseInfo.cursorHidden = event.cursor.hidden
 		mouseInfo.mousePositionRelative = event.cursor.relative
+
+		// cursor events are the only time the host tells us where its cursor is, so follow it, a mouse
+		// on the host or another guest may have moved it. an event right after our own move is just
+		// that move coming back, and before setFrame the sdk has no dims to scale the position with
+		let isEcho = CACurrentMediaTime() - lastMoveSent < 0.3
+		let settling = CACurrentMediaTime() - dimsSetAt < 1
+		// a report at the picture's top left corner carries no position
+		let scale = min(clientWidth / hostWidth, clientHeight / hostHeight)
+		let atOrigin = abs(Float(event.cursor.positionX) - (clientWidth - hostWidth * scale) / 2) < 1 && abs(Float(event.cursor.positionY) - (clientHeight - hostHeight * scale) / 2) < 1
+		if didSetDimensions && !settling && !atOrigin && (prevHidden || prevRelative || !isEcho) && !event.cursor.relative && !event.cursor.hidden {
+			mouseInfo.mouseX = ParsecSDKBridge.clamp(Int32(clamping: event.cursor.positionX), minValue: 0, maxValue: Int32(clientWidth))
+			mouseInfo.mouseY = ParsecSDKBridge.clamp(Int32(clamping: event.cursor.positionY), minValue: 0, maxValue: Int32(clientHeight))
+		}
 
 		if event.cursor.imageUpdate || !sawCursor {
 			sawCursor = true
@@ -374,13 +455,12 @@ class ParsecSDKBridge: ParsecService {
 			let size = event.cursor.size
 			let width = event.cursor.width
 			let height = event.cursor.height
+			guard width > 0, height > 0, Int(size) >= Int(width) * Int(height) * 4 else {
+				ParsecFree(pointer)
+				return
+			}
 			mouseInfo.cursorWidth = Int(width)
 			mouseInfo.cursorHeight = Int(height)
-
-			if prevHidden && !event.cursor.hidden {
-				mouseInfo.mouseX = Int32(event.cursor.positionX)
-				mouseInfo.mouseY = Int32(event.cursor.positionY)
-			}
 
 			mouseInfo.cursorHotX = Int(event.cursor.hotX)
 			mouseInfo.cursorHotY = Int(event.cursor.hotY)
@@ -389,9 +469,8 @@ class ParsecSDKBridge: ParsecService {
 			let render: CGColorRenderingIntent = CGColorRenderingIntent.defaultIntent
 			let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
 			let bitmapInfo: CGBitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue)
-			let providerRef: CGDataProvider? = CGDataProvider(data: NSData(bytes: pointer, length: Int(size)))
-			let cgimage: CGImage? = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef!, decode: nil, shouldInterpolate: true, intent: render)
-			if cgimage != nil {
+			if let providerRef = CGDataProvider(data: NSData(bytes: pointer, length: Int(size))),
+				let cgimage = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: Int(width) * elmentLength, space: rgbColorSpace, bitmapInfo: bitmapInfo, provider: providerRef, decode: nil, shouldInterpolate: true, intent: render) {
 				mouseInfo.cursorImg = cgimage
 			}
 			ParsecFree(pointer)
@@ -457,6 +536,7 @@ class ParsecSDKBridge: ParsecService {
 	}
 
 	func sendMousePosition(_ x: Int32, _ y: Int32) {
+		lastMoveSent = CACurrentMediaTime()
 		mouseInfo.mouseX = ParsecSDKBridge.clamp(x, minValue: 0, maxValue: Int32(self.clientWidth))
 		mouseInfo.mouseY = ParsecSDKBridge.clamp(y, minValue: 0, maxValue: Int32(self.clientHeight))
 		var motionMessage = ParsecMessage()

@@ -28,7 +28,7 @@ private let frameCallback: ParsecFrameCallback = { frame, image, opaque in
 extension ParsecFrame {
 	var isWholeNV12: Bool {
 		let w = Int(width), h = Int(height), stride = Int(fullWidth), rows = Int(fullHeight)
-		return format == FORMAT_NV12 && w > 0 && h > 0 && stride >= w && rows >= h && Int(size) >= stride * rows + stride * ((h + 1) / 2)
+		return format == FORMAT_NV12 && w > 0 && h > 0 && stride >= 2 * ((w + 1) / 2) && rows >= h && Int(size) >= stride * rows + stride * ((h + 1) / 2)
 	}
 }
 
@@ -84,6 +84,10 @@ class ParsecMetalRenderer: NSObject, MTKViewDelegate {
 	}
 
 	fileprivate func upload(_ f: ParsecFrame, _ image: UnsafeRawPointer) {
+		if let next = ParsecBackgroundManager.shared.onNextFrame {
+			ParsecBackgroundManager.shared.onNextFrame = nil
+			next()
+		}
 		let w = Int(f.width), h = Int(f.height), stride = Int(f.fullWidth), rows = Int(f.fullHeight)
 		guard f.isWholeNV12 else { return }
 		let slot = (current + 1) % planes.count

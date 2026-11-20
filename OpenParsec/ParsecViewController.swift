@@ -52,7 +52,7 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 	let staleMoveSlop: CGFloat = 24.0        // the moving finger must travel this far before a ghost is swept
 	var twoFingerDidMove = false            // true once a 2-finger gesture became a pinch/scroll (suppresses right-click)
 
-	var mouseSensitivity: Float = Float(SettingsHandler.mouseSensitivity)
+	var mouseSensitivity: Float { Float(SettingsHandler.mouseSensitivity) }
 	// Two-finger scroll-wheel accumulation, kept separate from cursor movement.
 	var lastScrollTranslation: CGPoint = .zero
 	var accumulatedScrollY: Float = 0.0
@@ -198,6 +198,12 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 		} else {
 			u?.isHidden = true
 		}
+	}
+
+	func applyFrameRate() {
+		let fps = SettingsHandler.preferredFramesPerSecond == 0 ? UIScreen.main.maximumFramesPerSecond : SettingsHandler.preferredFramesPerSecond
+		(glkView as? ParsecMetalViewController)?.metalView.preferredFramesPerSecond = fps
+		(glkView as? ParsecGLKViewController)?.glkViewController.preferredFramesPerSecond = fps
 	}
 
 	override func viewDidLoad() {
@@ -387,12 +393,16 @@ class ParsecViewController: UIViewController, UIScrollViewDelegate, ParsecTouchI
 			becomeFirstResponder()
 		}
 		// (Pinch-to-zoom is driven manually via touchOverlay; the scroll view's pinch stays off.)
+		if SettingsHandler.clipboardSync {
+			ClipboardSync.shared.start()
+		}
 	}
 
 	override func viewWillDisappear(_ animated: Bool) {
 		super.viewWillDisappear(animated)
 		UIApplication.shared.isIdleTimerDisabled = false
 		stopMomentum()
+		ClipboardSync.shared.stop()
 		if let parent = parent {
 			parent.setChildForHomeIndicatorAutoHidden(nil)
 			parent.setChildViewControllerForPointerLock(nil)

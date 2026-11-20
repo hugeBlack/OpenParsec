@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Feature request
+    url: https://github.com/hugeBlack/OpenParsec/discussions/new?category=ideas
+    about: Please post ideas and feature requests in the repo's Discussions page.
+  - name: Question
+    url: https://github.com/hugeBlack/OpenParsec/discussions/new?category=q-a
+    about: Please ask questions and get help with setup in the repo's Discussions page.
