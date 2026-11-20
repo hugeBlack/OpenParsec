@@ -753,6 +753,7 @@ struct MainView: View {
 			}
 			approvalStartedAt = approvalStartedAt ?? Date()
 			approvalPolls += 1
+			attemptPolicy = ConnectionAttemptPolicy()
 			if !waitingForApproval { withAnimation { waitingForApproval = true } }
 			if approvalPolls < 60 { return }
 		}
